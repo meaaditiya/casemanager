@@ -1,0 +1,896 @@
+/* Admin Case Management Styles - High End Professional Design */
+
+/* Base & Reset */
+.admin-case-management {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #2d3748;
+  background-color: #f7fafc;
+  overflow-x: hidden;
+}
+
+/* Scrollbars */
+.admin-sidebar::-webkit-scrollbar, 
+.admin-tab-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track,
+.admin-tab-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb,
+.admin-tab-content::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover,
+.admin-tab-content::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 360px;
+  height: 100vh;
+  background-color: white;
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
+}
+
+.admin-sidebar h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem;
+  color: #1a202c;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Filters */
+.admin-filters {
+  margin-bottom: 1.5rem;
+}
+
+.admin-search {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.admin-search:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.admin-select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  background-color: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+}
+
+.admin-select:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+/* Cases List */
+.admin-cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.admin-no-cases {
+  padding: 1.5rem;
+  text-align: center;
+  color: #718096;
+  font-size: 0.875rem;
+  border: 1px dashed #cbd5e0;
+  border-radius: 0.375rem;
+  margin-top: 1rem;
+}
+
+.admin-case-item {
+  padding: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-case-item:hover {
+  border-color: #cbd5e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.admin-case-item.selected {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 1px #3182ce, 0 2px 4px rgba(49, 130, 206, 0.1);
+}
+
+.admin-case-number {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #4a5568;
+}
+
+.admin-case-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-case-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.375rem;
+}
+
+.admin-case-status {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status-filed {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.status-pending {
+  background-color: #fefcbf;
+  color: #975a16;
+}
+
+.status-under-investigation {
+  background-color: #e9d8fd;
+  color: #553c9a;
+}
+
+.status-hearing-in-progress {
+  background-color: #feebc8;
+  color: #9c4221;
+}
+
+.status-awaiting-judgment {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+.status-disposed {
+  background-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.status-appealed {
+  background-color: #fed7d7;
+  color: #c53030;
+}
+
+.admin-case-type {
+  font-size: 0.6875rem;
+  color: #718096;
+}
+
+.admin-case-approval {
+  margin-top: 0.5rem;
+}
+
+.approval-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.approved {
+  background-color: #c6f6d5;
+  color: #2f855a;
+}
+
+.pending {
+  background-color: #feebc8;
+  color: #9c4221;
+}
+
+.approval-badge.large {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Main Content */
+.admin-content {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.admin-select-case {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 50vh;
+}
+
+.admin-select-case h3 {
+  color: #718096;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Case Details */
+.admin-case-details {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-case-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1a202c;
+}
+
+.admin-approval-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Loading & Error States */
+.admin-loading,
+.admin-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1rem;
+  color: #4a5568;
+}
+
+.admin-error {
+  color: #e53e3e;
+}
+
+/* Buttons */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-btn.small {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.admin-btn.primary {
+  background-color: #3182ce;
+  color: white;
+  border-color: #3182ce;
+}
+
+.admin-btn.primary:hover {
+  background-color: #2c5282;
+  border-color: #2c5282;
+}
+
+.admin-btn.approve {
+  background-color: #38a169;
+  color: white;
+  border-color: #38a169;
+}
+
+.admin-btn.approve:hover {
+  background-color: #2f855a;
+  border-color: #2f855a;
+}
+
+.admin-btn.reject {
+  background-color: #e53e3e;
+  color: white;
+  border-color: #e53e3e;
+}
+
+.admin-btn.reject:hover {
+  background-color: #c53030;
+  border-color: #c53030;
+}
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  overflow-x: auto;
+}
+
+.admin-tab {
+  padding: 0.875rem 1rem;
+  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  background-color: transparent;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.admin-tab:hover {
+  color: #4a5568;
+}
+
+.admin-tab.active {
+  color: #3182ce;
+  border-bottom-color: #3182ce;
+}
+
+.admin-tab-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 170px);
+}
+
+/* Case Sections */
+.admin-case-section {
+  margin-bottom: 2rem;
+  background-color: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-case-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2d3748;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.admin-detail-row {
+  display: flex;
+  margin-bottom: 0.625rem;
+  font-size: 0.875rem;
+}
+
+.admin-detail-label {
+  width: 180px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.admin-detail-value {
+  flex: 1;
+  color: #2d3748;
+}
+
+/* Forms */
+.admin-form-row {
+  display: flex;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.admin-form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-form-group.full-width {
+  width: 100%;
+}
+
+.admin-form-group label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.admin-form-group input,
+.admin-form-group select,
+.admin-form-group textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.admin-form-group input:focus,
+.admin-form-group select:focus,
+.admin-form-group textarea:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.admin-form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+}
+
+.admin-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.admin-form-group input[type="file"] {
+  padding: 0.375rem;
+}
+
+.admin-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.admin-form-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.admin-form-section h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+  color: #4a5568;
+}
+
+/* Hearings */
+.admin-hearing-form,
+.admin-status-form,
+.admin-document-form,
+.admin-office-form {
+  background-color: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.admin-hearing-form h3,
+.admin-status-form h3,
+.admin-document-form h3,
+.admin-office-form h3,
+.admin-hearings-list h3,
+.admin-documents-list h3,
+.admin-status-history h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2d3748;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.admin-hearings-list,
+.admin-documents-list,
+.admin-status-history {
+  background-color: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-no-hearings,
+.admin-no-documents {
+  padding: 1.5rem;
+  text-align: center;
+  color: #718096;
+  font-size: 0.875rem;
+  border: 1px dashed #cbd5e0;
+  border-radius: 0.375rem;
+}
+
+.admin-hearings-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-hearing-item {
+  position: relative;
+  padding: 1rem;
+  border-left: 2px solid #3182ce;
+  background-color: #f8fafc;
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.admin-hearing-date {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 0.875rem;
+  margin-bottom: 0.375rem;
+}
+
+.admin-hearing-type {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+  margin-bottom: 0.5rem;
+}
+
+.admin-hearing-remarks {
+  font-size: 0.8125rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.admin-hearing-next-date {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+}
+
+.admin-hearing-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Documents Table */
+.admin-documents-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-documents-table th,
+.admin-documents-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-documents-table th {
+  font-weight: 600;
+  color: #4a5568;
+  background-color: #f7fafc;
+}
+
+.admin-documents-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status History */
+.admin-status-current {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.admin-status-current strong {
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.admin-status-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+.admin-status-note {
+  padding: 0.75rem;
+  background-color: #f7fafc;
+  border-left: 3px solid #cbd5e0;
+  border-radius: 0 0.25rem 0.25rem 0;
+  font-size: 0.8125rem;
+  color: #718096;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .admin-case-management {
+    flex-direction: column;
+  }
+  
+  .admin-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  
+  .admin-content {
+    padding: 1rem;
+  }
+  
+  .admin-form-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .admin-form-group {
+    width: 100%;
+  }
+  
+  .admin-detail-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .admin-detail-label {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0 1rem;
+  }
+  
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .admin-tab {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+  
+  .admin-case-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .admin-documents-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-case-item {
+    padding: 0.75rem;
+  }
+  
+  .admin-tab-content {
+    padding: 1rem;
+  }
+  
+  .admin-case-section {
+    padding: 1rem;
+  }
+  
+  .admin-hearing-form,
+  .admin-status-form,
+  .admin-document-form,
+  .admin-office-form,
+  .admin-hearings-list,
+  .admin-documents-list,
+  .admin-status-history {
+    padding: 1rem;
+  }
+}
+.admin-documents-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+}
+
+.admin-documents-table thead {
+  background-color: #f8f9fa;
+}
+
+.admin-documents-table th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.admin-documents-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.admin-documents-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.admin-documents-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-documents-table td {
+  padding: 12px 15px;
+  color: #212529;
+  vertical-align: middle;
+}
+
+/* File name column with ellipsis for long names */
+.admin-documents-table td:nth-child(3) {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add tooltip on hover for truncated file names */
+.file-name-cell {
+  position: relative;
+  cursor: default;
+}
+
+.file-name-cell:hover::after {
+  content: attr(data-filename);
+  position: absolute;
+  bottom: 125%;
+  left: 0;
+  background: #333;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1;
+  font-size: 12px;
+}
+
+/* Improved button styling */
+.admin-btn.small {
+  padding: 6px 12px;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.admin-btn.small:hover {
+  background-color: #3367d6;
+}
+
+.admin-btn.small:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.4);
+}
+
+/* File type badge styling */
+.document-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.document-type-badge.legal {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+}
+
+.document-type-badge.evidence {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+}
+
+.document-type-badge.notice {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
+.document-type-badge.other {
+  background-color: #f5f5f5;
+  color: #616161;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .admin-documents-table {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .admin-documents-table td:nth-child(3) {
+    max-width: 120px;
+  }
+}

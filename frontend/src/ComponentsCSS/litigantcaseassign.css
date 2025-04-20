@@ -1,0 +1,395 @@
+/* LitigantAdvocateSearch - Modern Official Styles
+ * Uses "las-" prefix to avoid affecting other components
+ */
+
+ .las-container {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: #262626;
+    background-color: #fafbfc;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+  
+  .las-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: #102a43;
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 0.75rem;
+  }
+  
+  /* Tab Navigation */
+  .las-tabs {
+    display: flex;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+  }
+  
+  .las-tab {
+    position: relative;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+  }
+  
+  .las-tab:hover {
+    color: #2b6cb0;
+  }
+  
+  .las-tab-active {
+    color: #2b6cb0;
+    font-weight: 600;
+  }
+  
+  .las-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #3182ce;
+  }
+  
+  .las-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+    background-color: #3182ce;
+    color: white;
+    border-radius: 9999px;
+    padding: 0 0.5rem;
+    margin-left: 0.5rem;
+  }
+  
+  /* Alert Messages */
+  .las-alert {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .las-alert-error {
+    background-color: #fff5f5;
+    border-left: 4px solid #f56565;
+    color: #c53030;
+  }
+  
+  .las-alert-success {
+    background-color: #f0fff4;
+    border-left: 4px solid #48bb78;
+    color: #2f855a;
+  }
+  
+  .las-alert-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+  }
+  
+  /* Tables */
+  .las-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .las-table th {
+    background-color: #f7fafc;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    color: #4a5568;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .las-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #4a5568;
+    font-size: 0.875rem;
+  }
+  
+  .las-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .las-table tr:hover {
+    background-color: #f7fafc;
+  }
+  
+  /* Case Details Card */
+  .las-case-card {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .las-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+  }
+  
+  .las-card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.25rem;
+    background-color: #3182ce;
+    margin-right: 0.75rem;
+    border-radius: 2px;
+  }
+  
+  .las-case-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .las-detail-item {
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+  }
+  
+  .las-detail-label {
+    font-weight: 600;
+    color: #4a5568;
+    min-width: 140px;
+    margin-right: 0.75rem;
+  }
+  
+  .las-detail-value {
+    color: #2d3748;
+  }
+  
+  .las-detail-note {
+    font-size: 0.875rem;
+    color: #718096;
+    margin-top: 0.25rem;
+  }
+  
+  /* Button Styles */
+  .las-btn {
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    outline: none;
+    border: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .las-btn:focus {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  }
+  
+  .las-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .las-btn-primary {
+    background-color: #3182ce;
+    color: white;
+  }
+  
+  .las-btn-primary:hover:not(:disabled) {
+    background-color: #2b6cb0;
+  }
+  
+  .las-btn-success {
+    background-color: #48bb78;
+    color: white;
+  }
+  
+  .las-btn-success:hover:not(:disabled) {
+    background-color: #38a169;
+  }
+  
+  .las-btn-danger {
+    background-color: #e53e3e;
+    color: white;
+  }
+  
+  .las-btn-danger:hover:not(:disabled) {
+    background-color: #c53030;
+  }
+  
+  .las-btn-secondary {
+    background-color: #805ad5;
+    color: white;
+  }
+  
+  .las-btn-secondary:hover:not(:disabled) {
+    background-color: #6b46c1;
+  }
+  
+  .las-btn-sm {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .las-btn-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  /* Search Input */
+  .las-search {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: #4a5568;
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 12px) center;
+    padding-right: 2.5rem;
+    transition: border-color 0.2s ease;
+  }
+  
+  .las-search:focus {
+    outline: none;
+    border-color: #3182ce;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  }
+  
+  /* Advocate Cards Grid */
+  .las-advocate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  
+  .las-advocate-card {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .las-advocate-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .las-advocate-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+  }
+  
+  .las-advocate-info {
+    color: #4a5568;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .las-advocate-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  /* Loading indicator */
+  .las-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #4a5568;
+  }
+  
+  .las-loading::before {
+    content: '';
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-top-color: #3182ce;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    animation: las-spinner 0.8s linear infinite;
+  }
+  
+  @keyframes las-spinner {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Request cards */
+  .las-request-card {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .las-request-subcard {
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+  }
+  
+  .las-request-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1rem;
+  }
+  
+  .las-empty-state {
+    text-align: center;
+    color: #718096;
+    padding: 3rem 0;
+    font-size: 0.875rem;
+  }

@@ -1,0 +1,220 @@
+/* Noticelistform.css */
+
+/* Container for the entire notice list - now with horizontal scrolling */
+.notice-list-container {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto; /* Enable horizontal scrolling */
+  white-space: nowrap; /* Prevent line wrapping */
+}
+
+/* Table styles */
+.notice-table {
+  width: 100%;
+  min-width: 900px; /* Minimum width to ensure all columns display properly */
+  border-collapse: collapse;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Table header styles */
+.table-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.table-header-cell {
+  padding: 16px;
+  text-align: left;
+  font-weight: 500;
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Set specific widths for each column */
+.table-header-cell:nth-child(1),
+.table-cell:nth-child(1) {
+  width: 30%;
+}
+
+.table-header-cell:nth-child(2),
+.table-cell:nth-child(2) {
+  width: 15%;
+}
+
+.table-header-cell:nth-child(3),
+.table-cell:nth-child(3) {
+  width: 20%;
+}
+
+.table-header-cell:nth-child(4),
+.table-cell:nth-child(4) {
+  width: 15%;
+}
+
+.table-header-cell:nth-child(5),
+.table-cell:nth-child(5) {
+  width: 20%;
+  min-width: 180px; /* Ensure action buttons have enough space */
+}
+
+/* Table body styles */
+.table-body {
+  font-size: 0.95rem;
+}
+
+.table-row {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.15s ease;
+}
+
+.table-row:hover {
+  background-color: #f8f9fa;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-cell {
+  padding: 16px;
+  vertical-align: middle;
+}
+
+/* Notice title styles */
+.notice-title {
+  font-weight: 500;
+  color: #212529;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge styles for visibility and status */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.badge-green {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+}
+
+.badge-red {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+.badge-purple {
+  background-color: rgba(111, 66, 193, 0.1);
+  color: #6f42c1;
+}
+
+/* Date text styles */
+.date-text {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Action cell specific styles */
+.table-cell:last-child {
+  text-align: left;
+  white-space: nowrap;
+  padding-right: 20px; /* Add extra padding to ensure buttons aren't cut off */
+}
+
+/* Button styles for actions - make sure they're side by side */
+.btn-edit, .btn-delete {
+  display: inline-block; 
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  margin-right: 8px;
+}
+
+.btn-edit {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+.btn-edit:hover {
+  background-color: #e0e7ff;
+}
+
+.btn-delete {
+  background-color: #fff1f0;
+  color: #ef4444;
+}
+
+.btn-delete:hover {
+  background-color: #fee2e2;
+}
+
+/* Loading state */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4f46e5;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+}
+
+/* Add a subtle scrollbar style for better UX */
+.notice-list-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.notice-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.notice-list-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.notice-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Keep layout consistent even on larger screens by maintaining the scrollable container */
+@media (min-width: 1200px) {
+  .notice-table {
+    min-width: 900px; /* Maintain minimum width even on larger screens */
+  }
+}

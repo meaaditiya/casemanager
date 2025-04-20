@@ -1,0 +1,311 @@
+/* Admin Meeting Panel - Sophisticated Professional Design */
+
+/* Base Layout & General Styling */
+.admin-panel {
+    background-color: #fff;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2.5rem;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1a2138;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.03);
+  }
+  
+  /* Panel Header */
+  .panel-title {
+    margin: 0 0 2rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 1.25rem;
+  }
+  
+  /* Forms and Inputs */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .date-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #475569;
+  }
+  
+  .form-input, .case-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    background-color: #f8fafc;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.2s ease;
+  }
+  
+  .form-input:focus, .case-select:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background-color: #fff;
+  }
+  
+  .form-input::placeholder {
+    color: #94a3b8;
+  }
+  
+  .case-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+  }
+  
+  .case-selection {
+    margin-bottom: 2rem;
+  }
+  
+  /* Checkboxes */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.75rem;
+  }
+  
+  .form-checkbox {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 0.25rem;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    position: relative;
+    background-color: #fff;
+    transition: all 0.2s ease;
+  }
+  
+  .form-checkbox:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+  
+  .form-checkbox:checked::after {
+    content: "";
+    position: absolute;
+    top: 0.25rem;
+    left: 0.4rem;
+    width: 0.375rem;
+    height: 0.625rem;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  
+  .form-checkbox:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .checkbox-label {
+    font-size: 0.95rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  /* Buttons */
+  .button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+  
+  .btn-primary {
+    background-color: #3b82f6;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2563eb;
+  }
+  
+  .btn-danger {
+    background-color: #fff;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+  }
+  
+  .btn-danger:hover {
+    background-color: #fef2f2;
+  }
+  
+  .btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  
+  /* Messages */
+  .message {
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .success {
+    background-color: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    color: #166534;
+  }
+  
+  .error {
+    background-color: #fef2f2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+  }
+  
+  .info {
+    background-color: #f0f7ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e40af;
+  }
+  
+  /* Loading Indicator */
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background-color: #f8fafc;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  
+  .loading-spinner {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Info Box */
+  .info-box {
+    background-color: #f8fafc;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .info-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #0f172a;
+  }
+  
+  .info-text {
+    font-size: 0.95rem;
+    margin: 0.5rem 0;
+    color: #334155;
+    line-height: 1.5;
+  }
+  
+  /* Empty States & Prompts */
+  .no-cases-message,
+  .select-case-prompt {
+    padding: 2rem;
+    text-align: center;
+    color: #64748b;
+    background-color: #f8fafc;
+    border-radius: 0.5rem;
+    border: 1px dashed #e2e8f0;
+    font-size: 0.95rem;
+  }
+  
+  /* Media Queries */
+  @media (max-width: 768px) {
+    .admin-panel {
+      padding: 1.5rem;
+    }
+  
+    .date-group {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  
+    .button-group {
+      flex-direction: column;
+    }
+  
+    .btn {
+      width: 100%;
+    }
+  }
+  
+  /* Smooth Transitions */
+  .meeting-form {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  
+  .case-select:focus {
+    transform: translateY(-1px);
+  }
+  
+  /* Focus Styles for Accessibility */
+  button:focus, select:focus, input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  
+  /* Print Styles */
+  @media print {
+    .admin-panel {
+      box-shadow: none;
+      padding: 0;
+    }
+    
+    .button-group {
+      display: none;
+    }
+  }

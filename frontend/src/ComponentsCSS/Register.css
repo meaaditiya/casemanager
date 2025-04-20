@@ -1,0 +1,140 @@
+/* Global Styles */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to right, #f4f7fc, #dde5f0); /* Subtle fade */
+    color: #333;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Container */
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+  
+  /* Registration Box */
+  .max-w-2xl {
+    width: 100%;
+    max-width: 600px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+  }
+  
+  /* Headings */
+  h2 {
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 15px;
+  }
+  
+  /* Error Box */
+  .bg-red-100 {
+    background-color: #ffe6e6;
+    border-left: 4px solid #ff4d4d;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 5px;
+  }
+  
+  /* Form Fields */
+  label {
+    font-weight: 500;
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+  }
+  
+  input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: 0.3s ease-in-out;
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    border-color: #2c3e50;
+    box-shadow: 0 0 5px rgba(44, 62, 80, 0.2);
+    outline: none;
+  }
+  
+  /* Grid Layout */
+  .grid {
+    display: grid;
+    gap: 15px;
+  }
+  
+  .grid-cols-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 768px) {
+    .grid-cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  /* Buttons */
+  button {
+    width: 100%;
+    background: #2c3e50;
+    color: white;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    transition: 0.3s ease-in-out;
+    cursor: pointer;
+  }
+  
+  button:hover {
+    background: #1a252f;
+  }
+  
+  /* OTP Section */
+  .otp-box {
+    background: #f8f9fa;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+  }
+  
+  /* Checkbox & Practice Section */
+  .flex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .max-w-2xl {
+      padding: 20px;
+    }
+    
+    button {
+      font-size: 14px;
+    }
+  }
+  

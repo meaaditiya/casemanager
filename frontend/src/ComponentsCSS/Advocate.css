@@ -1,0 +1,329 @@
+/* Advocate.css - Refined Professional Authentication Page Styling */
+
+/* Base styling and reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+ 
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  color: #1e293b;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Auth container with layered glass effect */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  position: relative;
+  z-index: 1;
+}
+
+/* Glass effect overlay */
+.auth-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: none;
+  z-index: -1;
+}
+
+/* Elegant particle elements */
+.auth-container::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%232563eb' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  z-index: -1;
+}
+
+/* Modern auth box with frosted glass effect */
+.auth-box {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 3.5rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+    0 10px 30px -5px rgba(29, 78, 216, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform: translateY(0);
+}
+
+.auth-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 30px 60px -15px rgba(0, 0, 0, 0.2),
+    0 15px 40px -10px rgba(29, 78, 216, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+/* Elegant top accent with animated gradient */
+.auth-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8, #60a5fa, #2563eb);
+  background-size: 300% 100%;
+  animation: gradientShift 8s ease infinite;
+  z-index: 3;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtle pattern overlay */
+.auth-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231e40af' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M0 20L20 0h20v20L20 40H0V20zm20 10l10-10L20 10 10 20l10 10z'/%3E%3C/g%3E%3C/svg%3E");
+  z-index: 0;
+}
+
+/* Content positioning */
+.auth-box > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Heading styling with sophisticated text gradient */
+.auth-box h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #1e40af 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+  animation: textGradient 4s ease infinite;
+}
+
+@keyframes textGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Subtext styling with custom spacing */
+.auth-box .subtext {
+  color: #475569;
+  margin-bottom: 3rem;
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0.015em;
+  position: relative;
+  display: inline-block;
+}
+
+.auth-box .subtext::after {
+  content: '';
+  position: absolute;
+  bottom: -1.25rem;
+  left: 25%;
+  right: 25%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29, 78, 216, 0.2), transparent);
+}
+
+/* Auth buttons container */
+.auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* Button base styling */
+.auth-button {
+  padding: 1.125rem 2rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 1.125rem;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.025em;
+  outline: none;
+}
+
+/* Login button styling with enhanced 3D effect */
+.auth-button.login {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 
+    0 4px 12px -2px rgba(29, 78, 216, 0.4), 
+    0 2px 6px -1px rgba(29, 78, 216, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(0);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.auth-button.login:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 10px 20px -5px rgba(29, 78, 216, 0.5), 
+    0 6px 12px -3px rgba(29, 78, 216, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.auth-button.login:active {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 5px 10px -3px rgba(29, 78, 216, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Register button styling with refined border effect */
+.auth-button.register {
+  background: rgba(255, 255, 255, 0.7);
+  color: #1e40af;
+  border: 2px solid rgba(29, 78, 216, 0.2);
+  box-shadow: 
+    0 2px 6px -1px rgba(0, 0, 0, 0.05),
+    0 1px 4px -1px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.auth-button.register:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(29, 78, 216, 0.4);
+  transform: translateY(-3px);
+  color: #1e3a8a;
+  box-shadow: 
+    0 6px 12px -2px rgba(29, 78, 216, 0.15),
+    0 3px 6px -1px rgba(29, 78, 216, 0.1);
+}
+
+.auth-button.register:active {
+  transform: translateY(-1px);
+  background: rgba(29, 78, 216, 0.05);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Button shine animation on hover */
+.auth-button.login::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(45deg) translateX(-100%);
+  transition: transform 0.7s ease-in-out;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.auth-button.login:hover::after {
+  transform: rotate(45deg) translateX(100%);
+}
+
+/* Add pulsing glow effect for login button */
+@keyframes pulsateGlow {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.auth-button.login {
+  animation: pulsateGlow 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+.auth-button.login:hover {
+  animation: none;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .auth-box {
+    padding: 2.5rem 2rem;
+    max-width: 95%;
+  }
+  
+  .auth-box h2 {
+    font-size: 2rem;
+  }
+  
+  .auth-box .subtext {
+    font-size: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  
+  .auth-button {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+/* For very small screens */
+@media (max-width: 400px) {
+  .auth-container {
+    padding: 1rem;
+  }
+  
+  .auth-box {
+    padding: 2rem 1.5rem;
+    border-radius: 12px;
+  }
+  
+  .auth-box h2 {
+    font-size: 1.75rem;
+  }
+  
+  .auth-box .subtext::after {
+    bottom: -1rem;
+  }
+  
+  .auth-buttons {
+    gap: 1rem;
+  }
+}
