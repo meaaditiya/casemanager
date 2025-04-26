@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate,Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Check, X, LogOut, User, FileText, Calendar, Database, ShieldCheck,Info,Book,Users } from 'lucide-react';
+import { Check, X, LogOut, User, FileText, Calendar, Database, ShieldCheck, Info, Book, Users } from 'lucide-react';
 import '../ComponentsCSS/Clerkdashboard.css';
+
+// Import components with the correct paths
+import NoticePanel from '../Components/NoticePanel';
+import AdminCalendar from '../Components/AdminCalendar';
+import AdminMeeting from '../Components/Adminmeeting';
+import AdminCaseHandle from '../Components/Admincasehandle';
+import emblem from "../images/aadiimage4.svg";
+import logo from "../images/aadiimage4.png";
+
 const ClerkDashboard = () => {
     // Main Dashboard State
     const [profile, setProfile] = useState(null);
@@ -12,6 +21,8 @@ const ClerkDashboard = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [logoutPassword, setLogoutPassword] = useState('');
     const [showVerificationSection, setShowVerificationSection] = useState(false);
+    const [activeComponent, setActiveComponent] = useState('dashboard');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State for sidebar toggle
     const navigate = useNavigate();
 
     // Advocate Verification State
@@ -98,7 +109,6 @@ const ClerkDashboard = () => {
         setIsGeneratingSignature(true);
         try {
             const timestamp = new Date().toISOString();
-            // Generate certificate hash
             const encoder = new TextEncoder();
             const data = encoder.encode(signaturePin + timestamp + profile.clerk_id);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -179,7 +189,7 @@ const ClerkDashboard = () => {
     const handleLogoutAll = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/clerk/logout-all', 
+            await axios.post('http://localhost:5000/api/clerk/logout-all',
                 { password: logoutPassword },
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
@@ -199,49 +209,108 @@ const ClerkDashboard = () => {
         setSignaturePin('');
         setSignatureStatus(null);
     };
-    document.addEventListener('DOMContentLoaded', function() {
-        const sidebarToggle = document.querySelector('.sidebar-toggle');
-        const sidebar = document.querySelector('.court-clerk-sidebar');
-        const sidebarOverlay = document.createElement('div');
-        sidebarOverlay.className = 'court-clerk-sidebar-overlay';
-        document.body.appendChild(sidebarOverlay);
-        
-        // Toggle sidebar
-        sidebarToggle.addEventListener('click', function() {
-          sidebar.classList.toggle('active');
-          sidebarOverlay.classList.toggle('active');
-        });
-        
-        // Close sidebar when clicking outside
-        sidebarOverlay.addEventListener('click', function() {
-          sidebar.classList.remove('active');
-          sidebarOverlay.classList.remove('active');
-        });
-        
-        // Mobile menu toggle
-        const mobileMenuToggle = document.querySelector('.court-clerk-mobile-menu-toggle');
-        const mobileMenu = document.querySelector('.court-clerk-mobile-menu');
-        
-        if (mobileMenuToggle && mobileMenu) {
-          mobileMenuToggle.addEventListener('click', function() {
-            mobileMenu.classList.toggle('active');
-          });
+
+    // Navigation handler
+    const handleNavigation = (component) => {
+        setActiveComponent(component);
+        if (component === 'verifications') {
+            setShowVerificationSection(true);
+        } else {
+            setShowVerificationSection(false);
         }
-        
-        // Close mobile menu on window resize
-        window.addEventListener('resize', function() {
-          if (window.innerWidth > 640) {
-            if (mobileMenu) {
-              mobileMenu.classList.remove('active');
-            }
-          }
-          
-          if (window.innerWidth > 992) {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-          }
-        });
-      });
+        setIsSidebarOpen(false); // Close sidebar on navigation
+    };
+
+    // Sidebar toggle handler
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    // Dashboard Content Handler
+    const renderContent = () => {
+        switch (activeComponent) {
+            case 'dashboard':
+                return (
+                    <section className="court-clerk-stats">
+                        <div className="court-clerk-stat-card">
+                            <h3 className="court-clerk-stat-title">Active Cases</h3>
+                            <p className="court-clerk-stat-value">0</p>
+                        </div>
+                        <div className="court-clerk-stat-card">
+                            <h3 className="court-clerk-stat-title">Upcoming Hearings</h3>
+                            <p className="court-clerk-stat-value">0</p>
+                        </div>
+                        <div className="court-clerk-stat-card">
+                            <h3 className="court-clerk-stat-title">Pending Documents</h3>
+                            <p className="court-clerk-stat-value">0</p>
+                        </div>
+                    </section>
+                );
+            case 'verifications':
+                return (
+                    <div className="court-clerk-verification-section">
+                        <h2 className="court-clerk-verification-title">Advocate Verification Management</h2>
+                        <div className="court-clerk-unverified-section">
+                            <h3 className="court-clerk-section-heading">Pending Verifications</h3>
+                            <div className="court-clerk-advocates-grid">
+                                {advocates.unverifiedAdvocates.map(advocate => (
+                                    <div key={advocate.advocate_id} className="court-clerk-advocate-card">
+                                        <h4 className="court-clerk-advocate-name">{advocate.name}</h4>
+                                        <p className="court-clerk-advocate-detail">Enrollment No: {advocate.enrollment_no}</p>
+                                        <p className="court-clerk-advocate-detail">District: {advocate.practice_details.district}</p>
+                                        <p className="court-clerk-advocate-detail">Bar ID: {advocate.barId}</p>
+                                        <div className="court-clerk-card-actions">
+                                            <button
+                                                onClick={() => viewCOPDocument(advocate.advocate_id)}
+                                                className="court-clerk-view-doc-btn"
+                                            >
+                                                View COP Document
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedAdvocate(advocate);
+                                                    setShowVerificationModal(true);
+                                                }}
+                                                className="court-clerk-verify-btn"
+                                            >
+                                                Verify Advocate
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="court-clerk-verified-section">
+                            <h3 className="court-clerk-section-heading">Verified Advocates</h3>
+                            <div className="court-clerk-advocates-grid">
+                                {advocates.verifiedAdvocates.map(advocate => (
+                                    <div key={advocate.advocate_id} className="court-clerk-advocate-card court-clerk-verified">
+                                        <h4 className="court-clerk-advocate-name">{advocate.name}</h4>
+                                        <p className="court-clerk-advocate-detail">Enrollment No: {advocate.enrollment_no}</p>
+                                        <p className="court-clerk-advocate-detail">District: {advocate.practice_details.district}</p>
+                                        <p className="court-clerk-advocate-detail">Bar ID: {advocate.barId}</p>
+                                        <p className="court-clerk-verification-date">
+                                            Verified On: {new Date(advocate.verificationDate).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'noticepanel':
+                return <NoticePanel />;
+            case 'casemanagement':
+                return <AdminCaseHandle />;
+            case 'calendar':
+                return <AdminCalendar />;
+            case 'meetings':
+                return <AdminMeeting />;
+            default:
+                return <div>Select an option from the sidebar</div>;
+        }
+    };
+
     if (loading) {
         return (
             <div className="clerk-loading-container">
@@ -255,7 +324,16 @@ const ClerkDashboard = () => {
             {/* Header */}
             <header className="court-clerk-header">
                 <div className="court-clerk-header-left">
-                    <h1 className="court-clerk-title">Welcome To Clerk Dashboard</h1>
+                    <button className="sidebar-toggle" onClick={toggleSidebar}>
+                        ☰
+                    </button>
+                    <div className="emblem-logo">
+                                          <div className="emblem-image"><img src={emblem} alt="Aaditiya Tyagi" ></img></div>
+                                        </div>
+                                        <div className="justice-logo">
+                                          <div className="justice-image"><img src={logo} alt="Aaditiya Tyagi" ></img></div>
+                                        </div>
+                    <h1 className="court-clerk-title">Admin Panel</h1>
                 </div>
                 <div className="court-clerk-header-right">
                     <div className="court-clerk-logout-buttons">
@@ -276,115 +354,112 @@ const ClerkDashboard = () => {
                 </div>
             </header>
 
+            {/* Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="court-clerk-sidebar-overlay"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+
             {/* Main Content */}
             <div className="court-clerk-content">
                 {/* Sidebar */}
-                <aside className="court-clerk-sidebar">
+                <aside className={`court-clerk-sidebar ${isSidebarOpen ? 'active' : ''}`}>
                     <nav className="court-clerk-nav">
-                        <button className="court-clerk-nav-btn">
-                            <FileText className="court-clerk-nav-icon" />
-                            Cases
-                        </button>
-                        <button className="court-clerk-nav-btn">
-                            <Calendar className="court-clerk-nav-icon" />
-                            Schedule
-                        </button>
-                        <button 
-                            className="court-clerk-nav-btn"
-                            onClick={() => setShowVerificationSection(!showVerificationSection)}
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'dashboard' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('dashboard')}
                         >
-                            <ShieldCheck className="court-clerk-nav-icon" />
-                            Verifications
+                            <Database className="court-clerk-nav-icon" />
+                            Dashboard
                         </button>
-                        <Link to="/noticepanel" className="court-clerk-nav-btn">
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'casemanagement' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('casemanagement')}
+                        >
+                            <FileText className="court-clerk-nav-icon" />
+                            Case Management Panel 
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'calendar' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('calendar')}
+                        >
+                            <Calendar className="court-clerk-nav-icon" />
+                             Set Calendar 
+                        </button>
+                       
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'noticepanel' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('noticepanel')}
+                        >
                             <Info className="court-clerk-nav-icon" />
                             Notice Panel
-                        </Link>
-                        <Link to="/admincasehandle" className="court-clerk-nav-btn">
-                            <Book className="court-clerk-nav-icon" />
-                            Case Management Panel
-                        </Link>
-                        <Link to="/admincalendar" className="court-clerk-nav-btn">
-                            <Calendar className="court-clerk-nav-icon" />
-                            Set Calendar
-                        </Link>
-                        <Link to="/adminmeeting" className="court-clerk-nav-btn">
+                        </button>
+     
+                   
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'meetings' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('meetings')}
+                        >
                             <Users className="court-clerk-nav-icon" />
-                            Set Meetings
-                        </Link>
+                            Schedule Meetings
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'verifications' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('verifications')}
+                        >
+                            <ShieldCheck className="court-clerk-nav-icon" />
+                             Advocate Verifications
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'notifications' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('notifications')}
+                        >
+                            <Info className="court-clerk-nav-icon" />
+                            Notifications
+                        </button>
                     </nav>
                 </aside>
 
                 {/* Main Content Area */}
                 <main className="court-clerk-main">
-                    {/* Stats Section */}
-                    <section className="court-clerk-stats">
-                        <div className="court-clerk-stat-card">
-                            <h3 className="court-clerk-stat-title">Total Cases</h3>
-                            <p className="court-clerk-stat-value">0</p>
-                        </div>
-                        <div className="court-clerk-stat-card">
-                            <h3 className="court-clerk-stat-title">Pending Cases</h3>
-                            <p className="court-clerk-stat-value">0</p>
-                        </div>
-                        <div className="court-clerk-stat-card">
-                            <h3 className="court-clerk-stat-title">Upcoming Hearings</h3>
-                            <p className="court-clerk-stat-value">0</p>
-                        </div>
-                    </section>
-
-                    {/* Verification Section */}
-                    {showVerificationSection && (
-                        <div className="court-clerk-verification-section">
-                            <h2 className="court-clerk-verification-title">Advocate Verification Management</h2>
-                            
-                            {/* Unverified Advocates */}
-                            <div className="court-clerk-unverified-section">
-                                <h3 className="court-clerk-section-heading">Pending Verifications</h3>
-                                <div className="court-clerk-advocates-grid">
-                                    {advocates.unverifiedAdvocates.map(advocate => (
-                                        <div key={advocate.advocate_id} className="court-clerk-advocate-card">
-                                            <h4 className="court-clerk-advocate-name">{advocate.name}</h4>
-                                            <p className="court-clerk-advocate-detail">Enrollment No: {advocate.enrollment_no}</p>
-                                            <p className="court-clerk-advocate-detail">District: {advocate.practice_details.district}</p>
-                                            <p className="court-clerk-advocate-detail">Bar ID: {advocate.barId}</p>
-                                            <div className="court-clerk-card-actions">
-                                                <button 
-                                                    onClick={() => viewCOPDocument(advocate.advocate_id)}
-                                                    className="court-clerk-view-doc-btn"
-                                                >
-                                                    View COP Document
-                                                </button>
-                                                <button 
-                                                    onClick={() => {
-                                                        setSelectedAdvocate(advocate);
-                                                        setShowVerificationModal(true);
-                                                    }}
-                                                    className="court-clerk-verify-btn"
-                                                >
-                                                    Verify Advocate
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                    {renderContent()}
+                    {activeComponent === 'casemanagement' && (
+                        <div className="court-clerk-cases-section">
+                            <h2>Your Cases</h2>
+                            <div className="court-clerk-cases-grid">
+                                <div className="court-clerk-case-card">
+                                    <h4>CL2025SW07</h4>
+                                    <p>Type: Civil</p>
+                                    <p>Court: District & Sessions Court</p>
+                                    <p>Filed: 4/24/2025</p>
+                                    <span className="court-clerk-status pending">PENDING</span>
+                                    <button className="court-clerk-view-details">View Details</button>
                                 </div>
-                            </div>
-
-                            {/* Verified Advocates */}
-                            <div className="court-clerk-verified-section">
-                                <h3 className="court-clerk-section-heading">Verified Advocates</h3>
-                                <div className="court-clerk-advocates-grid">
-                                    {advocates.verifiedAdvocates.map(advocate => (
-                                        <div key={advocate.advocate_id} className="court-clerk-advocate-card court-clerk-verified">
-                                            <h4 className="court-clerk-advocate-name">{advocate.name}</h4>
-                                            <p className="court-clerk-advocate-detail">Enrollment No: {advocate.enrollment_no}</p>
-                                            <p className="court-clerk-advocate-detail">District: {advocate.practice_details.district}</p>
-                                            <p className="court-clerk-advocate-detail">Bar ID: {advocate.barId}</p>
-                                            <p className="court-clerk-verification-date">
-                                                Verified On: {new Date(advocate.verificationDate).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                    ))}
+                                <div className="court-clerk-case-card">
+                                    <h4>CL2025TC11</h4>
+                                    <p>Type: Civil</p>
+                                    <p>Court: District & Sessions Court</p>
+                                    <p>Filed: 4/20/2025</p>
+                                    <span className="court-clerk-status filed">FILED</span>
+                                    <button className="court-clerk-view-details">View Details</button>
+                                </div>
+                                <div className="court-clerk-case-card">
+                                    <h4>CL20256096</h4>
+                                    <p>Type: Civil</p>
+                                    <p>Court: District & Sessions Court</p>
+                                    <p>Filed: 4/20/2025</p>
+                                    <span className="court-clerk-status filed">FILED</span>
+                                    <button className="court-clerk-view-details">View Details</button>
+                                </div>
+                                <div className="court-clerk-case-card">
+                                    <h4>CL2025D005</h4>
+                                    <p>Type: Civil</p>
+                                    <p>Court: District & Sessions Court</p>
+                                    <p>Filed: 4/12/2025</p>
+                                    <span className="court-clerk-status filed">FILED</span>
+                                    <button className="court-clerk-view-details">View Details</button>
                                 </div>
                             </div>
                         </div>
@@ -400,7 +475,6 @@ const ClerkDashboard = () => {
                         <p className="court-clerk-modal-advocate-name">
                             Advocate Name: {selectedAdvocate?.name}
                         </p>
-                        
                         <div className="court-clerk-form-group">
                             <label className="court-clerk-form-label">
                                 Verification Declaration:
@@ -413,7 +487,6 @@ const ClerkDashboard = () => {
                                 />
                             </label>
                         </div>
-
                         <div className="court-clerk-form-group">
                             <label className="court-clerk-form-label">
                                 Verification Notes:
@@ -425,11 +498,8 @@ const ClerkDashboard = () => {
                                 />
                             </label>
                         </div>
-
-                        {/* Digital Signature Section */}
                         <div className="court-clerk-signature-section">
                             <h4 className="court-clerk-signature-title">Digital Signature Verification</h4>
-                            
                             <div className="court-clerk-form-group">
                                 <label className="court-clerk-form-label">
                                     Enter Your 6-digit PIN:
@@ -440,9 +510,9 @@ const ClerkDashboard = () => {
                                         onChange={(e) => setSignaturePin(e.target.value)}
                                         className="court-clerk-pin-input"
                                         placeholder="Enter PIN"
-                                    /></label>
+                                    />
+                                </label>
                             </div>
-
                             <button
                                 onClick={generateDigitalSignature}
                                 disabled={isGeneratingSignature || signaturePin.length !== 6}
@@ -450,7 +520,6 @@ const ClerkDashboard = () => {
                             >
                                 {isGeneratingSignature ? 'Generating...' : 'Generate Digital Signature'}
                             </button>
-
                             {signatureStatus && (
                                 <div className={`court-clerk-alert ${signatureStatus.type === 'error' ? 'court-clerk-alert-error' : 'court-clerk-alert-success'}`}>
                                     <div className="court-clerk-alert-icon">
@@ -470,7 +539,6 @@ const ClerkDashboard = () => {
                                     </div>
                                 </div>
                             )}
-
                             {verificationData.digitalSignature && (
                                 <div className="court-clerk-signature-details">
                                     <h5 className="court-clerk-signature-details-title">Signature Details</h5>
@@ -485,16 +553,15 @@ const ClerkDashboard = () => {
                                 </div>
                             )}
                         </div>
-
                         <div className="court-clerk-modal-actions">
-                            <button 
+                            <button
                                 onClick={handleVerification}
                                 className="court-clerk-confirm-btn"
                                 disabled={!verificationDeclaration || !verificationData.digitalSignature}
                             >
                                 Confirm Verification
                             </button>
-                            <button 
+                            <button
                                 onClick={() => {
                                     setShowVerificationModal(false);
                                     resetVerificationForm();
@@ -528,17 +595,23 @@ const ClerkDashboard = () => {
                             <p>District: {profile?.district}</p>
                             <div className="court-clerk-profile-details">
                                 <div className="court-clerk-detail-item">
-                                    <span>Employment No:</span>
-                                    <strong>{profile?.employment_no}</strong>
+                                    <span>Email:</span>
+                                    <strong>{profile?.contact.email}</strong>
                                 </div>
                                 <div className="court-clerk-detail-item">
                                     <span>Status:</span>
                                     <strong>{profile?.status}</strong>
                                 </div>
                                 <div className="court-clerk-detail-item">
-                                    <span>Practice Area:</span>
+                                    <span>Court:</span>
                                     <strong>
-                                        {profile?.practice_details?.district_court ? 'District Court' : 'Not Specified'}
+                                        {profile?.court_name}
+                                    </strong>
+                                </div>
+                                <div className="court-clerk-detail-item">
+                                    <span>Court Number:</span>
+                                    <strong>
+                                        {profile?.court_no}
                                     </strong>
                                 </div>
                             </div>
@@ -564,7 +637,7 @@ const ClerkDashboard = () => {
                             <button onClick={handleLogoutAll} className="court-clerk-confirm-btn">
                                 Confirm Logout
                             </button>
-                            <button 
+                            <button
                                 onClick={() => {
                                     setShowLogoutConfirm(false);
                                     setLogoutPassword('');

@@ -4,6 +4,9 @@ import { useNavigate ,Link} from 'react-router-dom';
 import '../ComponentsCSS/LitigantDashboardStyles.css';
 import emblem from '../images/aadiimage4.svg'
 import stamp from '../images/aadiimage8.png'
+import LegalAssistantChatbot from '../Components/LegalAssistantChatbot';
+import NavigationBar from '../Components/NavigationBar';
+import logo from "../images/aadiimage4.png";
 const LitigantDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1538,57 +1541,58 @@ const printReceipt = () => {
   // Main Dashboard Render
   return (
     <div className="litigant-dashboard">
-      <header className="dashboard-header">
-        <div className="header-left">
-          <h1>Welcome To Litigant Dashboard</h1>
-        </div>
-        <div className="header-right">
-          <div className="logout-buttons">
-          <button className="logout-button" onClick={() => setShowLogoutConfirmation(true)}>
-  Logout
-</button>
-
-{/* Logout Confirmation Popup */}
-{showLogoutConfirmation && (
-  <div className="logout-overlay">
-    <div className="logout-confirmation">
-      <h3>Confirm Logout</h3>
-      <p>Are you sure you want to log out?</p>
-      <div className="logout-actions">
-        <button 
-          className="cancel-button" 
-          onClick={() => setShowLogoutConfirmation(false)}
-        >
-          Cancel
-        </button>
-        <button 
-          className="confirm-button" 
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
-      </div>
-    </div>
+     <header className="dashboard-header">
+  <div className="header-left">
+     <div className="emblem-logo">
+                          <div className="emblem-image"><img src={emblem} alt="Aaditiya Tyagi" ></img></div>
+                        </div>
+    <h1>Welcome To Litigant Dashboard</h1>
   </div>
-)}
-            <button
-              className="logout-all-button"
-              onClick={() => setShowLogoutConfirm(true)}
-            >
-              Logout All Devices
-            </button>
-          </div>
-          <div
-            className="profile-toggle"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-          >
-            <div className="profile-avatar">
-              {profile?.full_name?.charAt(0).toUpperCase()}
+  <div className="header-right">
+    <div className="logout-buttons">
+      <button className="logout-button" onClick={() => setShowLogoutConfirmation(true)}>
+        Logout
+      </button>
+      {/* Logout Confirmation Popup */}
+      {showLogoutConfirmation && (
+        <div className="logout-overlay">
+          <div className="logout-confirmation">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to log out?</p>
+            <div className="logout-actions">
+              <button
+                className="cancel-button"
+                onClick={() => setShowLogoutConfirmation(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-button"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>
-      </header>
-
+      )}
+      <button
+        className="logout-all-button"
+        onClick={() => setShowLogoutConfirm(true)}
+      >
+        Logout All Devices
+      </button>
+    </div>
+    <div
+      className="profile-toggle"
+      onClick={() => setIsProfileOpen(!isProfileOpen)}
+    >
+      <div className="profile-avatar">
+        {profile?.full_name?.charAt(0).toUpperCase()}
+      </div>
+    </div>
+  </div>
+</header>
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
         <div className="logout-confirm-overlay">
@@ -2026,6 +2030,7 @@ const printReceipt = () => {
     </div>
   )}
 </section>
+
           
             </>
           ) : activeSection === 'file-case' ? (
@@ -2033,8 +2038,10 @@ const printReceipt = () => {
     ) : activeSection === 'hearings' ? (
         renderHearings()
     ) : null}
-
+    
+    <LegalAssistantChatbot />
         </main>
+        
       </div>
     </div>
   );

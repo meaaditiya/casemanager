@@ -10,7 +10,16 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const app = express();
-
+const Advocate = require('./models/Advocate');
+const Litigant = require('./models/Litigant');
+const EnrollmentRecord = require('./models/Enrollment');
+const CourtCalendar = require('./models/Calendar');
+const  OTPVerification= require('./models/OTP');
+const Notice = require('./models/Notice');
+const LegalCase = require ('./models/LegalCase');
+const StateDistrict = require('./models/Statedistrict');
+const Clerk = require ('./models/Clerk');
+const BlacklistedToken = require('./models/Blaclisttoken');
 // Middleware
 app.use(cors({
     origin:  ['http://localhost:3000', 'http://192.168.1.39:3000'],
@@ -23,81 +32,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_sch
     .then(() => console.log('MongoDB connected!'))
     .catch(err => console.error('MongoDB connection error:', err));
 
-// Enrollment Record Schema (for verification)
-const EnrollmentSchema = new mongoose.Schema({
-    ENROLLMENT_NO: String,
-    NAME_OF_ADVOCATE: String,
-    FATHERS_NAME_OF_ADVOCATE: String,
-    ADDRESS_OF_ADVOCATE: String,
-    DISTRICT: String,
-    DATE_OF_REGISTRATION: String,
-    DATE_OF_BIRTH: String
-});
-
-const EnrollmentRecord = mongoose.model('EnrollmentRecord', EnrollmentSchema);
-
-// Advocate Schema (for registered users)
-const AdvocateSchema = new mongoose.Schema({
-    advocate_id: { type: String, required: true, unique: true },
-    enrollment_no: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
-    fathers_name: String,
-    gender: { type: String, required: true },
-    dob: { type: Date, required: true },
-    contact: {
-        email: String
-    },
-    address: String,
-    district: { type: String, required: true },
-    date_of_registration: Date,
-    practice_details: {
-        district_court: Boolean,
-        high_court: Boolean,
-        state: String,
-        district: String,
-        high_court_bench: String
-    },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    isEmailVerified: { type: Boolean, default: false },
-
-    emailOTP: String,
-    otpExpiry: Date,
-    iCOP_number: { 
-        type: String, 
-        required: true,
-        unique: true 
-    },
-    cop_document: {
-        filename: String,
-        path: String,
-        uploadDate: Date
-    },
-    barId: { 
-        type: String, 
-        required: true,
-        unique: true 
-    },
-    isVerified: { 
-        type: Boolean, 
-        default: false 
-    },
-
-    status: {
-        type: String,
-        enum: ['pending', 'active', 'suspended'],
-        default: 'pending'
-    },
-    verificationNotes: String,
-    verifiedBy: String,
-    verificationDate: Date,
-    lastLogin: Date
-}, {
-    timestamps: true
-}
-);
-
-const Advocate = mongoose.model('Advocate', AdvocateSchema);
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -248,8 +182,7 @@ const sendEmailOTP = async (email, otp) => {
                         <strong>Security Note:</strong> Legal Portal representatives will never ask for this code via phone or email. Please do not share this code with anyone.
                     </div>
                     
-                    <div class="divider"></div>
-                    
+                    <div class="divider"></div>                 
                     <p>Need assistance? Our support team is available to help.</p>
                     <a href="${process.env.SUPPORT_URL || 'https://yoursite.com/support'}" class="btn">Contact Support</a>
                 </div>
@@ -478,31 +411,6 @@ app.post('/api/advocate/verify/:advocate_id', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-const TokenBlacklistSchema = new mongoose.Schema({
-    token: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    user_id: {
-        type: String,
-        required: true
-    },
-    user_type: {
-        type: String,
-        required: true,
-        enum: ['advocate', 'litigant', 'clerk']
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: 86400
-    }
-});
-
-const BlacklistedToken = mongoose.model('BlacklistedToken', TokenBlacklistSchema);
-
-
 // Login
 app.post('/api/advocate/login', async (req, res) => {
     try {
@@ -575,20 +483,7 @@ const authenticateToken = async (req, res, next) => {
         return res.status(401).json({ message: 'Invalid token' });
     }
 };
-app.get('/api/advocate/profile', authenticateToken, async (req, res) => {
-    try {
-        const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id })
-            .select('-password -emailOTP -mobileOTP');
-        
-        if (!advocate) {
-            return res.status(404).json({ message: 'Advocate not found' });
-        }
 
-        res.json({ advocate });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
 app.post('/api/advocate/logout', authenticateToken, async (req, res) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -644,6 +539,133 @@ app.post('/api/advocate/logout-all', authenticateToken, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+const profilePicturesDir = path.join(__dirname, 'uploads/profile_pictures');
+if (!fs.existsSync(profilePicturesDir)) {
+  fs.mkdirSync(profilePicturesDir);
+}
+
+// Configure multer storage for profile pictures
+const profilePictureStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/profile_pictures')
+  },
+  filename: function (req, file, cb) {
+    // Use a timestamp-based unique name initially
+    cb(null, `temp-${Date.now()}-${file.originalname}`)
+  }
+});
+
+const uploadProfilePicture = multer({
+  storage: profilePictureStorage,
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB limit
+  }
+});
+
+// Upload profile picture
+app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePicture.single('profilePicture'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id });
+    if (!advocate) {
+      // Clean up the uploaded file if the advocate is not found
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ message: 'Advocate not found' });
+    }
+    
+    // Rename the file to include the advocate_id
+    const newFilename = `${req.user.advocate_id}-${Date.now()}-${req.file.originalname}`;
+    const newPath = path.join('uploads/profile_pictures', newFilename);
+    fs.renameSync(req.file.path, newPath);
+    
+    // Delete old profile picture file if it exists
+    if (advocate.profilePicture && advocate.profilePicture.path) {
+      try {
+        fs.unlinkSync(advocate.profilePicture.path);
+      } catch (err) {
+        console.error('Error deleting old profile picture:', err);
+      }
+    }
+    
+    // Update profile picture information
+    advocate.profilePicture = {
+      filename: newFilename,
+      path: newPath,
+      uploadDate: new Date()
+    };
+    
+    await advocate.save();
+    
+    res.status(200).json({
+      message: 'Profile picture uploaded successfully',
+      profilePicture: {
+        filename: advocate.profilePicture.filename
+      }
+    });
+  } catch (error) {
+    // Clean up the uploaded file if there's an error
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error('Error cleaning up file after error:', err);
+      }
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
+// Get profile picture
+app.get('/api/advocate/profile-picture/:filename', async (req, res) => {
+  try {
+      const filename = req.params.filename;
+      const filepath = path.join(__dirname, 'uploads/profile_pictures', filename);
+      
+      // Check if file exists
+      if (fs.existsSync(filepath)) {
+          res.sendFile(filepath);
+      } else {
+          res.status(404).json({ message: 'Profile picture not found' });
+      }
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+});
+
+// Update /api/advocate/profile route to include profile picture information
+app.get('/api/advocate/profile', authenticateToken, async (req, res) => {
+  try {
+      const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id });
+      if (!advocate) {
+          return res.status(404).json({ message: 'Advocate not found' });
+      }
+
+      // Send advocate data including profile picture filename if it exists
+      res.json({
+          advocate: {
+              advocate_id: advocate.advocate_id,
+              name: advocate.name,
+              email: advocate.email,
+              enrollment_no: advocate.enrollment_no,
+              district: advocate.district,
+              status: advocate.status,
+              practice_details: advocate.practice_details,
+              profilePicture: advocate.profilePicture ? advocate.profilePicture.filename : null
+          }
+      });
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+});
 // Add this cleanup function at the end of your file
 // Cleanup expired blacklisted tokens (can be run via cron job)
 const cleanupBlacklistedTokens = async () => {
@@ -660,73 +682,7 @@ const cron = require('node-cron');
 cron.schedule('0 0 * * *', () => {
     cleanupBlacklistedTokens();
 });
-const LitigantSchema = new mongoose.Schema({
-    party_id: { type: String, required: true, unique: true },
-    party_type: {
-        type: String,
-        required: true,
-        enum: ['plaintiff', 'defendant']
-    },
-    full_name: { type: String, required: true },
-    parentage: { type: String, required: true },
-    gender: {
-        type: String,
-        required: true,
-        enum: ['male', 'female', 'other']
-    },
-    address: { 
-        street: { type: String, required: true },
-        city: { type: String, required: true },
-        district: { type: String, required: true },
-        state: { type: String, required: true },
-        pincode: { type: String }
-    },
-    contact: {
-        email: { type: String, required: true, unique: true },
-        mobile: { type: String, required: true }
-    },
-    password: { type: String, required: true },
-    isEmailVerified: { type: Boolean, default: false },
-    emailOTP: String,
-    otpExpiry: Date,
-    resetPasswordOTP: String,
-    resetPasswordExpiry: Date,
-    status: {
-        type: String,
-        enum: ['pending', 'active', 'suspended'],
-        default: 'pending'
-    },
-    lastLogin: Date,
-    lastLogout: Date,
-    
-    // Additional fields for case filing
-    case_filing_details: {
-        relation_type: {
-            type: String,
-            enum: ['FATHER', 'MOTHER', 'HUSBAND']
-        },
-        pin: String,
-        age: Number,
-        caste: String,
-        nationality: {
-            type: String,
-            enum: ['INDIAN', 'OTHER']
-        },
-        occupation: String,
-        subject: String,
-        fax: String,
-        phone: String
-    },
-    advocates: [{
-        advocate_code: { type: String },
-        advocate_name: { type: String }
-    }]
-}, {
-    timestamps: true
-});
 
-// Indexes
-const Litigant = mongoose.model('Litigant', LitigantSchema);
 
 // Register litigant
 app.post('/api/litigant/register', async (req, res) => {
@@ -1248,37 +1204,7 @@ app.post('/api/litigant/logout-all', authenticateToken, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-const ClerkSchema = new mongoose.Schema({
-    clerk_id: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
-    gender: { 
-        type: String,
-        enum: ['male', 'female', 'other'],
-        required: true 
-    },
-    district: { type: String, required: true },
-    court_name: { type: String, required: true },
-    court_no: { type: String, required: true },
-    contact: {
-        email: { type: String, required: true, unique: true },
-        mobile: { type: String, required: true }
-    },
-    password: { type: String, required: true },
-    isEmailVerified: { type: Boolean, default: false },
-    emailOTP: String,
-    otpExpiry: Date,
-    status: {
-        type: String,
-        enum: ['pending', 'active', 'suspended'],
-        default: 'pending'
-    },
-    lastLogin: Date,
-    lastLogout: Date
-}, {
-    timestamps: true
-});
 
-const Clerk = mongoose.model('Clerk', ClerkSchema);
 // Register clerk
 app.post('/api/clerk/register', async (req, res) => {
     try {
@@ -1603,20 +1529,6 @@ app.post('/api/clerk/verify-advocate/:advocate_id', authenticateToken, async (re
     }
 });
 
-
-const stateDistrictSchema = new mongoose.Schema({
-  state: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  districts: [{
-    type: String,
-    required: true
-  }]
-});
-
-const StateDistrict = mongoose.model('StateDistrict', stateDistrictSchema);
 // Get all states
 app.get('/api/states', async (req, res) => {
   try {
@@ -1651,238 +1563,6 @@ async function initializeData() {
   }
 }
 
-  const LegalCaseSchema = new mongoose.Schema({
-    // Court Information
-    court: { 
-      type: String, 
-      required: true,
-      enum: ['District & Sessions Court', 'Other']
-    },
-    case_type: { 
-      type: String, 
-      required: true,
-      enum: ['Civil', 'Criminal']
-    },
-    
-    // Add district field
-    district: {
-      type: String,
-      required: true
-    },
-  
-    // Plaintiff/Applicant Details
-    plaintiff_details: {
-      party_id: { type: String },
-      name: { type: String, required: true },
-      father_mother_husband: { type: String },
-      address: { type: String },
-      pin: { type: String },
-      sex: { type: String },
-      age: { type: Number },
-      caste: { type: String },
-      nationality: { type: String },
-      if_other_mention: { type: String },
-      occupation: { type: String },
-      email: { 
-        type: String, 
-        match: [/^\w+([.-]?\w+)@\w+([.-]?\w+)(\.\w{2,3})+$/, 'Please fill a valid email address']
-      },
-      phone: { type: String },
-      mobile: { type: String },
-      fax: { type: String },
-      subject: { type: String },
-      advocate_id: { type: String },
-      advocate: { type: String }
-    },
-    // Respondent/Opponent Details
-    respondent_details: {
-      party_id: { type: String },
-      name: { type: String, required: true },
-      father_mother_husband: { type: String },
-      address: { type: String },
-      pin: { type: String },
-      sex: { type: String },
-      age: { type: Number },
-      caste: { type: String },
-      nationality: { type: String },
-      if_other_mention: { type: String },
-      occupation: { type: String },
-      email: { 
-        type: String, 
-        match: [/^\w+([.-]?\w+)@\w+([.-]?\w+)(\.\w{2,3})+$/, 'Please fill a valid email address']
-      },
-      phone: { type: String },
-      mobile: { type: String },
-      fax: { type: String },
-      subject: { type: String },
-      advocate_id: { type: String },
-      advocate: { type: String }
-    },
-  
-    // Additional Criminal-Specific Details
-    police_station_details: {
-      police_station: { type: String },
-      fir_no: { type: String },
-      fir_year: { type: Number },
-      date_of_offence: { type: Date }
-    },
-  
-    // Lower Court Details
-    lower_court_details: {
-      court_name: { type: String },
-      case_no: { type: String },
-      decision_date: { type: Date }
-    },
-  
-    // Main Matter Details
-    main_matter_details: {
-      case_type: { type: String },
-      case_no: { type: String },
-      year: { type: Number }
-    },
-  
-    // Hearing Management
-    hearings: [{
-      hearing_date: { type: Date, required: true },
-      hearing_type: {
-        type: String,
-        required: true,
-        enum: ['Initial', 'Intermediate', 'Final', 'Adjournment']
-      },
-      remarks: { type: String },
-      next_hearing_date: { type: Date },
-      attachments: [{
-        filename: { type: String, required: true },
-        originalname: { type: String, required: true },
-        mimetype: { type: String, required: true },
-        path: { type: String, required: true },
-        size: { type: Number, required: true },
-        uploaded_at: { type: Date, default: Date.now }
-      }]
-    }], 
-    // Case Status
-    status: {
-      type: String,
-      enum: [
-        'Filed', 
-        'Pending', 
-        'Under Investigation', 
-        'Hearing in Progress', 
-        'Awaiting Judgment', 
-        'Disposed', 
-        'Appealed'
-      ],
-      default: 'Filed'
-    },
-  
-    // Case Approval
-    case_approved: { 
-      type: Boolean, 
-      default: false 
-    },
-    case_num: { 
-        type: String,
-        unique: true,
-      },
-      case_no: {
-        type: String,
-        unique: true,
-        sparse: true  // This allows multiple null values
-    },
-    // Office Use Details
-    for_office_use_only: {
-      case_type: { type: String },
-      filing_no: { type: String },
-      filing_date: { type: Date },
-      objection_red_date: { type: Date },
-      objection_compliance_date: { type: Date },
-      registration_no: { type: String },
-      registration_date: { type: Date },
-      listing_date: { type: Date },
-      court_allotted: { type: String },
-      allocation_date: { type: Date },
-      case_code: { type: String },
-      
-      // Additional fields for Criminal Cases
-      filing_done_by: { type: String },
-      objection_raised_by: { type: String },
-      registration_done_by: { type: String },
-      allocation_done_by: { type: String }
-    },
-    documents: [{
-      document_id: { type: String, required: true },
-  document_type: { type: String, required: true },
-  description: { type: String, default: '' },
-  file_name: { type: String, required: true },
-  file_path: { type: String, required: true },  // Store relative path
-  mime_type: { type: String, default: 'application/octet-stream' },
-  size: { type: Number },
-  uploaded_date: { type: Date, default: Date.now },
-  uploaded_by: { type: String, required: false }
-    }],
-    videoMeeting: {
-      meetingLink: { type: String },
-      startDateTime: { type: Date },
-      endDateTime: { type: Date },
-      isActive: { type: Boolean, default: false },
-      createdBy: { type: String },
-      createdAt: { type: Date, default: Date.now }
-    }
-,  
-// Add this to the existing LegalCase schema
-advocate_requests: [{
-  advocate_id: { 
-    type: String, 
-    required: true 
-  },
-  advocate_name: { 
-    type: String, 
-    required: true 
-  },
-  party_type: { 
-    type: String, 
-    enum: ['plaintiff', 'respondent'],
-    required: true 
-  },
-  requested_by: { 
-    type: String, 
-    enum: ['advocate', 'litigant'],
-    required: true 
-  },
-  litigant_id: { 
-    type: String, 
-    required: true 
-  },
-  status: { 
-    type: String, 
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
-  },
-  requested_at: { 
-    type: Date, 
-    default: Date.now 
-  },
-  updated_at: { 
-    type: Date, 
-    default: Date.now 
-  }
-}],
-// Add to LegalCaseSchema
-
-    // Timestamps
-    created_at: { type: Date, default: Date.now },
-    last_updated: { type: Date, default: Date.now }
-  }, {
-    timestamps: true
-  });
-  
-  // Pre-save middleware to update last_updated
-  LegalCaseSchema.pre('save', function(next) {
-    this.last_updated = Date.now();
-    next();
-  });
-  
-  const LegalCase = mongoose.model('LegalCase', LegalCaseSchema);
   const generateCNRFromCaseData = async (caseData) => {
     const typePrefix = caseData.case_type === 'Civil' ? 'CL' : 'CM';
     const year = new Date().getFullYear().toString();
@@ -3519,56 +3199,7 @@ app.get('/api/video-pleading/:documentId/stream', authenticateToken, async (req,
     }
   }
 });
-const NoticeSchema = new mongoose.Schema({
-    notice_id: { 
-      type: String, 
-      required: true, 
-      unique: true 
-    },
-    title: { 
-      type: String, 
-      required: true 
-    },
-    content: { 
-      type: String, 
-      required: true 
-    },
-    district: { 
-      type: String, 
-      required: true 
-    },
-    visibility: {
-      type: String,
-      enum: ['all', 'advocates_only'],
-      default: 'all'
-    },
-    attachment: {
-      filename: String,
-      path: String,
-      mimetype: String,
-      uploadDate: Date
-    },
-    published_by: {
-      admin_id: String,
-      admin_name: String
-    },
-    published_date: {
-      type: Date,
-      default: Date.now
-    },
-    expiry_date: {
-      type: Date
-    },
-    is_active: {
-      type: Boolean,
-      default: true
-    }
-  }, {
-    timestamps: true
-  });
-  
-  const Notice = mongoose.model('Notice', NoticeSchema);
-  
+
   // Set up multer for file uploads - CORRECTED
   const storage2 = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -3895,53 +3526,6 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
       res.status(500).json({ message: error.message });
     }
   });
-  const courtCalendarSchema = new mongoose.Schema({
-    calendar_id: {
-      type: String,
-      required: true,
-      unique: true
-    },
-    district: {
-      type: String,
-      required: true
-    },
-    date: {
-      type: Date,
-      required: true
-    },
-    is_holiday: {
-      type: Boolean,
-      default: false
-    },
-    holiday_reason: {
-      type: String,
-      default: ''
-    },
-    opening_time: {
-      type: String,
-      default: '09:00' // Default opening time
-    },
-    closing_time: {
-      type: String,
-      default: '17:00' // Default closing time
-    },
-    created_by: {
-      admin_id: String,
-      admin_name: String
-    },
-    created_at: {
-      type: Date,
-      default: Date.now
-    },
-    updated_at: {
-      type: Date,
-      default: Date.now
-    }
-  });
-  
-  // Create composite index for district and date to ensure uniqueness
-  courtCalendarSchema.index({ district: 1, date: 1 }, { unique: true });
-  const CourtCalendar =mongoose.model('CourtCalendar', courtCalendarSchema);
   const formatDate = (date) => {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
@@ -4261,41 +3845,92 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
       
       // Save the updated case
       await caseData.save();
-      
-      // Send notification emails to case parties if emails are available
-      if (caseData.plaintiff_details.email) {
-        // Generate OTP for plaintiff
-        const plaintiffOTP = generateOTP();
-        
-        // Store OTP in database with expiration (create OTP model if not exists)
-        await OTPVerification.create({
-          email: caseData.plaintiff_details.email,
-          otp: plaintiffOTP,
-          purpose: 'meeting-access',
-          caseNum: caseNum,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
-        });
-        
-        // Send email with OTP
-        await sendEmailOTP(caseData.plaintiff_details.email, plaintiffOTP);
+  
+      // Collection of notification promises
+      const notificationPromises = [];
+  
+      // If there's a plaintiff party_id, fetch and notify them
+      if (caseData.plaintiff_details && caseData.plaintiff_details.party_id) {
+        try {
+          const plaintiffData = await Litigant.findOne({party_id: caseData.plaintiff_details.party_id });
+          if (plaintiffData && plaintiffData.contact && plaintiffData.contact.email && 
+              plaintiffData.contact.email !== caseData.plaintiff_details.email) { // Avoid duplicate emails
+            
+            // Send email with meeting details
+            notificationPromises.push(
+              sendVideoMeetingNotification({
+                name: plaintiffData.full_name,
+                email: plaintiffData.contact.email
+              }, caseData, 'plaintiff', meetingLink, start, end)
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching plaintiff data:', error);
+          // Continue execution, don't block the response for this error
+        }
+      }
+  
+      // If there's a plaintiff advocate_id, fetch and notify them
+      if (caseData.plaintiff_details && caseData.plaintiff_details.advocate_id) {
+        try {
+          const plaintiffAdvocate = await Advocate.findOne({ advocate_id: caseData.plaintiff_details.advocate_id });
+          if (plaintiffAdvocate && plaintiffAdvocate.contact && plaintiffAdvocate.contact.email) {
+            // Send email with meeting details
+            notificationPromises.push(
+              sendVideoMeetingNotification({
+                name: plaintiffAdvocate.name,
+                email: plaintiffAdvocate.contact.email
+              }, caseData, 'plaintiff_advocate', meetingLink, start, end)
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching plaintiff advocate data:', error);
+          // Continue execution, don't block the response for this error
+        }
       }
       
-      if (caseData.respondent_details.email) {
-        // Generate OTP for respondent
-        const respondentOTP = generateOTP();
-        
-        // Store OTP in database
-        await OTPVerification.create({
-          email: caseData.respondent_details.email,
-          otp: respondentOTP,
-          purpose: 'meeting-access',
-          caseNum: caseNum,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
-        });
-        
-        // Send email with OTP
-        await sendEmailOTP(caseData.respondent_details.email, respondentOTP);
+      // If there's a respondent party_id, fetch and notify them
+      if (caseData.respondent_details && caseData.respondent_details.party_id) {
+        try {
+          const respondentData = await Litigant.findOne({party_id: caseData.respondent_details.party_id });
+          if (respondentData && respondentData.contact && respondentData.contact.email && 
+              respondentData.contact.email !== caseData.respondent_details.email) { // Avoid duplicate emails
+            
+            // Send email with meeting details
+            notificationPromises.push(
+              sendVideoMeetingNotification({
+                name: respondentData.name,
+                email: respondentData.contact.email
+              }, caseData, 'respondent', meetingLink, start, end)
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching respondent data:', error);
+          // Continue execution, don't block the response for this error
+        }
       }
+  
+      // If there's a respondent advocate_id, fetch and notify them
+      if (caseData.respondent_details && caseData.respondent_details.advocate_id) {
+        try {
+          const respondentAdvocate = await Advocate.findOne({ advocate_id: caseData.respondent_details.advocate_id });
+          if (respondentAdvocate && respondentAdvocate.contact && respondentAdvocate.contact.email) {
+            // Send email with meeting details
+            notificationPromises.push(
+              sendVideoMeetingNotification({
+                name: respondentAdvocate.name,
+                email: respondentAdvocate.contact.email
+              }, caseData, 'respondent_advocate', meetingLink, start, end)
+            );
+          }
+        } catch (error) {
+          console.error('Error fetching respondent advocate data:', error);
+          // Continue execution, don't block the response for this error
+        }
+      }
+      
+      // Wait for all notification emails to be sent
+      await Promise.all(notificationPromises);
       
       res.status(201).json({
         message: 'Video meeting link added successfully',
@@ -4310,22 +3945,135 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
     }
   });
   
-  // 3. OTP Schema for verification
-  const otpVerificationSchema = new mongoose.Schema({
-    email: { type: String, required: true },
-    otp: { type: String, required: true },
-    purpose: { type: String, required: true },
-    caseNum: { type: String, required: true },
-    isUsed: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-    expiresAt: { type: Date, required: true }
-  });
-  
-  // Add index to automatically delete expired OTPs
-  otpVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-  
-  const OTPVerification = mongoose.model('OTPVerification', otpVerificationSchema);
-  
+  // Function to send video meeting notification emails without OTP
+  const sendVideoMeetingNotification = async (recipient, caseDetails, userType, meetingLink, startDateTime, endDateTime) => {
+    try {
+      const { name, email } = recipient;
+      
+      // Format dates for better readability
+      const formattedStartDate = startDateTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const formattedStartTime = startDateTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      const formattedEndTime = endDateTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      // Create email content
+      const subject = `Court Video Meeting Scheduled - Case #${caseDetails.case_num}`;
+      
+      // Create HTML email with professional template
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              border: 1px solid #ddd;
+              border-radius: 5px;
+            }
+            .header {
+              background-color: #1a365d;
+              color: white;
+              padding: 15px;
+              text-align: center;
+              border-radius: 5px 5px 0 0;
+            }
+            .content {
+              padding: 20px;
+            }
+            .meeting-details {
+              background-color: #f9f9f9;
+              padding: 15px;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
+            .button {
+              display: inline-block;
+              background-color: #1a365d;
+              color: white;
+              padding: 12px 25px;
+              text-decoration: none;
+              border-radius: 5px;
+              margin: 20px 0;
+            }
+            .footer {
+              font-size: 12px;
+              text-align: center;
+              margin-top: 30px;
+              color: #777;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>Court Video Meeting Notification</h2>
+            </div>
+            <div class="content">
+              <p>Dear ${name},</p>
+              <p>This is to inform you that a virtual court meeting has been scheduled for case #${caseDetails.case_num} - ${caseDetails.case_title || 'Court Case'}.</p>
+              
+              <div class="meeting-details">
+                <h3>Meeting Details:</h3>
+                <p><strong>Date:</strong> ${formattedStartDate}</p>
+                <p><strong>Time:</strong> ${formattedStartTime} to ${formattedEndTime}</p>
+                <p><strong>Case Number:</strong> ${caseDetails.case_num}</p>
+                <p><strong>Your Role:</strong> ${userType.replace('_', ' ').charAt(0).toUpperCase() + userType.replace('_', ' ').slice(1)}</p>
+              </div>
+              
+              <p>Please ensure you log in at least 10 minutes before the scheduled time to test your audio and video settings.</p>
+              
+              <a href="${meetingLink}" class="button">Join Meeting</a>
+              
+              <p>If you have any questions or need technical assistance, please contact the court registry.</p>
+              
+              <p>Regards,<br>Court Administration</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated message. Please do not reply to this email.</p>
+              <p>© ${new Date().getFullYear()} Legal Case Management System</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      const msg = {
+        to: email,
+        from: process.env.FROM_EMAIL || 'notifications@legalcasesystem.com',
+        subject: subject,
+        html: html,
+      };
+      
+      await sgMail.send(msg);
+      console.log(`Video meeting notification email sent successfully to ${email}`);
+      return true;
+    } catch (error) {
+      console.error('SendGrid Error:', error);
+      if (error.response) {
+        console.error('Error response body:', error.response.body);
+      }
+      return false;
+    }
+  };
   // 4. Route for litigant to request OTP for meeting access
   app.post('/api/case/:caseNum/video-meeting/request-access', async (req, res) => {
     try {

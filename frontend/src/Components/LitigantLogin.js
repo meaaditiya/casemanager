@@ -1,36 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Turnstile } from '@marsidev/react-turnstile';
 import '../ComponentsCSS/LitigantLogin.css';
+
+// Ensure React is loaded correctly
+if (!React.useState) {
+  console.error('React is not properly loaded. Check for multiple React instances or version mismatches.');
+}
 
 const LitigantLogin = () => {
   const navigate = useNavigate();
   
-  // State to track which view to show with animation control
-  const [view, setView] = useState('login'); // 'login', 'enterOTP'
+  const [view, setView] = useState('login');
   const [animating, setAnimating] = useState(false);
   const [party_id, setPartyId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Login form state
   const [loginData, setLoginData] = useState({
     email: '',
     password: ''
   });
   
-  // Reset password state
   const [resetData, setResetData] = useState({
     otp: '',
     newPassword: '',
     confirmPassword: ''
   });
 
-  // Password strength state
-  const [passwordStrength, setPasswordStrength] = useState(0); // 0: none, 1: weak, 2: medium, 3: strong
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState(null);
+  const turnstileRef = useRef(null);
+
+  // Use the direct site key instead of environment variable
+  const siteKey = "0x4AAAAAABUex35iY9OmXSBB";
   
-  // Handle login form changes
   const handleLoginChange = (e) => {
     setLoginData({
       ...loginData,
@@ -38,43 +44,30 @@ const LitigantLogin = () => {
     });
   };
   
-  // Handle reset password form changes
   const handleResetChange = (e) => {
     const { name, value } = e.target;
-    
     setResetData({
       ...resetData,
       [name]: value
     });
-    
-    // Check password strength when new password changes
     if (name === 'newPassword') {
       checkPasswordStrength(value);
     }
   };
   
-  // Password strength checker
   const checkPasswordStrength = (password) => {
     if (!password) {
       setPasswordStrength(0);
       return;
     }
-    
     let strength = 0;
-    
-    // Length check
     if (password.length >= 8) strength += 1;
-    
-    // Complexity checks
     if (/[A-Z]/.test(password) && /[a-z]/.test(password)) strength += 1;
     if (/[0-9]/.test(password)) strength += 1;
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-    
-    // Convert to scale of 3
     setPasswordStrength(strength >= 4 ? 3 : (strength >= 2 ? 2 : 1));
   };
   
-  // Change view with animation
   const changeView = (newView) => {
     setAnimating(true);
     setTimeout(() => {
@@ -82,80 +75,94 @@ const LitigantLogin = () => {
       setError('');
       setMessage('');
       setAnimating(false);
+      setTurnstileToken(null); // Reset token on view change
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
     }, 300);
   };
   
-  // Handle login form submission
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
+    if (!turnstileToken) {
+      setError('Please complete the CAPTCHA verification');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.post('http://localhost:5000/api/litigant/login', {
         email: loginData.email,
-        password: loginData.password
+        password: loginData.password,
+        'cf-turnstile-response': turnstileToken // This is the correct field name expected by Cloudflare
       });
-      
+
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userType', 'litigant');
       localStorage.setItem('userData', JSON.stringify(response.data.litigant));
-      
       navigate('/litidash');
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed');
+      setTurnstileToken(null);
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
     } finally {
       setLoading(false);
     }
   };
   
-  // Handle forgot password request
   const handleForgotPassword = async () => {
     if (!loginData.email) {
       setError('Please enter your email address first');
       return;
     }
-    
+    if (!turnstileToken) {
+      setError('Please complete the CAPTCHA verification');
+      return;
+    }
     setError('');
     setMessage('');
     setLoading(true);
 
     try {
       const response = await axios.post('http://localhost:5000/api/litigant/forgot-password', { 
-        email: loginData.email 
+        email: loginData.email,
+        'cf-turnstile-response': turnstileToken
       });
-      
+
       setMessage(response.data.message);
       setPartyId(response.data.party_id);
       changeView('enterOTP');
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to process request');
+      setTurnstileToken(null);
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
+      }
     } finally {
       setLoading(false);
     }
   };
   
-  // Handle reset password form submission
   const handleResetSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
     setLoading(true);
-
-    // Validate password match
     if (resetData.newPassword !== resetData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
       return;
     }
-
-    // Validate password strength
     if (passwordStrength < 2) {
       setError('Please use a stronger password');
       setLoading(false);
       return;
     }
-
     try {
       const response = await axios.post('http://localhost:5000/api/litigant/reset-password', {
         party_id,
@@ -163,7 +170,6 @@ const LitigantLogin = () => {
         newPassword: resetData.newPassword,
         confirmPassword: resetData.confirmPassword
       });
-      
       setMessage(response.data.message);
       setTimeout(() => {
         changeView('login');
@@ -175,7 +181,6 @@ const LitigantLogin = () => {
     }
   };
   
-  // Get strength class for password meter
   const getPasswordStrengthClass = () => {
     switch (passwordStrength) {
       case 1: return 'strength-weak';
@@ -185,7 +190,6 @@ const LitigantLogin = () => {
     }
   };
   
-  // Get strength label
   const getPasswordStrengthLabel = () => {
     switch (passwordStrength) {
       case 1: return 'Weak';
@@ -195,14 +199,11 @@ const LitigantLogin = () => {
     }
   };
   
-  // Render login form
   const renderLoginForm = () => (
     <div className={`view-transition ${animating ? 'fade-out' : 'fade-in'}`}>
       <h2 className="litigant-title">Litigant Login</h2>
-      
       {error && <div className="litigant-error-box">{error}</div>}
       {message && <div className="litigant-success-box">{message}</div>}
-      
       <form onSubmit={handleLoginSubmit}>
         <div className="litigant-form-group">
           <label className="litigant-label">Email</label>
@@ -216,7 +217,6 @@ const LitigantLogin = () => {
             autoFocus
           />
         </div>
-        
         <div className="litigant-form-group">
           <label className="litigant-label">Password</label>
           <input
@@ -228,7 +228,29 @@ const LitigantLogin = () => {
             required
           />
         </div>
-        
+        <div className="litigant-form-group turnstile-container">
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={siteKey}
+            onSuccess={(token) => {
+              setTurnstileToken(token);
+              setError(''); // Clear any previous CAPTCHA errors
+            }}
+            onError={() => {
+              setError('CAPTCHA verification failed. Please try again.');
+              setTurnstileToken(null);
+            }}
+            onExpire={() => {
+              setError('CAPTCHA expired. Please verify again.');
+              setTurnstileToken(null);
+            }}
+            theme="light"
+            size="normal"
+            responseField={false}
+            refreshExpired="auto"
+            appearance="interaction-only" // Using a more modern appearance
+          />
+        </div>
         <div className="forgot-password-link">
           <span 
             onClick={handleForgotPassword}
@@ -237,11 +259,10 @@ const LitigantLogin = () => {
             Forgot Password?
           </span>
         </div>
-        
         <button 
           type="submit" 
           className="litigant-submit-btn"
-          disabled={loading}
+          disabled={loading || !turnstileToken}
         >
           {loading ? 'Processing...' : 'Login'}
         </button>
@@ -249,14 +270,11 @@ const LitigantLogin = () => {
     </div>
   );
   
-  // Render enter OTP and reset password form
   const renderEnterOTPForm = () => (
     <div className={`view-transition ${animating ? 'fade-out' : 'fade-in'}`}>
       <h2 className="litigant-title">Reset Password</h2>
-      
       {error && <div className="litigant-error-box">{error}</div>}
       {message && <div className="litigant-success-box">{message}</div>}
-      
       <form onSubmit={handleResetSubmit}>
         <div className="litigant-form-group">
           <label className="litigant-label">Enter OTP</label>
@@ -274,7 +292,6 @@ const LitigantLogin = () => {
             Enter the OTP sent to your registered email address
           </div>
         </div>
-        
         <div className="litigant-form-group">
           <label className="litigant-label">New Password</label>
           <input
@@ -296,7 +313,6 @@ const LitigantLogin = () => {
             </>
           )}
         </div>
-        
         <div className="litigant-form-group">
           <label className="litigant-label">Confirm New Password</label>
           <input
@@ -313,7 +329,6 @@ const LitigantLogin = () => {
             </div>
           )}
         </div>
-        
         <div className="form-actions">
           <button 
             type="button" 
@@ -322,20 +337,18 @@ const LitigantLogin = () => {
           >
             Back to Login
           </button>
-          
           <button 
             type="submit" 
             className="litigant-submit-btn"
             disabled={loading || resetData.newPassword !== resetData.confirmPassword || passwordStrength < 2}
           >
-            {loading ? 'Processing...' : 'Reset Password'}
+            {loading  ? 'Processing...' : 'Reset Password'}
           </button>
         </div>
       </form>
     </div>
   );
   
-  // Switch between different views based on the current state
   const renderCurrentView = () => {
     switch(view) {
       case 'enterOTP':
@@ -348,6 +361,14 @@ const LitigantLogin = () => {
   return (
     <div className="litigant-container">
       <div className="litigant-login-box">
+        <img 
+          src="../images/aadiimage4.svg" 
+          alt="Official Logo" 
+          className="official-logo"
+        />
+        <div className="secure-authentication">
+          Secure Authentication
+        </div>
         {renderCurrentView()}
       </div>
     </div>

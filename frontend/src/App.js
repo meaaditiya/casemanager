@@ -17,23 +17,27 @@ import Clerkdashboard from './Dashboard/Clerkdashboard';
 import Clerk from './Components/Clerk';
 import NoticeForm from './Components/NoticeForm';
 import NoticeBoard from './Components/NoticeBoard';
-import NoticePanel from './Components/NoticePanel';
+
 import NoticeList from './Components/NoticeList';
-import Admincasehandle from './Components/Admincasehandle';
-import AdminCalendarPanel from './Components/AdminCalendar';
+
 import UserCalendarPanel from './Components/UserCalendar';
 import Videoplead from './Components/Videoplead';
 import UploadVideoplead from './Components/UploadVideo';
-import Adminmeeting from './Components/Adminmeeting';
+
 import Litigantmeeting from './Components/Litigantmeeting';
 import Litigantcaseassign from './Components/litigantcaseassign';
 import Advocatecaseassign from './Components/Advocatecaseassign';
 import Advocatefilecase from './Components/Advocatefilecase';
 import Advocatemeeting from './Components/Advocatemeeting';
+import NavigationBar from './Components/NavigationBar'; // Import the new navigation component
+import LegalAssistantChatbot from './Components/LegalAssistantChatbot';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="app-container">
+        {/* Navigation Bar will appear on all routes */}
+        <NavigationBar />
+        
         <Routes>
           {/* Welcome Page */}
           <Route path="/" element={<Welcome />} />
@@ -44,7 +48,6 @@ function App() {
           <Route path="/clerk" element={<Clerk />} />
 
           {/* Advocate Routes */}
-          
           <Route path="/advlogin" element={<AdvocateLogin />} />
           <Route path="/register" element={<AdvocateRegistration />} />
           <Route path="/advdash" element={<Advocatedashboard />} />
@@ -60,23 +63,22 @@ function App() {
           <Route path="/clerkdash" element={<Clerkdashboard />} />
           <Route path="/noticeform" element={<NoticeForm/>} />
           <Route path="/noticeboard" element= {<NoticeBoard/>}/>
-          <Route path = "/noticepanel" element = {<NoticePanel/>}/>
+  
           <Route path = "/noticelist" element = {<NoticeList/>}/>
-          <Route path = "/admincasehandle" element = {<Admincasehandle/>}/>
-          <Route path = "/admincalendar" element = {<AdminCalendarPanel/>}/>
+
+
           <Route path = "/usercalendar" element = {<UserCalendarPanel/>}/>
           <Route path = "/videopleading" element = {<Videoplead/>}/>
           <Route path = "/uploadvideoplead" element = {<UploadVideoplead/>}/>
-          <Route path = "/adminmeeting" element = {<Adminmeeting/>}/>
+
           <Route path = "/litigantmeeting" element = {<Litigantmeeting/>}/>
           <Route path ="/litigantcaseassign" element ={<Litigantcaseassign/>}/>
           <Route path ="/advocatecaseassign" element ={<Advocatecaseassign/>}/>
           <Route path ="/advocatefilecase" element ={<Advocatefilecase/>}/>
-          <Route path ="advocatemeeting" element ={<Advocatemeeting/>}/>
-          
+          <Route path ="/advocatemeeting" element ={<Advocatemeeting/>}/>
+          <Route path ="chatbot" element={<LegalAssistantChatbot/>}/>
           {/* Redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-          
         </Routes>
       </div>
     </Router>

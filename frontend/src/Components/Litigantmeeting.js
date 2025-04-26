@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import '../ComponentsCSS/litigantmeeting.css';
-import  { QRCodeSVG } from 'qrcode.react';  // We'll use this library for QR code generation
+import { QRCodeSVG } from 'qrcode.react';  // We'll use this library for QR code generation
 
 const LitigantMeetingPanel = () => {
   const [cases, setCases] = useState([]);
@@ -16,6 +16,7 @@ const LitigantMeetingPanel = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState(null);
   const [showQrCode, setShowQrCode] = useState(false); // State to toggle QR code visibility
+  const qrRef = useRef(null); // Create a ref for the QR code SVG element
 
   // Get user info and fetch cases on component mount
   useEffect(() => {
@@ -262,20 +263,36 @@ const LitigantMeetingPanel = () => {
     setShowQrCode(!showQrCode);
   };
 
-  // Download QR code as image
+  // Download QR code as SVG
   const downloadQrCode = () => {
-    const canvas = document.getElementById('meeting-qr-code');
-    if (canvas) {
-      const pngUrl = canvas
-        .toDataURL('image/png')
-        .replace('image/png', 'image/octet-stream');
+    if (qrRef.current) {
+      // Get the SVG element
+      const svgElement = qrRef.current;
       
+      // Clone the SVG to avoid modifying the rendered one
+      const svgClone = svgElement.cloneNode(true);
+      
+      // Convert SVG to string
+      const svgData = new XMLSerializer().serializeToString(svgClone);
+      
+      // Create a Blob from the SVG string
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      
+      // Create URL for the Blob
+      const svgUrl = URL.createObjectURL(svgBlob);
+      
+      // Create download link
       const downloadLink = document.createElement('a');
-      downloadLink.href = pngUrl;
-      downloadLink.download = `meeting-qr-${selectedCase}.png`;
+      downloadLink.href = svgUrl;
+      downloadLink.download = `meeting-qr-${selectedCase}.svg`;
+      
+      // Trigger download
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
+      
+      // Release the object URL
+      URL.revokeObjectURL(svgUrl);
     }
   };
 
@@ -392,32 +409,30 @@ const LitigantMeetingPanel = () => {
               >
                 Join Meeting Now
               </a>
-              
-             
             </div>
             
-            
-              <div className="qr-code-container">
-                <div className="qr-code-wrapper">
-                  <QRCodeSVG
-                    id="meeting-qr-code"
-                    value={meetingLink}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-                <div className="qr-code-instructions">
-                  <p>Scan this QR code with your mobile device to join the meeting</p>
-                  <button
-                    onClick={downloadQrCode}
-                    className="download-qr-btn"
-                    type="button"
-                  >
-                    Download QR Code
-                  </button>
-                </div>
+            <div className="qr-code-container">
+              <div className="qr-code-wrapper">
+                <QRCodeSVG
+                  ref={qrRef}
+                  id="meeting-qr-code"
+                  value={meetingLink}
+                  size={200}
+                  level="H"
+                  includeMargin={true}
+                />
               </div>
+              <div className="qr-code-instructions">
+                <p>Scan this QR code with your mobile device to join the meeting</p>
+                <button
+                  onClick={downloadQrCode}
+                  className="download-qr-btn"
+                  type="button"
+                >
+                  Download QR Code
+                </button>
+              </div>
+            </div>
           </div>
           
           <p className="instructions">

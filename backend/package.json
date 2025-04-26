@@ -12,6 +12,7 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "express": "^4.21.1",
-    "mongod": "^2.0.0"
+    "mongod": "^2.0.0",
+    "node-cron": "^3.0.3"
   }
 }

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import '../ComponentsCSS/AdvocateDashboard.css';
+import emblem from "../images/aadiimage4.svg";
+import logo from "../images/aadiimage4.png";
 
 const AdvocateDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -10,6 +12,12 @@ const AdvocateDashboard = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [logoutPassword, setLogoutPassword] = useState('');
+  
+  // Profile picture states
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [pictureError, setPictureError] = useState(null);
+  const fileInputRef = useRef(null);
   
   // Case-related states
   const [cases, setCases] = useState([]);
@@ -54,6 +62,12 @@ const AdvocateDashboard = () => {
         });
 
         setProfile(response.data.advocate);
+        
+        // If profile has a profile picture, set it
+        if (response.data.advocate.profilePicture) {
+          setProfilePicture(`http://localhost:5000/api/advocate/profile-picture/${response.data.advocate.profilePicture}`);
+        }
+        
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.message || err.message);
@@ -91,7 +105,59 @@ const AdvocateDashboard = () => {
     }
   };
 
-  // Function to handle hearing search
+  // Function to handle picture upload button click
+  const handleUploadButtonClick = () => {
+    fileInputRef.current.click();
+  };
+
+  // Function to handle profile picture change
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    if (!validImageTypes.includes(file.type)) {
+      setPictureError('Please select a valid image file (JPG, PNG, GIF)');
+      return;
+    }
+    
+    // Check file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setPictureError('File size should be less than 2MB');
+      return;
+    }
+    
+    setUploadingPicture(true);
+    setPictureError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+      
+      const response = await axios.post(
+        'http://localhost:5000/api/advocate/profile-picture',
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      // Update profile picture in state
+      setProfilePicture(`http://localhost:5000/api/advocate/profile-picture/${response.data.profilePicture.filename}?${new Date().getTime()}`);
+      
+    } catch (err) {
+      setPictureError(err.response?.data?.message || 'Error uploading profile picture');
+    } finally {
+      setUploadingPicture(false);
+    }
+  };
+
+  // Function to handle hearing search (remaining code same as before)
   const handleHearingSearch = async (e) => {
     e.preventDefault();
     setHearingsLoading(true);
@@ -113,7 +179,7 @@ const AdvocateDashboard = () => {
     }
   };
 
-  // Function to fetch documents for a specific case
+  // Function to fetch documents for a specific case (same as before)
   const fetchDocuments = async (caseNum) => {
     setDocumentsLoading(true);
     setDocumentError(null);
@@ -137,13 +203,13 @@ const AdvocateDashboard = () => {
     }
   };
 
-  // Function to handle file change
+  // Other functions remain the same
   const handleFileChange = (e) => {
     setDocumentFile(e.target.files[0]);
   };
 
-  // Function to handle document upload
   const handleDocumentUpload = async (e) => {
+    // Existing implementation remains the same
     e.preventDefault();
     
     if (!documentFile || !documentType) {
@@ -194,6 +260,7 @@ const AdvocateDashboard = () => {
 
   // Function to download document
   const downloadDocument = async (documentId, fileName) => {
+    // Existing implementation remains the same
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:5000/api/document/${documentId}/download/advocate`, {
@@ -219,13 +286,11 @@ const AdvocateDashboard = () => {
       link.parentNode.removeChild(link);
     } catch (err) {
       console.error('Error downloading document:', err);
-      // You might want to add better error handling here
-      // Perhaps show a notification to the user
     }
   };
 
-  // Function to download attachment
   const downloadAttachment = async (filename, originalname) => {
+    // Existing implementation remains the same
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`http://localhost:5000/api/files/${filename}`, {
@@ -256,6 +321,7 @@ const AdvocateDashboard = () => {
 
   // Function to handle logout
   const handleLogout = async () => {
+    // Existing implementation remains the same
     try {
       const token = localStorage.getItem('token');
       await axios.post('http://localhost:5000/api/advocate/logout', {}, {
@@ -272,6 +338,7 @@ const AdvocateDashboard = () => {
 
   // Function to handle logout from all devices
   const handleLogoutAll = async () => {
+    // Existing implementation remains the same
     try {
       const token = localStorage.getItem('token');
       await axios.post('http://localhost:5000/api/advocate/logout-all', 
@@ -297,6 +364,7 @@ const AdvocateDashboard = () => {
 
   // Function to render cases section
   const renderCases = () => (
+    // Existing implementation remains the same
     <div className="cases-section">
       <h2>My Cases</h2>
       
@@ -368,6 +436,7 @@ const AdvocateDashboard = () => {
 
   // Function to render hearings section
   const renderHearings = () => (
+    // Existing implementation remains the same
     <div className="hearings-section">
       <h2>Search Case Hearings</h2>
       
@@ -470,6 +539,7 @@ const AdvocateDashboard = () => {
 
   // Function to render documents section
   const renderDocuments = () => (
+    // Existing implementation remains the same
     <div className="documents-section">
       <h2>Case Documents</h2>
       
@@ -616,9 +686,17 @@ const AdvocateDashboard = () => {
   return (
     <div className="adv-dashboard">
       <header className="adv-dashboard__header">
-        <div className="adv-dashboard__header-title">
-          <h1>Welcome To Advocate Dashboard</h1>
-        </div>
+        <div className="logo-section">
+                    <div className="emblem-logo">
+                      <div className="emblem-image"><img src={emblem} alt="Aaditiya Tyagi" ></img></div>
+                    </div>
+                    <div className="justice-logo">
+                      <div className="justice-image"><img src={logo} alt="Aaditiya Tyagi" ></img></div>
+                    </div>
+                    <div className="header-title">
+                      <h1>Welcome To Advocate Dashboard</h1>
+                    </div>
+                  </div>
         <div className="adv-dashboard__header-actions">
           <div className="adv-dashboard__auth-actions">
             <button 
@@ -638,9 +716,19 @@ const AdvocateDashboard = () => {
             className="adv-dashboard__profile-trigger"
             onClick={toggleProfile}
           >
-            <div className="adv-dashboard__avatar">
-              {profile?.name?.charAt(0).toUpperCase()}
-            </div>
+            {profilePicture ? (
+              <div className="adv-dashboard__avatar adv-dashboard__avatar--with-img">
+                <img 
+                  src={profilePicture} 
+                  alt={profile?.name || 'Advocate'} 
+                  className="adv-dashboard__profile-img"
+                />
+              </div>
+            ) : (
+              <div className="adv-dashboard__avatar">
+                {profile?.name?.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -656,137 +744,174 @@ const AdvocateDashboard = () => {
               onChange={(e) => setLogoutPassword(e.target.value)}
               placeholder="Enter your password"
               className="adv-modal__input"
-            />
-            <div className="adv-modal__actions">
-              <button 
-                onClick={handleLogoutAll}
-                className="adv-modal__btn adv-modal__btn--confirm"
-              >
-                Confirm Logout
-              </button>
-              <button 
-                onClick={() => {
-                  setShowLogoutConfirm(false);
-                  setLogoutPassword('');
-                }}
-                className="adv-modal__btn adv-modal__btn--cancel"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isProfileOpen && (
-        <div className="adv-modal__overlay">
-          <div className="adv-modal__container adv-modal__container--profile">
-            <button
-              className="adv-modal__close-btn"
-              onClick={toggleProfile}
-            >
-              ×
-            </button>
-            <div className="adv-profile__content">
-              <div className="adv-profile__avatar">
-                {profile?.name?.charAt(0).toUpperCase()}
-              </div>
-              <h2 className="adv-profile__name">{profile?.name}</h2>
-              <h4 className="adv-profile__id">{profile?.advocate_id}</h4>
-              <p className="adv-profile__email">{profile?.email}</p>
-              <p className="adv-profile__district">District: {profile?.district}</p>
-              <div className="adv-profile__details">
-                <div className="adv-profile__detail-item">
-                  <span className="adv-profile__detail-label">Enrollment No:</span>
-                  <strong className="adv-profile__detail-value">{profile?.enrollment_no}</strong>
-                </div>
-                <div className="adv-profile__detail-item">
-                  <span className="adv-profile__detail-label">Status:</span>
-                  <strong className="adv-profile__detail-value">{profile?.status}</strong>
-                </div>
-                <div className="adv-profile__detail-item">
-                  <span className="adv-profile__detail-label">Practice Area:</span>
-                  <strong className="adv-profile__detail-value">
-                    {profile?.practice_details?.district_court ? 'District Court' : 'Not Specified'}
-                  </strong>
-                </div>
+              />
+              <div className="adv-modal__actions">
+                <button 
+                  onClick={handleLogoutAll}
+                  className="adv-modal__btn adv-modal__btn--confirm"
+                >
+                  Confirm Logout
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    setLogoutPassword('');
+                  }}
+                  className="adv-modal__btn adv-modal__btn--cancel"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           </div>
+        )}
+  
+        {isProfileOpen && (
+          <div className="adv-modal__overlay">
+            <div className="adv-modal__container adv-modal__container--profile">
+              <button
+                className="adv-modal__close-btn"
+                onClick={toggleProfile}
+              >
+                ×
+              </button>
+              <div className="adv-profile__content">
+                {/* Profile Picture Section */}
+                <div className="adv-profile__picture-section">
+                  {profilePicture ? (
+                    <div className="adv-profile__avatar adv-profile__avatar--with-img">
+                      <img 
+                        src={profilePicture} 
+                        alt={profile?.name || 'Advocate'} 
+                        className="adv-profile__img"
+                      />
+                    </div>
+                  ) : (
+                    <div className="adv-profile__avatar">
+                      {profile?.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  
+                  {/* Hidden file input for profile picture */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleProfilePictureChange}
+                  />
+                  
+                  <button 
+                    className="adv-profile__picture-btn"
+                    onClick={handleUploadButtonClick}
+                    disabled={uploadingPicture}
+                  >
+                    {uploadingPicture ? 'Uploading...' : 'Change Photo'}
+                  </button>
+                  
+                  {pictureError && (
+                    <div className="adv-profile__picture-error">
+                      {pictureError}
+                    </div>
+                  )}
+                </div>
+                
+                <h2 className="adv-profile__name">{profile?.name}</h2>
+                <h4 className="adv-profile__id">{profile?.advocate_id}</h4>
+                <p className="adv-profile__email">{profile?.email}</p>
+                <p className="adv-profile__district">District: {profile?.district}</p>
+                <div className="adv-profile__details">
+                  <div className="adv-profile__detail-item">
+                    <span className="adv-profile__detail-label">Enrollment No:</span>
+                    <strong className="adv-profile__detail-value">{profile?.enrollment_no}</strong>
+                  </div>
+                  <div className="adv-profile__detail-item">
+                    <span className="adv-profile__detail-label">Status:</span>
+                    <strong className="adv-profile__detail-value">{profile?.status}</strong>
+                  </div>
+                  <div className="adv-profile__detail-item">
+                    <span className="adv-profile__detail-label">Practice Area:</span>
+                    <strong className="adv-profile__detail-value">
+                      {profile?.practice_details?.district_court ? 'District Court' : 'Not Specified'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+  
+        <div className="adv-dashboard__layout">
+          <aside className="adv-dashboard__sidebar">
+            <nav className="adv-dashboard__nav">
+              <button 
+                className={`adv-dashboard__nav-btn ${activeSection === 'cases' ? 'active' : ''}`}
+                onClick={() => setActiveSection('cases')}
+              >
+                Cases
+              </button>
+              <button 
+                className={`adv-dashboard__nav-btn ${activeSection === 'hearings' ? 'active' : ''}`}
+                onClick={() => setActiveSection('hearings')}
+              >
+                Hearings
+              </button>
+              <button 
+                className={`adv-dashboard__nav-btn ${activeSection === 'documents' ? 'active' : ''}`}
+                onClick={() => setActiveSection('documents')}
+              >
+                Documents
+              </button>
+              <Link to="/noticeboard" className="adv-dashboard__nav-link">
+                Notice Board
+              </Link>
+              <Link to="/usercalendar" className="adv-dashboard__nav-link">
+                Court Calendar
+              </Link>
+              <Link to="/advocatecaseassign" className="adv-dashboard__nav-link">
+                Case Join Request
+              </Link>
+              <Link to="/advocatefilecase" className="adv-dashboard__nav-link">
+                File a Case
+              </Link>
+              <Link to="/advocatemeeting" className="adv-dashboard__nav-link">
+                Scheduled Meetings
+              </Link>
+            </nav>
+          </aside>
+  
+          <main className="adv-dashboard__main">
+            {activeSection === 'cases' && (
+              <>
+                <section className="adv-dashboard__stats">
+                  <div className="adv-dashboard__stat-card">
+                    <h3 className="adv-dashboard__stat-title">Total Cases</h3>
+                    <p className="adv-dashboard__stat-value">{cases.length}</p>
+                  </div>
+                  <div className="adv-dashboard__stat-card">
+                    <h3 className="adv-dashboard__stat-title">Pending Cases</h3>
+                    <p className="adv-dashboard__stat-value">
+                      {cases.filter(c => c.status === 'Pending').length}
+                    </p>
+                  </div>
+                  <div className="adv-dashboard__stat-card">
+                    <h3 className="adv-dashboard__stat-title">Active Cases</h3>
+                    <p className="adv-dashboard__stat-value">
+                      {cases.filter(c => c.status === 'Active').length}
+                    </p>
+                  </div>
+                </section>
+                {renderCases()}
+              </>
+            )}
+            
+            {activeSection === 'hearings' && renderHearings()}
+            
+            {activeSection === 'documents' && renderDocuments()}
+          </main>
         </div>
-      )}
-
-      <div className="adv-dashboard__layout">
-        <aside className="adv-dashboard__sidebar">
-          <nav className="adv-dashboard__nav">
-            <button 
-              className={`adv-dashboard__nav-btn ${activeSection === 'cases' ? 'active' : ''}`}
-              onClick={() => setActiveSection('cases')}
-            >
-              Cases
-            </button>
-            <button 
-              className={`adv-dashboard__nav-btn ${activeSection === 'hearings' ? 'active' : ''}`}
-              onClick={() => setActiveSection('hearings')}
-            >
-              Hearings
-            </button>
-            <button 
-              className={`adv-dashboard__nav-btn ${activeSection === 'documents' ? 'active' : ''}`}
-              onClick={() => setActiveSection('documents')}
-            >
-              Documents
-            </button>
-            <Link to="/noticeboard" className="adv-dashboard__nav-link">
-              Notice Board
-            </Link>
-            <Link to="/usercalendar" className="adv-dashboard__nav-link">
-              Court Calendar
-            </Link>
-            <Link to="/advocatecaseassign" className="adv-dashboard__nav-link">
-              Case Join Request
-            </Link>
-            <Link to="/advocatefilecase" className="adv-dashboard__nav-link">
-              File a Case
-            </Link>
-            <Link to="/advocatemeeting" className="adv-dashboard__nav-link">
-              Scheduled Meetings
-            </Link>
-          </nav>
-        </aside>
-
-        <main className="adv-dashboard__main">
-          {activeSection === 'cases' && (
-            <>
-              <section className="adv-dashboard__stats">
-                <div className="adv-dashboard__stat-card">
-                  <h3 className="adv-dashboard__stat-title">Total Cases</h3>
-                  <p className="adv-dashboard__stat-value">{cases.length}</p>
-                </div>
-                <div className="adv-dashboard__stat-card">
-                  <h3 className="adv-dashboard__stat-title">Pending Cases</h3>
-                  <p className="adv-dashboard__stat-value">
-                    {cases.filter(c => c.status === 'Pending').length}
-                  </p>
-                </div>
-                <div className="adv-dashboard__stat-card">
-                  <h3 className="adv-dashboard__stat-title">Active Cases</h3>
-                  <p className="adv-dashboard__stat-value">
-                    {cases.filter(c => c.status === 'Active').length}
-                  </p>
-                </div>
-              </section>
-              {renderCases()}
-            </>
-          )}
-          
-          {activeSection === 'hearings' && renderHearings()}
-          
-          {activeSection === 'documents' && renderDocuments()}
-        </main>
       </div>
-    </div>
-  );
-};
-
-export default AdvocateDashboard;
+    );
+  };
+  
+  export default AdvocateDashboard;

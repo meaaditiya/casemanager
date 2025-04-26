@@ -1,324 +1,274 @@
-/* LitigantLogin.css - Enhanced Professional Styling for Login System */
-
-/* Base styling and reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+/* LitigantLogin.css - Official Government Styled CSS with Enhanced Background */
+:root {
+  --primary-color: #1a3c6e; /* Deep Blue for official look */
+  --secondary-color: #f5f6f5; /* Light Grey for backgrounds */
+  --accent-color: #d4a017; /* Gold accent for highlights */
+  --text-color: #333333; /* Dark grey for text */
+  --error-color: #a94442; /* Muted red for errors */
+  --success-color: #3c763d; /* Muted green for success */
+  --border-color: #d1d5db; /* Light grey for borders */
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-body {
-  background-color: #f8f9fa;
-  color: #2f3e46;
-  line-height: 1.6;
-}
-
-/* Litigant container with sophisticated background */
 .litigant-container {
-  min-height: 100vh;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 2rem;
-  background: radial-gradient(ellipse at top right, rgba(76, 125, 139, 0.07) 0%, transparent 50%),
-              radial-gradient(ellipse at bottom left, rgba(76, 125, 139, 0.07) 0%, transparent 50%),
-              linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+  align-items: center;
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at 30% 20%,
+    #e6f0fa 0%,
+    #d6e3f0 30%,
+    var(--secondary-color) 60%,
+    #f0f4f8 100%
+  );
   position: relative;
+  padding: 20px;
   overflow: hidden;
 }
 
-/* Decorative background elements */
-.litigant-container::before,
-.litigant-container::after {
-  content: "";
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  border-radius: 50%;
-  background: rgba(76, 125, 139, 0.04);
-  z-index: 0;
-}
-
+/* Subtle noise texture overlay */
 .litigant-container::before {
-  top: -150px;
-  right: -100px;
-}
-
-.litigant-container::after {
-  bottom: -150px;
-  left: -100px;
-}
-
-/* Login box styling with enhanced depth */
-.litigant-login-box {
-  background: white;
-  border-radius: 16px;
-  padding: 3.5rem;
-  width: 100%;
-  max-width: 520px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-              0 10px 10px -5px rgba(0, 0, 0, 0.04),
-              0 0 0 1px rgba(0, 0, 0, 0.03);
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  transition: height 0.5s ease;
-}
-
-/* Decorative top border with gradient */
-.litigant-login-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #40798c, #52a5b8, #40798c);
-  z-index: 2;
-}
-
-/* Subtle pattern overlay for texture */
-.litigant-login-box::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2340798c' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  z-index: 0;
-  opacity: 1;
+  background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+  opacity: 0.05;
+  pointer-events: none;
 }
 
-/* Content positioning */
-.litigant-login-box > * {
+.litigant-login-box {
+  background: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 32px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
   position: relative;
-  z-index: 1;
+  overflow: hidden;
+  z-index: 1; /* Ensure box is above background texture */
 }
 
-/* Title styling with subtle text gradient */
+.litigant-login-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--primary-color);
+}
+
+/* Logo Styling */
+.official-logo {
+  display: block;
+  margin: 0 auto 20px;
+  height: 60px;
+  width: auto;
+}
+
+/* Secure Authentication Badge */
+.secure-authentication {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--success-color);
+  background: #e6f3e6;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--success-color);
+}
+
+.secure-authentication::before {
+  content: '🔒';
+  font-size: 1rem;
+}
+
+/* Title Styling */
 .litigant-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #2c3e50 0%, #40798c 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
-  margin-bottom: 2.25rem;
-  letter-spacing: -0.025em;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
   text-align: center;
+  margin-bottom: 24px;
+  letter-spacing: 0.5px;
 }
 
-/* Form group styling */
+/* Form Group */
 .litigant-form-group {
-  margin-bottom: 1.75rem;
-  position: relative;
+  margin-bottom: 20px;
 }
 
-/* Label styling */
 .litigant-label {
   display: block;
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #4a5d66;
-  font-size: 1rem;
+  color: var(--text-color);
+  margin-bottom: 8px;
 }
 
-/* Input field styling */
 .litigant-input {
   width: 100%;
-  padding: 0.975rem 1.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background-color: #f8f9fa;
+  padding: 12px 16px;
   font-size: 1rem;
-  color: #2f3e46;
-  transition: all 0.2s ease;
+  color: var(--text-color);
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .litigant-input:focus {
   outline: none;
-  border-color: #40798c;
-  box-shadow: 0 0 0 3px rgba(64, 121, 140, 0.15);
-  background-color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.1);
 }
 
-/* Submit button styling */
+/* Buttons */
 .litigant-submit-btn {
   width: 100%;
-  padding: 1.125rem;
-  background: linear-gradient(135deg, #2f5d72 0%, #40798c 100%);
-  color: white;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--primary-color);
   border: none;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 1.125rem;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(64, 121, 140, 0.3), 
-              0 2px 4px -1px rgba(64, 121, 140, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  position: relative;
-  overflow: hidden;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
 .litigant-submit-btn:hover {
-  background: linear-gradient(135deg, #1e3a46 0%, #2f5d72 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 15px -3px rgba(64, 121, 140, 0.4), 
-              0 4px 6px -2px rgba(64, 121, 140, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.litigant-submit-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px -1px rgba(64, 121, 140, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  background: #15325b;
+  transform: translateY(-1px);
 }
 
 .litigant-submit-btn:disabled {
-  background: linear-gradient(135deg, #7c98a6 0%, #a5b6c0 100%);
+  background: #a3bffa;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 4px -1px rgba(64, 121, 140, 0.1);
 }
 
-/* Button shine animation on hover */
-.litigant-submit-btn::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    to bottom right,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  transform: rotate(45deg);
-  opacity: 0;
-  transition: opacity 0.5s, transform 1s;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.litigant-submit-btn:hover:not(:disabled)::after {
-  opacity: 1;
-  transform: rotate(45deg) translate(120%, 120%);
-}
-
-/* Secondary button styling */
 .litigant-secondary-btn {
-  padding: 1.125rem;
-  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-  color: #40798c;
-  border: 1px solid rgba(64, 121, 140, 0.2);
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 1.125rem;
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  position: relative;
-  overflow: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .litigant-secondary-btn:hover {
-  background: linear-gradient(135deg, #dee2e6 0%, #ced4da 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--primary-color);
+  color: #ffffff;
 }
 
-.litigant-secondary-btn:active {
-  transform: translateY(0);
-  box-shadow: none;
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
 }
 
-/* Error box styling */
-.litigant-error-box {
-  background-color: #f8d7da;
-  border-left: 4px solid #dc3545;
-  padding: 1rem;
-  margin-bottom: 1.75rem;
-  color: #b02a37;
-  font-size: 0.95rem;
-  border-radius: 8px;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Success box styling */
-.litigant-success-box {
-  background-color: #d1e7dd;
-  border-left: 4px solid #198754;
-  padding: 1rem;
-  margin-bottom: 1.75rem;
-  color: #0f5132;
-  font-size: 0.95rem;
-  border-radius: 8px;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Forgot password link styling */
+/* Forgot Password Link */
 .forgot-password-link {
   text-align: right;
-  margin-bottom: 1.25rem;
-  margin-top: -0.75rem;
+  margin-bottom: 16px;
 }
 
 .text-link {
-  color: #40798c;
-  font-size: 0.95rem;
-  text-decoration: none;
+  font-size: 0.875rem;
+  color: var(--primary-color);
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  position: relative;
-  display: inline-block;
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .text-link:hover {
-  color: #2f5d72;
+  color: var(--accent-color);
+  text-decoration: underline;
 }
 
-.text-link::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 1px;
-  bottom: -2px;
-  left: 0;
-  background-color: #40798c;
-  transition: width 0.3s ease;
+/* Error and Success Messages */
+.litigant-error-box {
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #f8d7da;
+  color: var(--error-color);
+  border: 1px solid var(--error-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
-.text-link:hover::after {
+.litigant-success-box {
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #dff0d8;
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Password Strength Meter */
+.password-strength {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.password-strength-meter {
+  height: 100%;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.strength-weak {
+  width: 33%;
+  background: var(--error-color);
+}
+
+.strength-medium {
+  width: 66%;
+  background: var(--accent-color);
+}
+
+.strength-strong {
   width: 100%;
+  background: var(--success-color);
 }
 
-/* Form actions container */
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.5rem;
+/* Form Hint */
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--text-color);
+  margin-top: 6px;
+  opacity: 0.8;
 }
 
-.form-actions button {
-  flex: 1;
+/* View Transition Animation */
+.view-transition {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -326,91 +276,69 @@ body {
   }
 }
 
-/* View transitions */
-.view-transition {
-  animation: fadeIn 0.3s ease;
+.fade-out {
+  animation: fadeOut 0.3s ease-in-out;
 }
 
-/* OTP input styling */
-.litigant-input[name="otp"] {
-  letter-spacing: 0.25em;
-  font-weight: 600;
-  text-align: center;
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
-/* Password strength indicators */
-.password-strength {
-  height: 4px;
-  width: 100%;
-  background: #e9ecef;
-  border-radius: 2px;
-  margin-top: 0.5rem;
-  overflow: hidden;
-}
-
-.password-strength-meter {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.strength-weak {
-  width: 33%;
-  background-color: #dc3545;
-}
-
-.strength-medium {
-  width: 66%;
-  background-color: #ffc107;
-}
-
-.strength-strong {
-  width: 100%;
-  background-color: #198754;
-}
-
-/* Responsive design */
-@media (max-width: 640px) {
+/* Responsive Design */
+@media (max-width: 480px) {
   .litigant-login-box {
-    padding: 2.5rem 2rem;
-    max-width: 92%;
+    padding: 24px 20px;
+    margin: 0 16px;
   }
-  
+
   .litigant-title {
-    font-size: 2.25rem;
-    margin-bottom: 1.75rem;
+    font-size: 1.5rem;
   }
-  
-  .litigant-input {
-    padding: 0.875rem 1rem;
-  }
-  
-  .litigant-submit-btn,
-  .litigant-secondary-btn {
-    padding: 1rem;
-    font-size: 1.075rem;
-  }
-  
+
   .form-actions {
     flex-direction: column;
+    gap: 12px;
+  }
+
+  .litigant-submit-btn,
+  .litigant-secondary-btn {
+    padding: 12px;
+  }
+
+  .official-logo {
+    height: 50px;
+  }
+
+  .secure-authentication {
+    top: 10px;
+    right: 10px;
+    font-size: 0.7rem;
+    padding: 4px 8px;
   }
 }
+/* Add these styles to your LitigantLogin.css file */
 
-/* For very small screens */
-@media (max-width: 400px) {
-  .litigant-container {
-    padding: 1.25rem;
-  }
-  
-  .litigant-login-box {
-    padding: 2rem 1.5rem;
-  }
-  
-  .litigant-title {
-    font-size: 2rem;
-  }
-  
-  .litigant-form-group {
-    margin-bottom: 1.5rem;
-  }
+.captcha-container {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+}
+
+.cf-turnstile {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Disable login button when captcha is not completed */
+.litigant-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

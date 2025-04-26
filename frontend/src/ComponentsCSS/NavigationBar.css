@@ -1,0 +1,166 @@
+/* VerticalNavBar.css */
+.vnav-container {
+  position: fixed;
+  top: 50%;
+  right: 0px;
+  transform: translateY(-50%);
+  z-index: 1000;
+}
+
+.vnav-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 14px 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eaeaea;
+}
+
+.vnav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: none;
+  background-color: #f5f5f7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.vnav-btn:hover {
+  background-color: #e8e8eb;
+  transform: scale(1.05);
+}
+
+.vnav-btn:active {
+  transform: scale(0.95);
+}
+
+.vnav-btn.vnav-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vnav-btn.vnav-disabled:hover {
+  background-color: #f5f5f7;
+  transform: none;
+}
+
+.vnav-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.vnav-home-btn {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.vnav-home-btn:hover {
+  background-color: #bbdefb;
+}
+
+.vnav-back-btn {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.vnav-back-btn:hover:not(.vnav-disabled) {
+  background-color: #e1bee7;
+}
+
+.vnav-forward-btn {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.vnav-forward-btn:hover:not(.vnav-disabled) {
+  background-color: #c8e6c9;
+}
+
+.vnav-refresh-btn {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+.vnav-refresh-btn:hover {
+  background-color: #ffe0b2;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .vnav-wrapper {
+    background-color: rgba(30, 30, 30, 0.9);
+    border-color: #444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .vnav-btn {
+    background-color: #333;
+    color: #eee;
+  }
+  
+  .vnav-btn:hover:not(.vnav-disabled) {
+    background-color: #444;
+  }
+  
+  .vnav-home-btn {
+    background-color: #0d47a1;
+    color: #e3f2fd;
+  }
+  
+  .vnav-home-btn:hover {
+    background-color: #1565c0;
+  }
+  
+  .vnav-back-btn {
+    background-color: #4a148c;
+    color: #f3e5f5;
+  }
+  
+  .vnav-back-btn:hover:not(.vnav-disabled) {
+    background-color: #6a1b9a;
+  }
+  
+  .vnav-forward-btn {
+    background-color: #1b5e20;
+    color: #e8f5e9;
+  }
+  
+  .vnav-forward-btn:hover:not(.vnav-disabled) {
+    background-color: #2e7d32;
+  }
+  
+  .vnav-refresh-btn {
+    background-color: #e65100;
+    color: #fff3e0;
+  }
+  
+  .vnav-refresh-btn:hover {
+    background-color: #ef6c00;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .vnav-container {
+    top: auto;
+    bottom: 20px;
+    right: 0px;
+    transform: none;
+  }
+  
+  .vnav-wrapper {
+    padding: 10px 8px;
+  }
+  
+  .vnav-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
