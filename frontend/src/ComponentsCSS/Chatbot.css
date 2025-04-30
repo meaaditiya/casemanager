@@ -1,37 +1,131 @@
 /* Legal Assistant Chatbot CSS */
 .chatbot-wrapper {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 1000;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.chatbot-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.chatbot-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
+}
+
+.avatar-container {
+  width: 32px;
+  height: 32px;
+  position: relative;
+}
+
+.avatar-hair {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 18px;
+  background-color: #3a3053;
+  border-radius: 50% 50% 0 0;
+}
+
+.avatar-face {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background-color: #ffdbac;
+  border-radius: 50%;
+  top: 8px;
+  left: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-eyes {
+  width: 14px;
+  height: 3px;
+  background-color: #3a3053;
+  border-radius: 3px;
+  margin-top: -2px;
+  position: relative;
+}
+
+.avatar-eyes::before, .avatar-eyes::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background-color: #3a3053;
+  border-radius: 50%;
+  top: 0;
+}
+
+.avatar-eyes::before {
+  left: 2px;
+}
+
+.avatar-eyes::after {
+  right: 2px;
+}
+
+.avatar-smile {
+  width: 10px;
+  height: 5px;
+  border-radius: 0 0 5px 5px;
+  border: 1.5px solid #3a3053;
+  border-top: none;
+  margin-top: 2px;
+}
+
+.chatbot-name {
+  position: absolute;
+  bottom: -18px;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
+}
+
+.pulse-effect {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
   }
-  
-  /* Floating Icon */
-  .chatbot-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #0a5f70;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 1002; /* Higher z-index to ensure visibility */
+  70% {
+    transform: scale(1.1);
+    opacity: 0;
   }
-  
-  .chatbot-icon:hover {
-    background-color: #0c7186;
-    transform: scale(1.05);
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
   }
-  
-  .chatbot-icon svg {
-    width: 30px;
-    height: 30px;
-    fill: white;
-  }
-  
+}
   /* Container */
   .chatbot-container {
     position: fixed;

@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Check, X, LogOut, User, FileText, Calendar, Database, ShieldCheck, Info, Book, Users } from 'lucide-react';
+import { Check, X, LogOut, User, FileText, Calendar, Database, ShieldCheck, Info, Book, Users ,Settings,PanelLeft,Clipboard,UserPlus} from 'lucide-react';
 import '../ComponentsCSS/Clerkdashboard.css';
 
 // Import components with the correct paths
 import NoticePanel from '../Components/NoticePanel';
+import NoticeBoard from '../Components/NoticeBoard';
 import AdminCalendar from '../Components/AdminCalendar';
+import UserCalendar from'../Components/UserCalendar';
 import AdminMeeting from '../Components/Adminmeeting';
 import AdminCaseHandle from '../Components/Admincasehandle';
+import AdminAccountHandle from '../Components/Adminaccounthandle';
+import AdminCreation from '../Components/AdminCreation';
 import emblem from "../images/aadiimage4.svg";
 import logo from "../images/aadiimage4.png";
 
@@ -304,8 +308,16 @@ const ClerkDashboard = () => {
                 return <AdminCaseHandle />;
             case 'calendar':
                 return <AdminCalendar />;
-            case 'meetings':
+            case 'adminmeeting':
                 return <AdminMeeting />;
+            case 'usercalendar':
+                return <UserCalendar/>;
+            case 'usernoticeboard':
+                return <NoticeBoard/>;
+            case 'adminaccounthandle':
+                return <AdminAccountHandle/>;
+            case 'admincreation':
+                return <AdminCreation/>
             default:
                 return <div>Select an option from the sidebar</div>;
         }
@@ -330,9 +342,7 @@ const ClerkDashboard = () => {
                     <div className="emblem-logo">
                                           <div className="emblem-image"><img src={emblem} alt="Aaditiya Tyagi" ></img></div>
                                         </div>
-                                        <div className="justice-logo">
-                                          <div className="justice-image"><img src={logo} alt="Aaditiya Tyagi" ></img></div>
-                                        </div>
+                                       
                     <h1 className="court-clerk-title">Admin Panel</h1>
                 </div>
                 <div className="court-clerk-header-right">
@@ -393,14 +403,14 @@ const ClerkDashboard = () => {
                             className={`court-clerk-nav-btn ${activeComponent === 'noticepanel' ? 'active' : ''}`}
                             onClick={() => handleNavigation('noticepanel')}
                         >
-                            <Info className="court-clerk-nav-icon" />
+                            <PanelLeft className="court-clerk-nav-icon" />
                             Notice Panel
                         </button>
      
                    
                         <button
-                            className={`court-clerk-nav-btn ${activeComponent === 'meetings' ? 'active' : ''}`}
-                            onClick={() => handleNavigation('meetings')}
+                            className={`court-clerk-nav-btn ${activeComponent === 'adminmeeting' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('adminmeeting')}
                         >
                             <Users className="court-clerk-nav-icon" />
                             Schedule Meetings
@@ -411,6 +421,34 @@ const ClerkDashboard = () => {
                         >
                             <ShieldCheck className="court-clerk-nav-icon" />
                              Advocate Verifications
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'usercalendar' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('usercalendar')}
+                        >
+                            <Calendar className="court-clerk-nav-icon" />
+                             Calendar 
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'usernoticeboard' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('usernoticeboard')}
+                        >
+                            <Clipboard className="court-clerk-nav-icon" />
+                            Notice Board
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'adminaccounthandle' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('adminaccounthandle')}
+                        >
+                            <Settings className="court-clerk-nav-icon" />
+                            Manage Accounts
+                        </button>
+                        <button
+                            className={`court-clerk-nav-btn ${activeComponent === 'admincreation' ? 'active' : ''}`}
+                            onClick={() => handleNavigation('admincreation')}
+                        >
+                            <UserPlus className="court-clerk-nav-icon" />
+                            Create & Manage Admins
                         </button>
                         <button
                             className={`court-clerk-nav-btn ${activeComponent === 'notifications' ? 'active' : ''}`}
@@ -425,45 +463,7 @@ const ClerkDashboard = () => {
                 {/* Main Content Area */}
                 <main className="court-clerk-main">
                     {renderContent()}
-                    {activeComponent === 'casemanagement' && (
-                        <div className="court-clerk-cases-section">
-                            <h2>Your Cases</h2>
-                            <div className="court-clerk-cases-grid">
-                                <div className="court-clerk-case-card">
-                                    <h4>CL2025SW07</h4>
-                                    <p>Type: Civil</p>
-                                    <p>Court: District & Sessions Court</p>
-                                    <p>Filed: 4/24/2025</p>
-                                    <span className="court-clerk-status pending">PENDING</span>
-                                    <button className="court-clerk-view-details">View Details</button>
-                                </div>
-                                <div className="court-clerk-case-card">
-                                    <h4>CL2025TC11</h4>
-                                    <p>Type: Civil</p>
-                                    <p>Court: District & Sessions Court</p>
-                                    <p>Filed: 4/20/2025</p>
-                                    <span className="court-clerk-status filed">FILED</span>
-                                    <button className="court-clerk-view-details">View Details</button>
-                                </div>
-                                <div className="court-clerk-case-card">
-                                    <h4>CL20256096</h4>
-                                    <p>Type: Civil</p>
-                                    <p>Court: District & Sessions Court</p>
-                                    <p>Filed: 4/20/2025</p>
-                                    <span className="court-clerk-status filed">FILED</span>
-                                    <button className="court-clerk-view-details">View Details</button>
-                                </div>
-                                <div className="court-clerk-case-card">
-                                    <h4>CL2025D005</h4>
-                                    <p>Type: Civil</p>
-                                    <p>Court: District & Sessions Court</p>
-                                    <p>Filed: 4/12/2025</p>
-                                    <span className="court-clerk-status filed">FILED</span>
-                                    <button className="court-clerk-view-details">View Details</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                  
                 </main>
             </div>
 

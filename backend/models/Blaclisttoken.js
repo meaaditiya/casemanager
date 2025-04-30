@@ -12,7 +12,7 @@ const TokenBlacklistSchema = new mongoose.Schema({
     user_type: {
         type: String,
         required: true,
-        enum: ['advocate', 'litigant', 'clerk']
+        enum: ['advocate', 'litigant', 'clerk','admin']
     },
     createdAt: {
         type: Date,

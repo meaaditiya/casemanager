@@ -1,219 +1,199 @@
-/* Admin Case Management Styles - High End Professional Design */
+/* Admincasehandle.css */
+/* Base styling and resets */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-/* Base & Reset */
 .admin-case-management {
   display: flex;
-  min-height: 100vh;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  color: #2d3748;
-  background-color: #f7fafc;
-  overflow-x: hidden;
-}
-
-/* Scrollbars */
-.admin-sidebar::-webkit-scrollbar, 
-.admin-tab-content::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.admin-sidebar::-webkit-scrollbar-track,
-.admin-tab-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 6px;
-}
-
-.admin-sidebar::-webkit-scrollbar-thumb,
-.admin-tab-content::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
-  border-radius: 6px;
-}
-
-.admin-sidebar::-webkit-scrollbar-thumb:hover,
-.admin-tab-content::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
-}
-
-/* Sidebar */
-.admin-sidebar {
-  width: 360px;
   height: 100vh;
-  background-color: white;
-  border-right: 1px solid #e2e8f0;
-  overflow-y: auto;
-  position: sticky;
-  top: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
+  background-color: #f5f7fa;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #333;
+}
+
+/* Sidebar styling */
+.admin-sidebar {
+  width: 380px;
+  background-color: #fff;
+  border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
-  transition: width 0.2s ease;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
 .admin-sidebar h2 {
-  font-size: 1.25rem;
+  padding: 1.5rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin: 0 0 1.5rem;
-  color: #1a202c;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #e2e8f0;
+  color: #2c3e50;
+  border-bottom: 1px solid #eaedf0;
+  margin: 0;
+  background-color: #f9fafc;
 }
 
-/* Filters */
+/* Filters styling */
 .admin-filters {
-  margin-bottom: 1.5rem;
+  padding: 1rem 1.2rem;
+  background-color: #fff;
+  border-bottom: 1px solid #eaedf0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .admin-search {
   width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 0.8rem 1rem;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
+  transition: border 0.2s ease;
 }
 
 .admin-search:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  outline: none;
+  border-color: #0366d6;
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
 }
 
 .admin-select {
   width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  margin-bottom: 0.8rem;
+  font-size: 0.9rem;
   background-color: #fff;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px;
+  background-position: right 1rem center;
+  background-size: 1rem;
 }
 
 .admin-select:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  outline: none;
+  border-color: #0366d6;
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
 }
 
-/* Cases List */
+/* Cases list styling */
 .admin-cases-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex: 1;
   overflow-y: auto;
-  flex-grow: 1;
+  padding: 0.5rem 0;
+  /* Styled scrollbar for webkit browsers */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c9d2 #f5f7fa;
 }
 
-.admin-no-cases {
-  padding: 1.5rem;
-  text-align: center;
-  color: #718096;
-  font-size: 0.875rem;
-  border: 1px dashed #cbd5e0;
-  border-radius: 0.375rem;
-  margin-top: 1rem;
+/* Custom scrollbar styling */
+.admin-cases-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-cases-list::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+
+.admin-cases-list::-webkit-scrollbar-thumb {
+  background-color: #c1c9d2;
+  border-radius: 20px;
+  border: 2px solid #f5f7fa;
 }
 
 .admin-case-item {
-  padding: 0.875rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  background-color: #fff;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #eaedf0;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  position: relative;
-  overflow: hidden;
+  transition: background-color 0.15s ease;
 }
 
 .admin-case-item:hover {
-  border-color: #cbd5e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
+  background-color: #f6f8fa;
 }
 
 .admin-case-item.selected {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 1px #3182ce, 0 2px 4px rgba(49, 130, 206, 0.1);
+  background-color: #f0f4f9;
+  border-left: 4px solid #0366d6;
 }
 
 .admin-case-number {
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  color: #0366d6;
   margin-bottom: 0.5rem;
-  color: #4a5568;
 }
 
 .admin-case-title {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 500;
   margin-bottom: 0.5rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #24292f;
+  line-height: 1.4;
 }
 
 .admin-case-meta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.3rem;
 }
 
 .admin-case-status {
-  font-size: 0.6875rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  margin-right: 0.75rem;
 }
 
+/* Status colors */
 .status-filed {
-  background-color: #ebf8ff;
-  color: #2b6cb0;
+  background-color: #ddf4ff;
+  color: #0969da;
 }
 
 .status-pending {
-  background-color: #fefcbf;
-  color: #975a16;
+  background-color: #fff8c5;
+  color: #9a6700;
 }
 
 .status-under-investigation {
-  background-color: #e9d8fd;
-  color: #553c9a;
+  background-color: #ffeff7;
+  color: #bf3989;
 }
 
 .status-hearing-in-progress {
-  background-color: #feebc8;
-  color: #9c4221;
+  background-color: #ddf4ff;
+  color: #0969da;
 }
 
 .status-awaiting-judgment {
-  background-color: #c6f6d5;
-  color: #2f855a;
+  background-color: #fff8c5;
+  color: #9a6700;
 }
 
 .status-disposed {
-  background-color: #e2e8f0;
-  color: #4a5568;
+  background-color: #dafbe1;
+  color: #1a7f37;
 }
 
 .status-appealed {
-  background-color: #fed7d7;
-  color: #c53030;
+  background-color: #ffeff7;
+  color: #bf3989;
 }
 
 .admin-case-type {
-  font-size: 0.6875rem;
-  color: #718096;
+  font-size: 0.75rem;
+  color: #57606a;
+  background-color: #f6f8fa;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
 }
 
 .admin-case-approval {
@@ -222,470 +202,474 @@
 
 .approval-badge {
   display: inline-block;
-  font-size: 0.6875rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
+  font-size: 0.75rem;
   font-weight: 500;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
 }
 
-.approved {
-  background-color: #c6f6d5;
-  color: #2f855a;
+.approval-badge.approved {
+  background-color: #dafbe1;
+  color: #1a7f37;
 }
 
-.pending {
-  background-color: #feebc8;
-  color: #9c4221;
+.approval-badge.pending {
+  background-color: #fff8c5;
+  color: #9a6700;
 }
 
 .approval-badge.large {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.8rem;
 }
 
-/* Main Content */
+.admin-no-cases {
+  padding: 2rem;
+  text-align: center;
+  color: #57606a;
+  font-style: italic;
+}
+
+/* Main content area */
 .admin-content {
   flex: 1;
-  padding: 1.5rem;
   overflow-y: auto;
+  padding: 2rem;
+  background-color: #f9fafc;
+  /* Styled scrollbar for webkit browsers */
+  scrollbar-width: thin;
+  scrollbar-color: #c1c9d2 #f5f7fa;
+}
+
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: #f9fafc;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background-color: #c1c9d2;
+  border-radius: 20px;
+  border: 2px solid #f9fafc;
 }
 
 .admin-select-case {
+  height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 50vh;
+  color: #57606a;
 }
 
 .admin-select-case h3 {
-  color: #718096;
+  font-size: 1.2rem;
   font-weight: 500;
-  font-size: 1rem;
 }
 
-/* Case Details */
-.admin-case-details {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
+/* Case details header */
 .admin-case-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaedf0;
 }
 
 .admin-case-header h2 {
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   font-weight: 600;
-  margin: 0;
-  color: #1a202c;
+  color: #24292f;
 }
 
+/* Approval actions */
 .admin-approval-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-/* Loading & Error States */
-.admin-loading,
-.admin-error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 1rem;
-  color: #4a5568;
-}
-
-.admin-error {
-  color: #e53e3e;
-}
-
-/* Buttons */
-.admin-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.admin-btn.small {
-  font-size: 0.6875rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.admin-btn.primary {
-  background-color: #3182ce;
-  color: white;
-  border-color: #3182ce;
-}
-
-.admin-btn.primary:hover {
-  background-color: #2c5282;
-  border-color: #2c5282;
-}
-
-.admin-btn.approve {
-  background-color: #38a169;
-  color: white;
-  border-color: #38a169;
-}
-
-.admin-btn.approve:hover {
-  background-color: #2f855a;
-  border-color: #2f855a;
-}
-
-.admin-btn.reject {
-  background-color: #e53e3e;
-  color: white;
-  border-color: #e53e3e;
-}
-
-.admin-btn.reject:hover {
-  background-color: #c53030;
-  border-color: #c53030;
-}
-
-/* Tabs */
+/* Tabs styling */
 .admin-tabs {
   display: flex;
-  padding: 0 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background-color: #f8fafc;
-  overflow-x: auto;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px 6px 0 0;
 }
 
 .admin-tab {
-  padding: 0.875rem 1rem;
-  color: #718096;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 1rem 1.5rem;
+  background: none;
   border: none;
-  background-color: transparent;
-  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #57606a;
   cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  transition: color 0.15s ease;
+  border-bottom: 2px solid transparent;
 }
 
 .admin-tab:hover {
-  color: #4a5568;
+  color: #24292f;
+  background-color: #f6f8fa;
 }
 
 .admin-tab.active {
-  color: #3182ce;
-  border-bottom-color: #3182ce;
+  color: #0366d6;
+  border-bottom: 2px solid #0366d6;
+  background-color: #f6f8fa;
 }
 
+/* Tab content */
 .admin-tab-content {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
   padding: 1.5rem;
-  overflow-y: auto;
-  max-height: calc(100vh - 170px);
+  margin-bottom: 2rem;
 }
 
-/* Case Sections */
+/* Case section styling */
 .admin-case-section {
-  margin-bottom: 2rem;
-  background-color: #fff;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaedf0;
+}
+
+.admin-case-section:last-child {
+  border-bottom: none;
 }
 
 .admin-case-section h3 {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-top: 0;
+  color: #24292f;
   margin-bottom: 1rem;
-  color: #2d3748;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #edf2f7;
 }
 
+/* Detail rows */
 .admin-detail-row {
   display: flex;
-  margin-bottom: 0.625rem;
-  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
 }
 
 .admin-detail-label {
-  width: 180px;
-  color: #718096;
+  width: 150px;
   font-weight: 500;
+  color: #57606a;
 }
 
 .admin-detail-value {
   flex: 1;
-  color: #2d3748;
+  color: #24292f;
 }
 
-/* Forms */
+/* Forms styling */
+.admin-form-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaedf0;
+}
+
+.admin-form-section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #24292f;
+  margin-bottom: 1rem;
+}
+
 .admin-form-row {
   display: flex;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .admin-form-group {
   flex: 1;
-  min-width: 0;
+  min-width: calc(33.333% - 0.67rem);
 }
 
 .admin-form-group.full-width {
   width: 100%;
+  flex-basis: 100%;
 }
 
 .admin-form-group label {
   display: block;
-  margin-bottom: 0.375rem;
-  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  color: #4a5568;
+  color: #57606a;
 }
 
 .admin-form-group input,
 .admin-form-group select,
 .admin-form-group textarea {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 0.75rem;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border 0.2s ease;
 }
 
 .admin-form-group input:focus,
 .admin-form-group select:focus,
 .admin-form-group textarea:focus {
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-}
-
-.admin-form-group select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 16px;
-}
-
-.admin-form-group textarea {
-  resize: vertical;
-  min-height: 80px;
+  outline: none;
+  border-color: #0366d6;
+  box-shadow: 0 0 0 3px rgba(3, 102, 214, 0.1);
 }
 
 .admin-form-group input[type="file"] {
-  padding: 0.375rem;
+  padding: 0.5rem 0;
+  border: none;
+  background: none;
 }
 
 .admin-form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
   margin-top: 1.5rem;
 }
 
-.admin-form-section {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #edf2f7;
+/* Button styling */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid #d0d7de;
+  background-color: #f6f8fa;
+  color: #24292f;
 }
 
-.admin-form-section h4 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin: 0 0 1rem;
-  color: #4a5568;
+.admin-btn:hover {
+  background-color: #f3f4f6;
 }
 
-/* Hearings */
-.admin-hearing-form,
-.admin-status-form,
-.admin-document-form,
-.admin-office-form {
-  background-color: #fff;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 1.5rem;
+.admin-btn.primary {
+  background-color: #0366d6;
+  border-color: #0366d6;
+  color: #fff;
 }
 
-.admin-hearing-form h3,
-.admin-status-form h3,
-.admin-document-form h3,
-.admin-office-form h3,
-.admin-hearings-list h3,
-.admin-documents-list h3,
-.admin-status-history h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #2d3748;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #edf2f7;
+.admin-btn.primary:hover {
+  background-color: #0557be;
+  border-color: #0557be;
 }
 
-.admin-hearings-list,
-.admin-documents-list,
-.admin-status-history {
-  background-color: #fff;
-  border-radius: 0.375rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
+.admin-btn.approve {
+  background-color: #2da44e;
+  border-color: #2da44e;
+  color: #fff;
 }
 
-.admin-no-hearings,
-.admin-no-documents {
-  padding: 1.5rem;
-  text-align: center;
-  color: #718096;
-  font-size: 0.875rem;
-  border: 1px dashed #cbd5e0;
-  border-radius: 0.375rem;
+.admin-btn.approve:hover {
+  background-color: #238636;
+  border-color: #238636;
+}
+
+.admin-btn.reject {
+  background-color: #cf222e;
+  border-color: #cf222e;
+  color: #fff;
+}
+
+.admin-btn.reject:hover {
+  background-color: #a40e26;
+  border-color: #a40e26;
+}
+
+.admin-btn.small {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Hearings list */
+.admin-hearings-list {
+  margin-top: 2rem;
 }
 
 .admin-hearings-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  border-left: 2px solid #d0d7de;
+  padding-left: 1.5rem;
+  margin-left: 0.5rem;
 }
 
 .admin-hearing-item {
   position: relative;
-  padding: 1rem;
-  border-left: 2px solid #3182ce;
-  background-color: #f8fafc;
-  border-radius: 0 0.375rem 0.375rem 0;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  border: 1px solid #eaedf0;
+}
+
+.admin-hearing-item::before {
+  content: '';
+  position: absolute;
+  left: -1.65rem;
+  top: 1.3rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background-color: #0366d6;
 }
 
 .admin-hearing-date {
   font-weight: 600;
-  color: #2d3748;
-  font-size: 0.875rem;
-  margin-bottom: 0.375rem;
+  font-size: 0.95rem;
+  color: #24292f;
+  margin-bottom: 0.5rem;
 }
 
 .admin-hearing-type {
   display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  background-color: #ebf8ff;
-  color: #2b6cb0;
-  margin-bottom: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  background-color: #ddf4ff;
+  color: #0969da;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
 }
 
 .admin-hearing-remarks {
-  font-size: 0.8125rem;
-  color: #4a5568;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: #57606a;
+  line-height: 1.5;
 }
 
 .admin-hearing-next-date {
-  font-size: 0.75rem;
-  color: #718096;
-  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
   font-style: italic;
+  color: #57606a;
+  margin-bottom: 0.75rem;
 }
 
 .admin-hearing-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 0.5rem;
 }
 
-/* Documents Table */
-.admin-documents-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+.admin-no-hearings,
+.admin-no-documents {
+  padding: 2rem;
+  text-align: center;
+  color: #57606a;
+  font-style: italic;
+  background-color: #f6f8fa;
+  border-radius: 6px;
 }
 
-.admin-documents-table th,
-.admin-documents-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+/* Status history */
+.admin-status-history {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: #f6f8fa;
+  border-radius: 6px;
 }
 
-.admin-documents-table th {
-  font-weight: 600;
-  color: #4a5568;
-  background-color: #f7fafc;
-}
-
-.admin-documents-table tr:last-child td {
-  border-bottom: none;
-}
-
-/* Status History */
 .admin-status-current {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #f8fafc;
-  border-radius: 0.375rem;
   margin-bottom: 1rem;
-}
-
-.admin-status-current strong {
-  font-weight: 600;
-  color: #4a5568;
+  font-size: 1rem;
 }
 
 .admin-status-badge {
   display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
 .admin-status-note {
-  padding: 0.75rem;
-  background-color: #f7fafc;
-  border-left: 3px solid #cbd5e0;
-  border-radius: 0 0.25rem 0.25rem 0;
-  font-size: 0.8125rem;
-  color: #718096;
+  font-size: 0.9rem;
+  color: #57606a;
+  font-style: italic;
 }
 
-/* Responsive design */
-@media (max-width: 1200px) {
+/* Documents table */
+.admin-documents-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.admin-documents-table th,
+.admin-documents-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eaedf0;
+}
+
+.admin-documents-table th {
+  font-weight: 600;
+  color: #57606a;
+  background-color: #f6f8fa;
+}
+
+.admin-documents-table tr:hover {
+  background-color: #f6f8fa;
+}
+
+/* Loading and error states */
+.admin-loading,
+.admin-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.2rem;
+  color: #57606a;
+}
+
+.admin-error {
+  color: #cf222e;
+}
+
+/* Media queries for responsiveness */
+@media screen and (max-width: 1200px) {
+  .admin-sidebar {
+    width: 320px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .admin-form-group {
+    min-width: calc(50% - 0.5rem);
+  }
+}
+
+@media screen and (max-width: 768px) {
   .admin-case-management {
     flex-direction: column;
+    height: auto;
+  }
+  
+  .admin-sidebar,
+  .admin-content {
+    width: 100%;
+    height: auto;
   }
   
   .admin-sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 50vh;
-    overflow-y: auto;
-    position: relative;
+    height: 400px;
   }
   
-  .admin-content {
-    padding: 1rem;
+  .admin-form-group {
+    min-width: 100%;
   }
   
   .admin-form-row {
@@ -693,36 +677,13 @@
     gap: 0.75rem;
   }
   
-  .admin-form-group {
-    width: 100%;
-  }
-  
-  .admin-detail-row {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-  
-  .admin-detail-label {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
   .admin-tabs {
-    flex-wrap: nowrap;
     overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0 1rem;
-  }
-  
-  .admin-tabs::-webkit-scrollbar {
-    display: none;
+    white-space: nowrap;
   }
   
   .admin-tab {
-    padding: 0.75rem 0.875rem;
-    font-size: 0.8125rem;
+    padding: 0.75rem 1rem;
   }
   
   .admin-case-header {
@@ -730,167 +691,81 @@
     align-items: flex-start;
     gap: 1rem;
   }
-  
-  .admin-documents-table {
-    display: block;
-    overflow-x: auto;
-  }
 }
-
-@media (max-width: 480px) {
-  .admin-case-item {
-    padding: 0.75rem;
-  }
-  
-  .admin-tab-content {
-    padding: 1rem;
-  }
-  
-  .admin-case-section {
-    padding: 1rem;
-  }
-  
-  .admin-hearing-form,
-  .admin-status-form,
-  .admin-document-form,
-  .admin-office-form,
-  .admin-hearings-list,
-  .admin-documents-list,
-  .admin-status-history {
-    padding: 1rem;
-  }
-}
-.admin-documents-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  font-size: 14px;
-}
-
-.admin-documents-table thead {
-  background-color: #f8f9fa;
-}
-
-.admin-documents-table th {
-  padding: 12px 15px;
-  text-align: left;
-  font-weight: 600;
-  color: #495057;
-  border-bottom: 2px solid #dee2e6;
-}
-
-.admin-documents-table tbody tr {
-  border-bottom: 1px solid #e9ecef;
-  transition: background-color 0.2s ease;
-}
-
-.admin-documents-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.admin-documents-table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.admin-documents-table td {
-  padding: 12px 15px;
-  color: #212529;
-  vertical-align: middle;
-}
-
-/* File name column with ellipsis for long names */
-.admin-documents-table td:nth-child(3) {
-  max-width: 200px;
-  white-space: nowrap;
+/* File name handling styles */
+.admin-file-name,
+.admin-documents-table .file-name-cell,
+.admin-detail-value.file-name {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Add tooltip on hover for truncated file names */
-.file-name-cell {
-  position: relative;
-  cursor: default;
-}
-
-.file-name-cell:hover::after {
-  content: attr(data-filename);
-  position: absolute;
-  bottom: 125%;
-  left: 0;
-  background: #333;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
   white-space: nowrap;
-  z-index: 1;
-  font-size: 12px;
 }
 
-/* Improved button styling */
-.admin-btn.small {
-  padding: 6px 12px;
-  background-color: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
+/* For document tables specifically */
+.admin-documents-table td.file-name-cell {
+  max-width: 250px; /* Adjust based on your layout */
 }
 
-.admin-btn.small:hover {
-  background-color: #3367d6;
+/* For case details or other areas showing file names */
+.admin-detail-value.file-name {
+  max-width: 400px; /* Adjust based on your layout */
+}
+/* Comprehensive file name overflow handling */
+/* Apply to all potential elements that could contain filenames */
+.admin-document-name,
+.admin-file-name,
+.admin-case-title,
+.admin-document-item span,
+.admin-documents-table td,
+.admin-detail-value,
+.admin-hearing-item *,
+.admin-tab-content * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all; /* For very long words with no spaces */
 }
 
-.admin-btn.small:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.4);
+/* Document table specific adjustments */
+.admin-documents-table {
+  table-layout: fixed;
+  width: 100%;
 }
 
-/* File type badge styling */
-.document-type-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
+.admin-documents-table th,
+.admin-documents-table td {
+  max-width: 200px; /* Adjust based on your layout */
 }
 
-.document-type-badge.legal {
-  background-color: #e3f2fd;
-  color: #0d47a1;
+/* File browser/explorer adjustments */
+.admin-file-browser .file-item {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.document-type-badge.evidence {
-  background-color: #e8f5e9;
-  color: #1b5e20;
+/* Ensure container elements don't overflow */
+.admin-case-section,
+.admin-tab-content,
+.admin-form-section,
+.admin-case-item,
+.admin-hearing-item {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
-.document-type-badge.notice {
-  background-color: #fff3e0;
-  color: #e65100;
-}
-
-.document-type-badge.other {
-  background-color: #f5f5f5;
-  color: #616161;
-}
-
-/* Responsive styles */
-@media (max-width: 768px) {
-  .admin-documents-table {
-    display: block;
-    overflow-x: auto;
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .admin-documents-table th,
+  .admin-documents-table td {
+    max-width: 150px;
   }
   
-  .admin-documents-table td:nth-child(3) {
-    max-width: 120px;
+  /* Force horizontal scrolling on tables when needed on mobile */
+  .admin-tab-content {
+    overflow-x: auto;
   }
 }

@@ -8,8 +8,10 @@ import Advocatedashboard from './Dashboard/Advocatedashboard';
 import LitigantRegister from './Components/LitigantRegister';
 import LitigantLogin from './Components/LitigantLogin';
 import LitigantDashboard from './Dashboard/LitigantDashboard';
+import AdminDashboard from './Dashboard/AdminDashboard';
 import Welcome from './Components/Welcome';
 import Advocate from './Components/Advocate';
+import Admin from './Components/Admin'
 import Litigant from './Components/Litigant';
 import ClerkRegister from './Components/ClerkRegister';
 import ClerkLogin from './Components/ClerkLogin';
@@ -31,6 +33,7 @@ import Advocatefilecase from './Components/Advocatefilecase';
 import Advocatemeeting from './Components/Advocatemeeting';
 import NavigationBar from './Components/NavigationBar'; // Import the new navigation component
 import LegalAssistantChatbot from './Components/LegalAssistantChatbot';
+import AdminLogin from './Components/AdminLogin';
 function App() {
   return (
     <Router>
@@ -77,6 +80,9 @@ function App() {
           <Route path ="/advocatefilecase" element ={<Advocatefilecase/>}/>
           <Route path ="/advocatemeeting" element ={<Advocatemeeting/>}/>
           <Route path ="chatbot" element={<LegalAssistantChatbot/>}/>
+          <Route path ="/admin" element= {<Admin/>}/>
+          <Route path="/adminlogin" element={<AdminLogin/>} />
+          <Route path ="/admindash" element ={<AdminDashboard/>}/>
           {/* Redirect unknown routes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

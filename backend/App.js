@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const crypto = require('crypto');
+
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
 const path = require('path');
@@ -20,14 +22,16 @@ const LegalCase = require ('./models/LegalCase');
 const StateDistrict = require('./models/Statedistrict');
 const Clerk = require ('./models/Clerk');
 const BlacklistedToken = require('./models/Blaclisttoken');
-// Middleware
+const clerkRoutes = require('./routes/clerkRoutes');
+const CourtAdmin = require('./models/CourtAdmin');
+app.use('/api/clerk', clerkRoutes);
 app.use(cors({
     origin:  ['http://localhost:3000', 'http://192.168.1.39:3000'],
     credentials: true
 }));
 app.use(express.json());
 
-// MongoDB connection
+// MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_schedule')
     .then(() => console.log('MongoDB connected!'))
     .catch(err => console.error('MongoDB connection error:', err));
@@ -52,20 +56,18 @@ const upload = multer({
         }
     },
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit
+        fileSize: 5 * 1024 * 1024 
     }
 });
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// Generate OTP
+// OTP  
 const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Send OTP via email
 const sendEmailOTP = async (email, otp) => {
-    // Get current date for footer
     const currentYear = new Date().getFullYear();
     
     const msg = {
@@ -212,8 +214,9 @@ const sendEmailOTP = async (email, otp) => {
         throw error;
     }
 };
-// Verify enrollment details
-// Verify enrollment details
+
+
+//Adv REgister 
 app.post('/api/advocate/verify-enrollment', async (req, res) => {
     try {
         const { enrollment_no, name, district, date_of_registration } = req.body;
@@ -221,10 +224,8 @@ app.post('/api/advocate/verify-enrollment', async (req, res) => {
         if (!enrollment_no || !name || !district || !date_of_registration) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-
-        // Convert the incoming MM/DD/YYYY date to M/D/YYYY format (remove leading zeroes)
-        const dateParts = date_of_registration.split('/'); // ["03", "01", "2014"]
-        const formattedDate = `${parseInt(dateParts[0])}/${parseInt(dateParts[1])}/${dateParts[2]}`; // "3/1/2014"
+        const dateParts = date_of_registration.split('/');
+        const formattedDate = `${parseInt(dateParts[0])}/${parseInt(dateParts[1])}/${dateParts[2]}`;
 
         console.log('Incoming date:', date_of_registration);
         console.log('Formatted date:', formattedDate);
@@ -271,7 +272,6 @@ app.post('/api/advocate/verify-enrollment', async (req, res) => {
     }
 });
 
-// Register advocate (Step 1: Basic Details)
 
 app.post('/api/advocate/register', upload.single('cop_document'), async (req, res) => {
     try {
@@ -337,7 +337,7 @@ app.post('/api/advocate/register', upload.single('cop_document'), async (req, re
                 path: req.file.path,
                 uploadDate: new Date()
             },
-            status: 'pending', // Will remain pending until verified
+            status: 'pending',
             isVerified: false
         });
 
@@ -352,7 +352,7 @@ app.post('/api/advocate/register', upload.single('cop_document'), async (req, re
         res.status(500).json({ message: error.message });
     }
 });
-// Verify Email OTP
+
 app.post('/api/advocate/verify-email', async (req, res) => {
     try {
         const { advocate_id, otp } = req.body;
@@ -370,13 +370,12 @@ app.post('/api/advocate/verify-email', async (req, res) => {
 
         console.log('Before update:', advocate);
 
-        // Update verification status
         advocate.isEmailVerified = true;
         advocate.emailOTP = undefined;
         advocate.status = 'pending';
         await advocate.save();
 
-        console.log('After update:', await Advocate.findOne({ advocate_id })); // Ensure changes persist
+        console.log('After update:', await Advocate.findOne({ advocate_id }));
 
         res.json({ message: 'Email verified successfully' });
 
@@ -411,7 +410,7 @@ app.post('/api/advocate/verify/:advocate_id', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// Login
+// Adv Login
 app.post('/api/advocate/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -434,11 +433,11 @@ app.post('/api/advocate/login', async (req, res) => {
             return res.status(401).json({ message: 'Account is not active,wait for your verification done by court admin ' });
         }
 
-        // Update last login
+  
         advocate.lastLogin = new Date();
         await advocate.save();
 
-        // Generate JWT token
+     
         const token = jwt.sign(
             {
                 advocate_id: advocate.advocate_id,
@@ -462,7 +461,7 @@ app.post('/api/advocate/login', async (req, res) => {
     }
 });
 
-// Protected route example
+// Token 
 const authenticateToken = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -504,7 +503,7 @@ app.post('/api/advocate/logout', authenticateToken, async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// Logout from all devices
+
 app.post('/api/advocate/logout-all', authenticateToken, async (req, res) => {
     try {
         const { password } = req.body;
@@ -543,14 +542,13 @@ const profilePicturesDir = path.join(__dirname, 'uploads/profile_pictures');
 if (!fs.existsSync(profilePicturesDir)) {
   fs.mkdirSync(profilePicturesDir);
 }
-
-// Configure multer storage for profile pictures
+// Multer Profile 
 const profilePictureStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/profile_pictures')
   },
   filename: function (req, file, cb) {
-    // Use a timestamp-based unique name initially
+   
     cb(null, `temp-${Date.now()}-${file.originalname}`)
   }
 });
@@ -558,18 +556,17 @@ const profilePictureStorage = multer.diskStorage({
 const uploadProfilePicture = multer({
   storage: profilePictureStorage,
   fileFilter: (req, file, cb) => {
-    // Accept images only
+   
     if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
       return cb(new Error('Only image files are allowed!'), false);
     }
     cb(null, true);
   },
   limits: {
-    fileSize: 2 * 1024 * 1024 // 2MB limit
+    fileSize: 2 * 1024 * 1024 
   }
-});
+})
 
-// Upload profile picture
 app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePicture.single('profilePicture'), async (req, res) => {
   try {
     if (!req.file) {
@@ -578,17 +575,17 @@ app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePictur
     
     const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id });
     if (!advocate) {
-      // Clean up the uploaded file if the advocate is not found
+     
       fs.unlinkSync(req.file.path);
       return res.status(404).json({ message: 'Advocate not found' });
     }
     
-    // Rename the file to include the advocate_id
+   
     const newFilename = `${req.user.advocate_id}-${Date.now()}-${req.file.originalname}`;
     const newPath = path.join('uploads/profile_pictures', newFilename);
     fs.renameSync(req.file.path, newPath);
     
-    // Delete old profile picture file if it exists
+   
     if (advocate.profilePicture && advocate.profilePicture.path) {
       try {
         fs.unlinkSync(advocate.profilePicture.path);
@@ -597,7 +594,7 @@ app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePictur
       }
     }
     
-    // Update profile picture information
+   
     advocate.profilePicture = {
       filename: newFilename,
       path: newPath,
@@ -613,7 +610,7 @@ app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePictur
       }
     });
   } catch (error) {
-    // Clean up the uploaded file if there's an error
+   
     if (req.file && req.file.path) {
       try {
         fs.unlinkSync(req.file.path);
@@ -624,13 +621,13 @@ app.post('/api/advocate/profile-picture', authenticateToken, uploadProfilePictur
     res.status(500).json({ message: error.message });
   }
 });
-// Get profile picture
+
 app.get('/api/advocate/profile-picture/:filename', async (req, res) => {
   try {
       const filename = req.params.filename;
       const filepath = path.join(__dirname, 'uploads/profile_pictures', filename);
       
-      // Check if file exists
+   
       if (fs.existsSync(filepath)) {
           res.sendFile(filepath);
       } else {
@@ -641,7 +638,7 @@ app.get('/api/advocate/profile-picture/:filename', async (req, res) => {
   }
 });
 
-// Update /api/advocate/profile route to include profile picture information
+
 app.get('/api/advocate/profile', authenticateToken, async (req, res) => {
   try {
       const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id });
@@ -649,7 +646,6 @@ app.get('/api/advocate/profile', authenticateToken, async (req, res) => {
           return res.status(404).json({ message: 'Advocate not found' });
       }
 
-      // Send advocate data including profile picture filename if it exists
       res.json({
           advocate: {
               advocate_id: advocate.advocate_id,
@@ -666,11 +662,9 @@ app.get('/api/advocate/profile', authenticateToken, async (req, res) => {
       res.status(500).json({ message: error.message });
   }
 });
-// Add this cleanup function at the end of your file
-// Cleanup expired blacklisted tokens (can be run via cron job)
 const cleanupBlacklistedTokens = async () => {
     try {
-        const expiryDate = new Date(Date.now() - 86400 * 1000); // 24 hours ago
+        const expiryDate = new Date(Date.now() - 86400 * 1000); 
         await BlacklistedToken.deleteMany({ createdAt: { $lt: expiryDate } });
     } catch (error) {
         console.error('Token cleanup error:', error);
@@ -678,7 +672,7 @@ const cleanupBlacklistedTokens = async () => {
 };
 const cron = require('node-cron');
 
-// Run cleanup every day at midnight
+
 cron.schedule('0 0 * * *', () => {
     cleanupBlacklistedTokens();
 });
@@ -702,14 +696,14 @@ app.post('/api/litigant/register', async (req, res) => {
             password
         } = req.body;
         
-        // Validate required fields
+       
         if (!party_type || !full_name || !parentage || !gender || 
             !street || !city || !district || !state || 
             !email || !mobile || !password) {
             return res.status(400).json({ message: 'All fields are required' });
         }
         
-        // Check if email already exists
+       
         const existingLitigant = await Litigant.findOne({
             'contact.email': email
         });
@@ -743,7 +737,7 @@ app.post('/api/litigant/register', async (req, res) => {
             },
             password: hashedPassword,
             emailOTP,
-            otpExpiry: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+            otpExpiry: new Date(Date.now() + 10 * 60 * 1000)
         });
         
         await litigant.save();
@@ -757,7 +751,7 @@ app.post('/api/litigant/register', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// Verify Email OTP
+
 app.post('/api/litigant/verify-email', async (req, res) => {
     try {
         const { party_id, otp } = req.body;
@@ -772,7 +766,7 @@ app.post('/api/litigant/verify-email', async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        // Update verification status
+        
         litigant.isEmailVerified = true;
         litigant.emailOTP = undefined;
         litigant.status = 'active';
@@ -784,7 +778,6 @@ app.post('/api/litigant/verify-email', async (req, res) => {
     }
 });
 
-// Login
 // Login
 app.post('/api/litigant/login', async (req, res) => {
     try {
@@ -808,11 +801,11 @@ app.post('/api/litigant/login', async (req, res) => {
             return res.status(401).json({ message: 'Account is not active' });
         }
 
-        // Update last login
+       
         litigant.lastLogin = new Date();
         await litigant.save();
 
-        // Generate JWT token
+        
         const token = jwt.sign(
             {
                 party_id: litigant.party_id,
@@ -841,27 +834,27 @@ app.post('/api/litigant/login', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
-// Reset password request - generates and sends OTP
+
 app.post('/api/litigant/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     
-    // Find the litigant by email
+ 
     const litigant = await Litigant.findOne({ 'contact.email': email });
     
     if (!litigant) {
       return res.status(404).json({ message: 'No account found with this email' });
     }
     
-    // Generate OTP for password reset
+  
     const resetOTP = generateOTP();
     
-    // Update litigant with OTP and expiry
+    
     litigant.resetPasswordOTP = resetOTP;
-    litigant.resetPasswordExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    litigant.resetPasswordExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await litigant.save();
     
-    // Send OTP to the email stored in the database, not the user-provided one
+   
     await sendResetPasswordOTP(litigant.contact.email, resetOTP);
     
     res.json({
@@ -872,17 +865,17 @@ app.post('/api/litigant/forgot-password', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-// Verify OTP and update password
+
 app.post('/api/litigant/reset-password', async (req, res) => {
   try {
       const { party_id, otp, newPassword, confirmPassword } = req.body;
       
-      // Validate passwords match
+     
       if (newPassword !== confirmPassword) {
           return res.status(400).json({ message: 'Passwords do not match' });
       }
       
-      // Find litigant with valid OTP
+      
       const litigant = await Litigant.findOne({
           party_id,
           resetPasswordOTP: otp,
@@ -893,12 +886,10 @@ app.post('/api/litigant/reset-password', async (req, res) => {
           return res.status(400).json({ message: 'Invalid or expired OTP' });
       }
       
-      // Hash new password
+      
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(newPassword, salt);
-      
-      // Update password and clear OTP fields
-      litigant.password = hashedPassword;
+    litigant.password = hashedPassword;
       litigant.resetPasswordOTP = undefined;
       litigant.resetPasswordExpiry = undefined;
       await litigant.save();
@@ -909,12 +900,12 @@ app.post('/api/litigant/reset-password', async (req, res) => {
   }
 });
 
-// Helper function to send password reset OTP
+
 const sendResetPasswordOTP = async (email, otp) => {
-  // Get current date for footer
+ 
   const currentYear = new Date().getFullYear();
   
-  // Base URL for assets - replace with your actual domain in production
+  
   const baseUrl = process.env.BASE_URL || 'https://yourdomain.com';
   
   const msg = {
@@ -1994,52 +1985,7 @@ app.get('/api/cases/admin', authenticateToken, async (req, res) => {
       });
     }
 });
-async function migrateExistingCasesToAddDistrict() {
-    try {
-      // Find all cases without district
-      const casesWithoutDistrict = await LegalCase.find({ district: { $exists: false } });
-      
-      console.log(`Found ${casesWithoutDistrict.length} cases without district field`);
-      
-      for (const caseItem of casesWithoutDistrict) {
-        // Get the plaintiff's party_id
-        const partyId = caseItem.plaintiff_details?.party_id;
-        
-        if (!partyId) {
-          console.log(`Case ${caseItem.case_num} has no party_id, setting default district`);
-          await LegalCase.updateOne(
-            { _id: caseItem._id },
-            { $set: { district: 'Unknown' } }
-          );
-          continue;
-        }
-        
-        // Find the user by party_id to get their district
-        const user = await User.findOne({ party_id: partyId });
-        
-        if (!user || !user.district) {
-          console.log(`No district found for user with party_id ${partyId}, setting default`);
-          await LegalCase.updateOne(
-            { _id: caseItem._id },
-            { $set: { district: 'Unknown' } }
-          );
-          continue;
-        }
-        
-        // Update the case with the user's district
-        await LegalCase.updateOne(
-          { _id: caseItem._id },
-          { $set: { district: user.district } }
-        );
-        
-        console.log(`Updated case ${caseItem.case_num} with district: ${user.district}`);
-      }
-      
-      console.log('Migration completed successfully');
-    } catch (error) {
-      console.error('Error during migration:', error);
-    }
-  }
+
   
   // Approve or reject a case
   app.patch('/api/case/:caseNum/approve', authenticateToken, async (req, res) => {
@@ -3546,6 +3492,10 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
       } else if (req.user.user_type === 'clerk') {
         const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
         userDistrict = clerk.district;
+      }
+      else if (req.user.user_type === 'admin') {
+        const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+        userDistrict = admin.district;
       } else {
         return res.status(403).json({ message: 'User type not authorized' });
       }
@@ -3604,6 +3554,10 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
       } else if (req.user.user_type === 'clerk') {
         const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
         userDistrict = clerk.district;
+      } 
+      else if (req.user.user_type === 'admin') {
+        const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+        userDistrict = admin.district;
       } else {
         return res.status(403).json({ message: 'User type not authorized' });
       }
@@ -5556,6 +5510,1982 @@ app.get('/api/video-pleading/:documentId/stream/advocate', authenticateToken, as
     }
   }
 });
+
+
+// Route for clerk to create a new court admin
+app.post('/create-admin', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is clerk
+    if (req.user.user_type !== 'clerk') {
+      return res.status(403).json({
+        message: 'Access denied: Only clerks can create court administrators'
+      });
+    }
+    
+    // Extract all required fields including district
+    const { name, court_name, email, mobile, district } = req.body;
+   
+    // Check if required fields are provided
+    if (!name || !court_name || !email || !district) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields (name, court_name, email, district)'
+      });
+    }
+   
+    // Check if admin with same email already exists
+    const existingAdmin = await CourtAdmin.findOne({ 'contact.email': email });
+    if (existingAdmin) {
+      return res.status(409).json({
+        success: false,
+        message: 'An admin with this email already exists'
+      });
+    }
+   
+    // Generate unique admin ID
+    const admin_id = `ADMIN-${uuidv4().slice(0, 8).toUpperCase()}`;
+   
+    // Generate random default password
+    const defaultPassword = CourtAdmin.generateRandomPassword();
+   
+    // Create new admin object
+    const newAdmin = new CourtAdmin({
+      admin_id,
+      name,
+      court_name,
+      district, // Add the district from request body
+      contact: {
+        email,
+        mobile: mobile || ''
+      },
+      password: defaultPassword, // Will be hashed by pre-save hook
+      createdBy: req.user.id // Set clerk ID as creator
+    });
+   
+    // Save admin to database
+    await newAdmin.save();
+   
+    // Send welcome email with default password
+    await sendWelcomeEmail(email, name, court_name, defaultPassword);
+   
+    // Return success response without sending password
+    res.status(201).json({
+      success: true,
+      message: 'Court admin created successfully. Password has been sent to their email.',
+      admin: {
+        admin_id: newAdmin.admin_id,
+        name: newAdmin.name,
+        court_name: newAdmin.court_name,
+        district: newAdmin.district,
+        email: newAdmin.contact.email,
+        status: newAdmin.status
+      }
+    });
+   
+  } catch (error) {
+    console.error('Error creating court admin:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create court admin',
+      error: error.message
+    });
+  }
+});
+
+// Route to get all court admins (for clerk)
+app.get('/admins', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is clerk
+    if (req.user.user_type !== 'clerk') {
+      return res.status(403).json({
+        message: 'Access denied: Only clerks can view court administrators'
+      });
+    }
+
+    // Fetch all admins created by this clerk
+    const admins = await CourtAdmin.find({ createdBy: req.user.id })
+      .select('admin_id name court_name contact.email status createdAt');
+    
+    res.status(200).json({
+      success: true,
+      count: admins.length,
+      admins
+    });
+  } catch (error) {
+    console.error('Error fetching court admins:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch court admins',
+      error: error.message
+    });
+  }
+});
+
+// Route to update court admin status (activate/suspend)
+app.put('/admin/:adminId/status', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is clerk
+    if (req.user.user_type !== 'clerk') {
+      return res.status(403).json({
+        message: 'Access denied: Only clerks can update administrator status'
+      });
+    }
+
+    const { adminId } = req.params;
+    const { status, reason } = req.body;
+    
+    // Validate status
+    if (!['active', 'suspended'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Status must be either "active" or "suspended".'
+      });
+    }
+    
+    // Find admin by ID and created by this clerk
+    const admin = await CourtAdmin.findOne({ 
+      admin_id: adminId,
+      createdBy: req.user.id
+    });
+    
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Court admin not found or you do not have permission to modify this admin'
+      });
+    }
+    
+    // Update status
+    admin.status = status;
+    await admin.save();
+    
+    // Send email notification about status change
+    await sendStatusChangeEmail(admin.contact.email, admin.name, status, reason);
+    
+    res.status(200).json({
+      success: true,
+      message: `Court admin status updated to ${status}`,
+      admin: {
+        admin_id: admin.admin_id,
+        name: admin.name,
+        status: admin.status
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating court admin status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update court admin status',
+      error: error.message
+    });
+  }
+});
+
+// Email sending function for status changes
+const sendStatusChangeEmail = async (recipient, name, newStatus, reason = null) => {
+  try {
+    const subject = newStatus === 'suspended' 
+      ? 'Your Account Has Been Suspended' 
+      : 'Your Account Has Been Reinstated';
+    
+    let htmlContent;
+    
+    if (newStatus === 'suspended') {
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .email-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+            .header { background-color: #f8d7da; color: #721c24; padding: 10px; text-align: center; border-radius: 5px; }
+            .content { padding: 20px 0; }
+            .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+          </style>
+        </head>
+        <body>
+          <div class="email-container">
+            <div class="header">
+              <h2>Account Suspension Notice</h2>
+            </div>
+            <div class="content">
+              <p>Dear ${name},</p>
+              <p>We regret to inform you that your account has been suspended by the court clerk.</p>
+              <p><strong>Reason for suspension:</strong> ${reason || 'No specific reason provided'}</p>
+              <p>If you believe this is in error or have questions about this decision, please contact the district court office.</p>
+              <p>You will not be able to access your account until it is reinstated by a court clerk.</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated message. Please do not reply to this email.</p>
+              <p>© ${new Date().getFullYear()} Court Management System</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    } else {
+      htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .email-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+            .header { background-color: #d4edda; color: #155724; padding: 10px; text-align: center; border-radius: 5px; }
+            .content { padding: 20px 0; }
+            .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+          </style>
+        </head>
+        <body>
+          <div class="email-container">
+            <div class="header">
+              <h2>Account Reinstated</h2>
+            </div>
+            <div class="content">
+              <p>Dear ${name},</p>
+              <p>We are pleased to inform you that your account has been reinstated by the court clerk.</p>
+              <p>You now have full access to your account and all its features.</p>
+              <p>Thank you for your patience during this process.</p>
+            </div>
+            <div class="footer">
+              <p>This is an automated message. Please do not reply to this email.</p>
+              <p>© ${new Date().getFullYear()} Court Management System</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+    
+    const msg = {
+      to: recipient,
+      from: process.env.FROM_EMAIL,
+      subject: subject,
+      html: htmlContent,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Status change email sent successfully to ${recipient}`);
+    return true;
+  } catch (error) {
+    console.error('SendGrid Error:', error);
+    if (error.response) {
+      console.error('Error response body:', error.response.body);
+    }
+    throw error;
+  }
+};
+
+// Welcome email function (referenced in create-admin route)
+const sendWelcomeEmail = async (email, name, court_name, password) => {
+  try {
+    const subject = 'Welcome to the Court Management System';
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .email-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: #e7f5fe; color: #0066cc; padding: 10px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px 0; }
+          .credentials { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+          .warning { color: #721c24; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <h2>Welcome to the Court Management System</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>Welcome to the Court Management System. You have been registered as a court administrator for ${court_name}.</p>
+            <p>Below are your login credentials:</p>
+            <div class="credentials">
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Temporary Password:</strong> ${password}</p>
+            </div>
+            <p class="warning">Please change your password immediately after your first login for security reasons.</p>
+            <p>You can access the system by visiting <a href="${process.env.APP_URL}">our website</a>.</p>
+            <p>If you have any questions or need assistance, please contact the district court office.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Court Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: email,
+      from: process.env.FROM_EMAIL,
+      subject: subject,
+      html: htmlContent,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Welcome email sent successfully to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('SendGrid Error:', error);
+    if (error.response) {
+      console.error('Error response body:', error.response.body);
+    }
+    throw error;
+  }
+};
+
+
+
+app.post('/api/courtadmin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Check if required fields are provided
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+    
+    // Find admin by email
+    const admin = await CourtAdmin.findOne({ 'contact.email': email });
+    
+    // Check if admin exists
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+    
+    // Check if admin account is suspended
+    if (admin.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended. Please contact your court clerk.'
+      });
+    }
+    
+    // Check if password matches
+    const isMatch = await admin.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: admin._id, 
+        user_type: 'admin',
+        admin_id: admin.admin_id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    // Update last login time
+    admin.lastLogin = new Date();
+    await admin.save();
+    
+    // Send response with token
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      admin: {
+        user_type : admin.user_type,
+        admin_id: admin.admin_id,
+        name: admin.name,
+        court_name: admin.court_name,
+        email: admin.contact.email
+      }
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Login failed',
+      error: error.message
+    });
+  }
+});
+
+// Logout route
+app.post('/api/courtadmin/logout', authenticateToken, async (req, res) => {
+  try {
+      if (!req.user.admin_id) {
+          return res.status(403).json({
+              success: false,
+              message: 'Access denied'
+          });
+      }
+
+      const token = req.headers.authorization?.split(' ')[1];
+      
+      // Blacklist the token
+      await new BlacklistedToken({
+          token,
+          user_id: req.user.admin_id,
+          user_type: 'admin'
+      }).save();
+
+      // Update last logout time
+      await CourtAdmin.findByIdAndUpdate(req.user.id, {
+          lastLogout: new Date()
+      });
+
+      res.status(200).json({
+          success: true,
+          message: 'Logged out successfully'
+      });
+  } catch (error) {
+      console.error('Admin logout error:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Logout failed',
+          error: error.message
+      });
+  }
+});
+
+// Admin Logout All
+app.post('/api/courtadmin/logout-all', authenticateToken, async (req, res) => {
+  try {
+      if (req.user.user_type!== 'admin') {
+          return res.status(403).json({
+              success: false,
+              message: 'Access denied'
+          });
+      }
+
+      const { password } = req.body;
+      
+      const admin = await CourtAdmin.findById(req.user.id);
+      if (!admin) {
+          return res.status(404).json({
+              success: false,
+              message: 'Admin not found'
+          });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, admin.password);
+      if (!isValidPassword) {
+          return res.status(401).json({
+              success: false,
+              message: 'Invalid password'
+          });
+      }
+
+      const currentToken = req.headers.authorization?.split(' ')[1];
+      await new BlacklistedToken({
+          token: currentToken,
+          user_id: req.user.id,
+          user_type: 'admin'
+      }).save();
+
+      await CourtAdmin.findByIdAndUpdate(req.user.id, {
+          lastLogout: new Date(),
+          lastForceLogout: new Date()
+      });
+
+      res.status(200).json({
+          success: true,
+          message: 'Logged out from all devices successfully'
+      });
+  } catch (error) {
+      console.error('Admin logout-all error:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Logout failed',
+          error: error.message
+      });
+  }
+});
+// Change password route
+app.post('/api/courtadmin/change-password', authenticateToken, async (req, res) => {
+  try {
+    // Only process if it's an admin user
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+    
+    const { currentPassword, newPassword } = req.body;
+    
+    // Check if required fields are provided
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+    
+    // Find admin by ID
+    const admin = await CourtAdmin.findById(req.user.id);
+    
+    // Check if admin exists
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+    
+    // Check if current password matches
+    const isMatch = await admin.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+    
+    // Update password
+    admin.password = newPassword;
+    await admin.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+      error: error.message
+    });
+  }
+});
+
+// Send password reset email
+const sendPasswordResetEmail = async (recipient, resetToken, name) => {
+  try {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .email-container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: #cce5ff; color: #004085; padding: 10px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px 0; }
+          .button { display: inline-block; background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <h2>Password Reset Request</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>You have requested to reset your password for your Court Admin account.</p>
+            <p>Please click the button below to reset your password:</p>
+            <p style="text-align: center;">
+              <a href="${resetUrl}" class="button">Reset Password</a>
+            </p>
+            <p>This link will expire in 1 hour for security reasons.</p>
+            <p>If you did not request this password reset, please ignore this email and your password will remain unchanged.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Court Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: recipient,
+      from: process.env.FROM_EMAIL,
+      subject: 'Password Reset Request',
+      html: htmlContent,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Password reset email sent successfully to ${recipient}`);
+    return true;
+  } catch (error) {
+    console.error('SendGrid Error:', error);
+    if (error.response) {
+      console.error('Error response body:', error.response.body);
+    }
+    throw error;
+  }
+};
+
+// Request password reset route
+app.post('/api/courtadmin/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Check if email is provided
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    
+    // Find admin by email
+    const admin = await CourtAdmin.findOne({ 'contact.email': email });
+    
+    // Check if admin exists
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this email'
+      });
+    }
+    
+    // Check if admin account is suspended
+    if (admin.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended. Please contact your court clerk.'
+      });
+    }
+    
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Hash token and save to admin document
+    admin.passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+      
+    // Set expiry (1 hour)
+    admin.passwordResetExpires = Date.now() + 3600000;
+    
+    // Save admin
+    await admin.save();
+    
+    // Send password reset email
+    await sendPasswordResetEmail(email, resetToken, admin.name);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password reset link sent to your email'
+    });
+    
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send password reset email',
+      error: error.message
+    });
+  }
+});
+
+// Reset password route
+app.post('/api/courtadmin/reset-password/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+    
+    // Check if password is provided
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password is required'
+      });
+    }
+    
+    // Hash the token from params
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+    
+    // Find admin with valid token and not expired
+    const admin = await CourtAdmin.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+    
+    // Check if admin exists and token is valid
+    if (!admin) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password reset token is invalid or has expired'
+      });
+    }
+    
+    // Update password and clear reset fields
+    admin.password = newPassword;
+    admin.passwordResetToken = undefined;
+    admin.passwordResetExpires = undefined;
+    
+    // Save admin
+    await admin.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully'
+    });
+    
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: error.message
+    });
+  }
+});
+// Fetch admin profile route
+app.get('/api/courtadmin/profile', authenticateToken, async (req, res) => {
+  try {
+    // Only process if it's an admin user
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+    
+    // Find admin by ID
+    const admin = await CourtAdmin.findById(req.user.id);
+    
+    // Check if admin exists
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    // Create a sanitized admin object with hashed sensitive data
+    const sanitizedAdmin = {
+      admin_id: admin.admin_id,
+      name: admin.name,
+      court_name: admin.court_name,
+      contact: {
+        email: admin.contact.email,
+        // Hash phone number (show only last 4 digits)
+        phone: admin.contact.phone ? `****-****-${admin.contact.phone.slice(-4)}` : null
+      },
+      user_type: admin.user_type,
+      status: admin.status,
+      lastLogin: admin.lastLogin,
+      createdAt: admin.createdAt,
+      // Do not include password, passwordResetToken, or passwordResetExpires
+      // Do not include raw address details if sensitive
+    };
+    
+    // If admin has additional profile details, add them with appropriate hashing
+    if (admin.address) {
+      sanitizedAdmin.address = {
+        city: admin.address.city,
+        state: admin.address.state,
+        country: admin.address.country,
+        // Hash specific address details for privacy
+        street: admin.address.street ? `${admin.address.street.substring(0, 3)}****` : null,
+        postalCode: admin.address.postalCode ? `${admin.address.postalCode.substring(0, 2)}****` : null
+      };
+    }
+    
+    // Include admin permissions if available
+    if (admin.permissions) {
+      sanitizedAdmin.permissions = admin.permissions;
+    }
+    
+    res.status(200).json({
+      success: true,
+      admin: sanitizedAdmin
+    });
+    
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile',
+      error: error.message
+    });
+  }
+});
+
+// Update admin profile route
+app.put('/api/courtadmin/profile', authenticateToken, async (req, res) => {
+  try {
+    // Only process if it's an admin user
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+    
+    const { name, phone, address } = req.body;
+    
+    // Find admin by ID
+    const admin = await CourtAdmin.findById(req.user.id);
+    
+    // Check if admin exists
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+    
+    // Update fields if provided
+    if (name) admin.name = name;
+    if (phone) admin.contact.phone = phone;
+    if (address) {
+      // Create address object if it doesn't exist
+      if (!admin.address) admin.address = {};
+      
+      // Update address fields if provided
+      if (address.street) admin.address.street = address.street;
+      if (address.city) admin.address.city = address.city;
+      if (address.state) admin.address.state = address.state;
+      if (address.country) admin.address.country = address.country;
+      if (address.postalCode) admin.address.postalCode = address.postalCode;
+    }
+    
+    // Save updated admin
+    await admin.save();
+    
+    // Return the updated profile with hashed sensitive data
+    const sanitizedAdmin = {
+      admin_id: admin.admin_id,
+      name: admin.name,
+      court_name: admin.court_name,
+      contact: {
+        email: admin.contact.email,
+        phone: admin.contact.phone ? `****-****-${admin.contact.phone.slice(-4)}` : null
+      },
+      status: admin.status,
+      lastLogin: admin.lastLogin,
+      createdAt: admin.createdAt
+    };
+    
+    // Include address if available
+    if (admin.address) {
+      sanitizedAdmin.address = {
+        city: admin.address.city,
+        state: admin.address.state,
+        country: admin.address.country,
+        street: admin.address.street ? `${admin.address.street.substring(0, 3)}****` : null,
+        postalCode: admin.address.postalCode ? `${admin.address.postalCode.substring(0, 2)}****` : null
+      };
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      admin: sanitizedAdmin
+    });
+    
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile',
+      error: error.message
+    });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+// Admin Routes for Case Management
+
+// 1. Fetch cases for admin (similar to clerk but with court_allotted filter)
+app.get('/api/cases/courtadmin', authenticateToken, async (req, res) => {
+  try {
+    console.log(req.user.user_type|| 'not defined');
+    console.log(req.user.user_type||'undefined');
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can view this data'
+      });
+    }
+
+    // Find the admin to get their court_name
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    const adminCourtName = admin.court_name;
+    
+    // Find cases where court_allotted matches the admin's court_name
+    const cases = await LegalCase.find({ 
+      'for_office_use_only.court_allotted': adminCourtName 
+    }).sort({ created_at: -1 });
+    
+    res.status(200).json({
+      message: `Retrieved ${cases.length} cases for court: ${adminCourtName}`,
+      cases
+    });
+  } catch (err) {
+    console.error('Error fetching admin cases:', err);
+    res.status(500).json({
+      message: 'Server error while fetching cases'
+    });
+  }
+});
+
+// 2. Update case status (similar to clerk route)
+app.patch('/api/case/:caseNum/status/courtadmin', authenticateToken, async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can update case status'
+      });
+    }
+
+    const { caseNum } = req.params;
+    const { status, remarks } = req.body;
+
+    // Validate status enum
+    const validStatuses = [
+      'Filed', 
+      'Pending', 
+      'Under Investigation', 
+      'Hearing in Progress', 
+      'Awaiting Judgment', 
+      'Disposed', 
+      'Appealed'
+    ];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'Invalid status value'
+      });
+    }
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({ 
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name 
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    // Update case status
+    const updatedCase = await LegalCase.findOneAndUpdate(
+      { _id: caseData._id },
+      { 
+        status: status,
+        $push: { 
+          status_history: {
+            status: status,
+            remarks: remarks,
+            updated_at: new Date(),
+            updated_by: req.user.admin_id,
+            updated_by_type: 'admin'
+          } 
+        }
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: 'Case status updated successfully',
+      case: updatedCase
+    });
+  } catch (err) {
+    console.error('Error updating case status:', err);
+    res.status(500).json({
+      message: 'Server error while updating case status'
+    });
+  }
+});
+
+// 3. Get case hearings
+app.get('/api/case/:caseNum/hearings/courtadmin', authenticateToken, async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can view hearing details'
+      });
+    }
+
+    const { caseNum } = req.params;
+    
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    }, { hearings: 1 });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+    
+    // Process attachments to include download URLs
+    const hearingsWithUrls = caseData.hearings.map(hearing => {
+      const hearingObj = hearing.toObject ? hearing.toObject() : hearing;
+      
+      // If the hearing has attachments, add download URLs
+      if (hearingObj.attachments && hearingObj.attachments.length > 0) {
+        hearingObj.attachments = hearingObj.attachments.map(attachment => ({
+          ...attachment,
+          download_url: `/api/files/${attachment.filename}`
+        }));
+      }
+      
+      return hearingObj;
+    });
+    
+    return res.status(200).json({
+      hearings: hearingsWithUrls,
+      message: 'Hearings fetched successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error fetching hearings:', error);
+    return res.status(500).json({
+      message: 'Server error while fetching hearings'
+    });
+  }
+});
+
+// 4. Add hearing to a case
+app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can add hearing details'
+      });
+    }
+
+    const { caseNum } = req.params;
+    const {
+      hearing_date,
+      hearing_type,
+      remarks,
+      next_hearing_date
+    } = req.body;
+
+    // Validate required fields
+    if (!hearing_date || !hearing_type) {
+      return res.status(400).json({
+        message: 'Hearing date and type are required'
+      });
+    }
+
+    // Validate hearing type enum
+    const validHearingTypes = ['Initial', 'Intermediate', 'Final', 'Adjournment'];
+    if (!validHearingTypes.includes(hearing_type)) {
+      return res.status(400).json({
+        message: 'Invalid hearing type'
+      });
+    }
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    // Create a new hearing object
+    const newHearing = {
+      hearing_date: new Date(hearing_date),
+      hearing_type,
+      remarks,
+      next_hearing_date: next_hearing_date ? new Date(next_hearing_date) : undefined,
+      created_by: req.user.admin_id,
+      created_by_type: 'admin'
+    };
+
+    // Handle file attachments if any
+    const files = req.files;
+    if (files && files.length > 0) {
+      const attachments = files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        path: file.path,
+        size: file.size,
+        uploaded_at: new Date()
+      }));
+      
+      newHearing.attachments = attachments;
+    }
+
+    // Add the new hearing to the case
+    if (!caseData.hearings) {
+      caseData.hearings = [];
+    }
+    caseData.hearings.push(newHearing);
+
+    // Update case status if appropriate
+    if (caseData.status === 'Filed' || caseData.status === 'Pending') {
+      caseData.status = 'Hearing in Progress';
+    }
+
+    // Save the updated case
+    await caseData.save();
+
+    res.status(201).json({
+      message: 'Hearing added successfully',
+      hearing: caseData.hearings[caseData.hearings.length - 1]
+    });
+  } catch (err) {
+    console.error('Error adding hearing:', err);
+    res.status(500).json({
+      message: 'Server error while adding hearing'
+    });
+  }
+});
+
+// 5. Update hearing details
+app.patch('/api/case/:caseNum/hearing/:hearingId/courtadmin', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can update hearing details'
+      });
+    }
+
+    const { caseNum, hearingId } = req.params;
+    const {
+      hearing_date,
+      hearing_type,
+      remarks,
+      next_hearing_date
+    } = req.body;
+
+    // Validate required fields
+    if (!hearing_date || !hearing_type) {
+      return res.status(400).json({
+        message: 'Hearing date and type are required'
+      });
+    }
+
+    // Validate hearing type enum
+    const validHearingTypes = ['Initial', 'Intermediate', 'Final', 'Adjournment'];
+    if (!validHearingTypes.includes(hearing_type)) {
+      return res.status(400).json({
+        message: 'Invalid hearing type'
+      });
+    }
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    // Find and update the specific hearing
+    const hearingIndex = caseData.hearings.findIndex(h => h._id.toString() === hearingId);
+
+    if (hearingIndex === -1) {
+      return res.status(404).json({
+        message: 'Hearing not found'
+      });
+    }
+
+    // Update hearing details
+    const updatedHearing = {
+      ...caseData.hearings[hearingIndex].toObject(),
+      hearing_date: new Date(hearing_date),
+      hearing_type,
+      remarks,
+      next_hearing_date: next_hearing_date ? new Date(next_hearing_date) : undefined,
+      updated_by: req.user.admin_id,
+      updated_by_type: 'admin',
+      updated_at: new Date()
+    };
+
+    // Handle file attachments if any
+    const files = req.files;
+    if (files && files.length > 0) {
+      const newAttachments = files.map(file => ({
+        filename: file.filename,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        path: file.path,
+        size: file.size,
+        uploaded_at: new Date()
+      }));
+      
+      // Initialize attachments array if it doesn't exist
+      if (!updatedHearing.attachments) {
+        updatedHearing.attachments = [];
+      }
+      
+      // Add new attachments
+      updatedHearing.attachments.push(...newAttachments);
+    }
+
+    // Update the hearing in the document
+    caseData.hearings[hearingIndex] = updatedHearing;
+
+    // Save the updated case
+    await caseData.save();
+
+    res.status(200).json({
+      message: 'Hearing updated successfully',
+      hearing: caseData.hearings[hearingIndex]
+    });
+  } catch (err) {
+    console.error('Error updating hearing:', err);
+    res.status(500).json({
+      message: 'Server error while updating hearing'
+    });
+  }
+});
+
+// 6. Add attachments to a hearing
+app.post('/api/case/:caseNum/hearing/:hearingId/attachments/courtadmin', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can add hearing attachments'
+      });
+    }
+
+    const { caseNum, hearingId } = req.params;
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({
+        message: 'No files uploaded'
+      });
+    }
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    // Find the specific hearing
+    const hearingIndex = caseData.hearings.findIndex(h => h._id.toString() === hearingId);
+
+    if (hearingIndex === -1) {
+      return res.status(404).json({
+        message: 'Hearing not found'
+      });
+    }
+
+    // Create attachment objects for each file
+    const attachments = files.map(file => ({
+      filename: file.filename,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      path: file.path,
+      size: file.size,
+      uploaded_at: new Date(),
+      uploaded_by: req.user.admin_id,
+      uploaded_by_type: 'admin'
+    }));
+
+    // Initialize attachments array if it doesn't exist
+    if (!caseData.hearings[hearingIndex].attachments) {
+      caseData.hearings[hearingIndex].attachments = [];
+    }
+
+    // Add new attachments
+    caseData.hearings[hearingIndex].attachments.push(...attachments);
+
+    // Save the updated case
+    await caseData.save();
+
+    res.status(201).json({
+      message: 'Attachments added successfully',
+      attachments: caseData.hearings[hearingIndex].attachments
+    });
+  } catch (err) {
+    console.error('Error adding attachments:', err);
+    res.status(500).json({
+      message: 'Server error while adding attachments'
+    });
+  }
+});
+
+// 7. Upload case document
+app.post('/api/case/:caseNum/document/courtadmin', authenticateToken, upload3.single('file'), async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can upload documents'
+      });
+    }
+
+    const { caseNum } = req.params;
+    const { document_type, description } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    if (!document_type) {
+      return res.status(400).json({ message: 'Document type is required' });
+    }
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    // Generate a document ID
+    const documentId = new mongoose.Types.ObjectId();
+    
+    // Store only the relative path for consistency (relative to uploads dir)
+    const relativePath = file.path.replace(/\\/g, '/'); // Convert Windows backslashes if needed
+    
+    // Create document object
+    const document = {
+      document_id: documentId.toString(),
+      document_type,
+      description: description || '',
+      file_name: file.originalname,
+      file_path: relativePath,
+      mime_type: file.mimetype,
+      size: file.size,
+      uploaded_date: new Date(),
+      uploaded_by: req.user.admin_id,
+      uploaded_by_type: 'admin'
+    };
+
+    // Initialize documents array if it doesn't exist
+    if (!caseData.documents) {
+      caseData.documents = [];
+    }
+    
+    caseData.documents.push(document);
+    await caseData.save();
+
+    res.status(201).json({
+      message: 'Document uploaded successfully',
+      document: {
+        ...document,
+        _id: document.document_id
+      },
+      case_num: caseNum
+    });
+  } catch (err) {
+    console.error('Error uploading document:', err);
+    res.status(500).json({
+      message: 'Server error while uploading document',
+      error: err.message
+    });
+  }
+});
+
+// 8. Download document
+// Admin version of document download route - reuses existing functionality with admin authentication
+app.get('/api/document/:documentId/download/courtadmin', authenticateToken, async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can download documents'
+      });
+    }
+
+    const { documentId } = req.params;
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case containing the document
+    const caseWithDocument = await LegalCase.findOne({
+      'documents.document_id': documentId,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseWithDocument) {
+      return res.status(404).json({
+        message: 'Document not found or not assigned to your court'
+      });
+    }
+
+    // Find the specific document
+    const document = caseWithDocument.documents.find(d => d.document_id === documentId);
+
+    if (!document) {
+      return res.status(404).json({
+        message: 'Document not found'
+      });
+    }
+
+    // Get the full file path
+    let filePath = document.file_path;
+    
+    // Ensure the path is accessible
+    if (!path.isAbsolute(filePath)) {
+      filePath = path.resolve(filePath);
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      // Fallback - try checking if it's in the uploads directory by filename
+      const fallbackPath = path.join(uploadDir2, path.basename(filePath));
+      
+      if (fs.existsSync(fallbackPath)) {
+        filePath = fallbackPath;
+      } else {
+        return res.status(404).json({
+          message: 'Document file not found on server'
+        });
+      }
+    }
+
+    // Set correct content type based on mime type
+    const contentType = document.mime_type || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    
+    // Set content disposition to suggest filename
+    const safeFilename = encodeURIComponent(document.file_name);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+    
+    // Send the file
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error(`Error sending file: ${err.message}`);
+        
+        if (!res.headersSent) {
+          res.status(500).json({
+            message: 'Error serving file',
+            error: err.message
+          });
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error downloading document:', err);
+    res.status(500).json({
+      message: 'Server error while downloading document',
+      error: err.message
+    });
+  }
+});
+
+// 9. Get a specific case details
+app.get('/api/case/:caseNum/courtadmin', authenticateToken, async (req, res) => {
+  try {
+    // Verify if the user is an admin
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can view case details'
+      });
+    }
+
+    const { caseNum } = req.params;
+
+    // Find the admin
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!admin) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+
+    // Find the case and verify it's assigned to this admin's court
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Case fetched successfully',
+      case: caseData
+    });
+  } catch (err) {
+    console.error('Error fetching case details:', err);
+    res.status(500).json({
+      message: 'Server error while fetching case details'
+    });
+  }
+});
+
+
+
+
+
+
+// Admin Routes for Video Meeting Management
+
+app.post('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is admin
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can add meeting links'
+      });
+    }
+    
+    const { caseNum } = req.params;
+    const { meetingLink, startDateTime, endDateTime } = req.body;
+    
+    // Validate required fields
+    if (!meetingLink || !startDateTime || !endDateTime) {
+      return res.status(400).json({
+        message: 'Meeting link, start date/time, and end date/time are required'
+      });
+    }
+    
+    // Validate dates
+    const start = new Date(startDateTime);
+    const end = new Date(endDateTime);
+    
+    if (isNaN(start) || isNaN(end)) {
+      return res.status(400).json({
+        message: 'Invalid date format'
+      });
+    }
+    
+    if (end <= start) {
+      return res.status(400).json({
+        message: 'End date/time must be after start date/time'
+      });
+    }
+    
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found'
+      });
+    }
+    
+    // Check if the admin is authorized to handle this case
+    const adminData = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!adminData) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+    
+    // Verify that the case is assigned to the admin's district
+    if (caseData.for_office_use_only && 
+        caseData.for_office_use_only.court_allotted !== adminData.court_name) {
+      return res.status(403).json({
+        message: 'Access denied: Not able to handle this case '
+      });
+    }
+    
+    // Add/update video meeting details
+    caseData.videoMeeting = {
+      meetingLink,
+      startDateTime: start,
+      endDateTime: end,
+      isActive: true,
+      createdBy: req.user.admin_id,
+      createdAt: new Date()
+    };
+    
+    // Save the updated case
+    await caseData.save();
+
+    // Collection of notification promises
+    const notificationPromises = [];
+
+    // If there's a plaintiff party_id, fetch and notify them
+    if (caseData.plaintiff_details && caseData.plaintiff_details.party_id) {
+      try {
+        const plaintiffData = await Litigant.findOne({party_id: caseData.plaintiff_details.party_id });
+        if (plaintiffData && plaintiffData.contact && plaintiffData.contact.email && 
+            plaintiffData.contact.email !== caseData.plaintiff_details.email) { // Avoid duplicate emails
+          
+          // Send email with meeting details
+          notificationPromises.push(
+            sendVideoMeetingNotification({
+              name: plaintiffData.full_name,
+              email: plaintiffData.contact.email
+            }, caseData, 'plaintiff', meetingLink, start, end)
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching plaintiff data:', error);
+        // Continue execution, don't block the response for this error
+      }
+    }
+
+    // If there's a plaintiff advocate_id, fetch and notify them
+    if (caseData.plaintiff_details && caseData.plaintiff_details.advocate_id) {
+      try {
+        const plaintiffAdvocate = await Advocate.findOne({ advocate_id: caseData.plaintiff_details.advocate_id });
+        if (plaintiffAdvocate && plaintiffAdvocate.contact && plaintiffAdvocate.contact.email) {
+          // Send email with meeting details
+          notificationPromises.push(
+            sendVideoMeetingNotification({
+              name: plaintiffAdvocate.name,
+              email: plaintiffAdvocate.contact.email
+            }, caseData, 'plaintiff_advocate', meetingLink, start, end)
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching plaintiff advocate data:', error);
+        // Continue execution, don't block the response for this error
+      }
+    }
+    
+    // If there's a respondent party_id, fetch and notify them
+    if (caseData.respondent_details && caseData.respondent_details.party_id) {
+      try {
+        const respondentData = await Litigant.findOne({party_id: caseData.respondent_details.party_id });
+        if (respondentData && respondentData.contact && respondentData.contact.email && 
+            respondentData.contact.email !== caseData.respondent_details.email) { // Avoid duplicate emails
+          
+          // Send email with meeting details
+          notificationPromises.push(
+            sendVideoMeetingNotification({
+              name: respondentData.name,
+              email: respondentData.contact.email
+            }, caseData, 'respondent', meetingLink, start, end)
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching respondent data:', error);
+        // Continue execution, don't block the response for this error
+      }
+    }
+
+    // If there's a respondent advocate_id, fetch and notify them
+    if (caseData.respondent_details && caseData.respondent_details.advocate_id) {
+      try {
+        const respondentAdvocate = await Advocate.findOne({ advocate_id: caseData.respondent_details.advocate_id });
+        if (respondentAdvocate && respondentAdvocate.contact && respondentAdvocate.contact.email) {
+          // Send email with meeting details
+          notificationPromises.push(
+            sendVideoMeetingNotification({
+              name: respondentAdvocate.name,
+              email: respondentAdvocate.contact.email
+            }, caseData, 'respondent_advocate', meetingLink, start, end)
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching respondent advocate data:', error);
+        // Continue execution, don't block the response for this error
+      }
+    }
+    
+    // Wait for all notification emails to be sent
+    await Promise.all(notificationPromises);
+    
+    res.status(201).json({
+      message: 'Video meeting link added successfully',
+      videoMeeting: caseData.videoMeeting
+    });
+    
+  } catch (err) {
+    console.error('Error adding video meeting:', err);
+    res.status(500).json({
+      message: 'Server error while adding video meeting'
+    });
+  }
+});
+
+// Admin Route: Update or deactivate a meeting
+app.put('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is admin
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can update meeting details'
+      });
+    }
+    
+    const { caseNum } = req.params;
+    const { meetingLink, startDateTime, endDateTime, isActive } = req.body;
+    
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found'
+      });
+    }
+    
+    // Check if the admin is authorized to handle this case
+    const adminData = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!adminData) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+    
+    // Verify that the case is assigned to the admin's district
+    if (caseData.for_office_use_only && 
+        caseData.for_office_use_only.court_allotted !== adminData.court_name) {
+      return res.status(403).json({
+        message: 'Access denied: This case is not allocated to your district'
+      });
+    }
+    
+    // Check if video meeting exists
+    if (!caseData.videoMeeting) {
+      return res.status(404).json({
+        message: 'No video meeting found for this case'
+      });
+    }
+    
+    // Update fields if provided
+    if (meetingLink) caseData.videoMeeting.meetingLink = meetingLink;
+    
+    if (startDateTime) {
+      const start = new Date(startDateTime);
+      if (isNaN(start)) {
+        return res.status(400).json({
+          message: 'Invalid start date/time format'
+        });
+      }
+      caseData.videoMeeting.startDateTime = start;
+    }
+    
+    if (endDateTime) {
+      const end = new Date(endDateTime);
+      if (isNaN(end)) {
+        return res.status(400).json({
+          message: 'Invalid end date/time format'
+        });
+      }
+      caseData.videoMeeting.endDateTime = end;
+    }
+    
+    // Ensure end time is after start time
+    if (caseData.videoMeeting.endDateTime <= caseData.videoMeeting.startDateTime) {
+      return res.status(400).json({
+        message: 'End date/time must be after start date/time'
+      });
+    }
+    
+    // Update active status if provided
+    if (isActive !== undefined) {
+      caseData.videoMeeting.isActive = isActive;
+    }
+    
+    // Save the updated case
+    await caseData.save();
+    
+    res.status(200).json({
+      message: 'Video meeting updated successfully',
+      videoMeeting: caseData.videoMeeting
+    });
+    
+  } catch (err) {
+    console.error('Error updating video meeting:', err);
+    res.status(500).json({
+      message: 'Server error while updating video meeting'
+    });
+  }
+});
+
+// Admin Route: Get video meeting details for a case
+app.get('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async (req, res) => {
+  try {
+    // Verify if user is admin
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can view meeting details'
+      });
+    }
+    
+    const { caseNum } = req.params;
+    
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found'
+      });
+    }
+    
+    // Check if the admin is authorized to handle this case
+    const adminData = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    
+    if (!adminData) {
+      return res.status(404).json({
+        message: 'Admin profile not found'
+      });
+    }
+    
+    // Verify that the case is assigned to the admin's district
+    if (caseData.for_office_use_only && 
+        caseData.for_office_use_only.court_allotted !== adminData.court_name) {
+      return res.status(403).json({
+        message: 'Access denied: This case is not allocated to your district'
+      });
+    }
+    
+    // Check if video meeting exists
+    if (!caseData.videoMeeting) {
+      return res.status(404).json({
+        message: 'No video meeting found for this case'
+      });
+    }
+    
+    // Return meeting details
+    res.status(200).json({
+      meetingLink: caseData.videoMeeting.meetingLink,
+      startDateTime: caseData.videoMeeting.startDateTime,
+      endDateTime: caseData.videoMeeting.endDateTime,
+      isActive: caseData.videoMeeting.isActive,
+      createdBy: caseData.videoMeeting.createdBy,
+      createdAt: caseData.videoMeeting.createdAt
+    });
+    
+  } catch (err) {
+    console.error('Error fetching video meeting:', err);
+    res.status(500).json({
+      message: 'Server error while fetching video meeting'
+    });
+  }
+});
+
+// Admin Route: Get all cases for the admin (filtered by district)
+
+// Function to send video meeting notification emails without OTP
+
+
+
+
+
+
+
+
  PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

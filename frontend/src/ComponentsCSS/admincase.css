@@ -1,0 +1,594 @@
+/* Judicial Management System CSS - Light Mode White and Red Theme */
+
+/* Root Variables for Consistent Theming */
+:root {
+  --primary-red: #d32f2f;
+  --light-red: #ff5252;
+  --background-white: #ffffff;
+  --background-light: #f5f5f5;
+  --text-primary: #212121;
+  --text-secondary: #757575;
+  --border-color: #e0e0e0;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --transition: all 0.2s ease-in-out;
+}
+
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background-color: var(--background-light);
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* Main Container */
+.judicial-mgmt__container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header Styles */
+.judicial-mgmt__header {
+  background: var(--background-white);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.judicial-mgmt__title {
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.judicial-mgmt__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  justify-items: center;
+}
+
+.judicial-mgmt__stat-item {
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__stat-item:hover {
+  background: var(--background-light);
+  transform: translateY(-2px);
+}
+
+.judicial-mgmt__stat-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--primary-red);
+}
+
+.judicial-mgmt__stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Content Layout */
+.judicial-mgmt__content {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.judicial-mgmt__sidebar {
+  flex: 0 0 320px;
+  background: var(--background-white);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.judicial-mgmt__main-content {
+  flex: 1;
+  background: var(--background-white);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+/* Search and Filter */
+.judicial-mgmt__search-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.judicial-mgmt__search-input,
+.judicial-mgmt__status-filter {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-white);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__search-input:focus,
+.judicial-mgmt__status-filter:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 6px rgba(211, 47, 47, 0.2);
+}
+
+/* Case List */
+.judicial-mgmt__cases-list {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.judicial-mgmt__section-title {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.judicial-mgmt__case-item {
+  background: var(--background-white);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__case-item:hover,
+.judicial-mgmt__case-item--active {
+  border-color: var(--primary-red);
+  box-shadow: 0 2px 6px rgba(211, 47, 47, 0.1);
+}
+
+.judicial-mgmt__case-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.judicial-mgmt__case-num {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.judicial-mgmt__case-status {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.judicial-mgmt__case-status.status-filed {
+  background: #ffb300;
+  color: #212121;
+}
+
+.judicial-mgmt__case-status.status-hearing {
+  background: #0288d1;
+  color: #ffffff;
+}
+
+.judicial-mgmt__case-status.status-disposed {
+  background: #388e3c;
+  color: #ffffff;
+}
+
+.judicial-mgmt__case-parties {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.judicial-mgmt__vs {
+  font-weight: 600;
+  color: var(--primary-red);
+}
+
+.judicial-mgmt__case-filed {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Case Details */
+.judicial-mgmt__case-header {
+  margin-bottom: 16px;
+}
+
+.judicial-mgmt__case-title {
+  font-size: 1.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.judicial-mgmt__case-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.judicial-mgmt__case-subtitle {
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.judicial-mgmt__tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.judicial-mgmt__tab {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__tab:hover,
+.judicial-mgmt__tab--active {
+  color: var(--primary-red);
+  border-bottom: 2px solid var(--primary-red);
+}
+
+/* Tab Content */
+.judicial-mgmt__overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.judicial-mgmt__overview-card {
+  background: var(--background-white);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.judicial-mgmt__overview-card--full {
+  grid-column: 1 / -1;
+}
+
+.judicial-mgmt__card-title {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--primary-red);
+}
+
+.judicial-mgmt__info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.judicial-mgmt__info-label {
+  color: var(--text-secondary);
+}
+
+.judicial-mgmt__info-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Timeline */
+.judicial-mgmt__status-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.judicial-mgmt__timeline-item {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.judicial-mgmt__timeline-marker {
+  position: absolute;
+  left: -16px;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  background: var(--primary-red);
+  border-radius: 50%;
+  border: 2px solid var(--background-white);
+}
+
+.judicial-mgmt__timeline-content {
+  background: var(--background-white);
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.judicial-mgmt__timeline-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.judicial-mgmt__timeline-status {
+  font-weight: 500;
+}
+
+.judicial-mgmt__timeline-date,
+.judicial-mgmt__timeline-remarks,
+.judicial-mgmt__timeline-user {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Hearings */
+.judicial-mgmt__hearings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.judicial-mgmt__hearing-card {
+  background: var(--background-white);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.judicial-mgmt__hearing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.judicial-mgmt__hearing-badge {
+  background: var(--primary-red);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+
+.judicial-mgmt__hearing-date {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Forms */
+.judicial-mgmt__form {
+  background: var(--background-white);
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.judicial-mgmt__form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.judicial-mgmt__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.judicial-mgmt__form-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.judicial-mgmt__form-input,
+.judicial-mgmt__form-select,
+.judicial-mgmt__form-textarea {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-white);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__form-input:focus,
+.judicial-mgmt__form-select:focus,
+.judicial-mgmt__form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-red);
+  box-shadow: 0 0 6px rgba(211, 47, 47, 0.2);
+}
+
+.judicial-mgmt__form-file {
+  padding: 6px;
+}
+
+.judicial-mgmt__submit-btn {
+  margin-top:8px;
+  background: var(--primary-red);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__submit-btn:hover {
+  background: var(--light-red);
+}
+
+.judicial-mgmt__submit-btn:disabled {
+  background: #bdbdbd;
+  cursor: not-allowed;
+}
+
+/* Documents */
+.judicial-mgmt__documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.judicial-mgmt__document-card {
+  background: var(--background-white);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.judicial-mgmt__document-download {
+  background: var(--primary-red);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.judicial-mgmt__document-download:hover {
+  background: var(--light-red);
+}
+
+/* Error Toast */
+.judicial-mgmt__error-toast {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: var(--light-red);
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.judicial-mgmt__error-message {
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.judicial-mgmt__error-close {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+/* No Selection State */
+.judicial-mgmt__no-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.judicial-mgmt__no-selection-title {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.judicial-mgmt__no-selection-text {
+  font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .judicial-mgmt__content {
+    flex-direction: column;
+  }
+
+  .judicial-mgmt__sidebar {
+    flex: 0 0 auto;
+  }
+
+  .judicial-mgmt__stats {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .judicial-mgmt__container {
+    padding: 8px;
+  }
+
+  .judicial-mgmt__title {
+    font-size: 1.8rem;
+  }
+
+  .judicial-mgmt__case-title {
+    font-size: 1.3rem;
+  }
+
+  .judicial-mgmt__tabs {
+    flex-wrap: wrap;
+  }
+
+  .judicial-mgmt__tab {
+    flex: 1;
+    text-align: center;
+  }
+
+  .judicial-mgmt__form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .judicial-mgmt__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .judicial-mgmt__case-num {
+    font-size: 0.95rem;
+  }
+
+  .judicial-mgmt__case-status {
+    font-size: 0.75rem;
+  }
+}
