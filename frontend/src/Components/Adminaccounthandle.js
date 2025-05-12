@@ -35,7 +35,7 @@ const AccountManagement = () => {
     setIsLoading(true);
     setMessage({ text: '', type: '' });
     try {
-      const endpoint = `http://localhost:5000/api/clerk/${activeTab}`;
+      const endpoint = `https://ecourt-yr51.onrender.com/api/clerk/${activeTab}`;
       const response = await axios.get(endpoint);
       
       if (activeTab === 'litigants') {
@@ -60,7 +60,7 @@ const AccountManagement = () => {
     setMessage({ text: '', type: '' });
     
     try {
-      const endpoint = `http://localhost:5000/api/clerk/${activeTab}/${id}`;
+      const endpoint = `https://ecourt-yr51.onrender.com/api/clerk/${activeTab}/${id}`;
       const response = await axios.get(endpoint);
       setSelectedUser(response.data);
     } catch (err) {
@@ -107,7 +107,7 @@ const AccountManagement = () => {
     setMessage({ text: '', type: '' });
     
     try {
-      const endpoint = `http://localhost:5000/api/clerk/${activeTab}/${currentActionId}/suspend`;
+      const endpoint = `https://ecourt-yr51.onrender.com/api/clerk/${activeTab}/${currentActionId}/suspend`;
       console.log("Sending request to:", endpoint, "with data:", { reason: suspensionReason });
       await axios.put(endpoint, { reason: suspensionReason });
       
@@ -152,7 +152,7 @@ const AccountManagement = () => {
     setMessage({ text: '', type: '' });
     
     try {
-      const endpoint = `http://localhost:5000/api/clerk/${activeTab}/${currentActionId}/reinstate`;
+      const endpoint = `https://ecourt-yr51.onrender.com/api/clerk/${activeTab}/${currentActionId}/reinstate`;
       await axios.put(endpoint);
       
       if (activeTab === 'litigants') {

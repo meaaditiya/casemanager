@@ -39,14 +39,14 @@ const AdminCalendarPanel = () => {
         const month = currentMonth.getMonth() + 1;
         
         // Get calendar entries for the month
-        const response = await axios.get(`http://localhost:5000/api/calendar/${year}/${month}`, {
+        const response = await axios.get(`https://ecourt-yr51.onrender.com/api/calendar/${year}/${month}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
         
         // Get holidays
-        const holidaysResponse = await axios.get('http://localhost:5000/api/admin/calendar/holidays', {
+        const holidaysResponse = await axios.get('https://ecourt-yr51.onrender.com/api/admin/calendar/holidays', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -125,14 +125,14 @@ const AdminCalendarPanel = () => {
       
       if (entry) {
         // Update existing entry
-        response = await axios.put(`http://localhost:5000/api/calendar/${entry.calendar_id}`, data, {
+        response = await axios.put(`https://ecourt-yr51.onrender.com/api/calendar/${entry.calendar_id}`, data, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
       } else {
         // Create new entry
-        response = await axios.post('http://localhost:5000/api/calendar', data, {
+        response = await axios.post('https://ecourt-yr51.onrender.com/api/calendar', data, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -146,7 +146,7 @@ const AdminCalendarPanel = () => {
       
       // If holiday status changed, refresh holidays list
       if (formData.is_holiday) {
-        const holidaysResponse = await axios.get('http://localhost:5000/api/admin/calendar/holidays', {
+        const holidaysResponse = await axios.get('https://ecourt-yr51.onrender.com/api/admin/calendar/holidays', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

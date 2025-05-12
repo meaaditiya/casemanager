@@ -405,7 +405,7 @@ const LegalAssistantChatbot = () => {
       
       // Use the correct API endpoint for litigant case filing
       const response = await axios.post(
-        'http://localhost:5000/api/filecase/litigant',
+        'https://ecourt-yr51.onrender.com/api/filecase/litigant',
         caseFormData,
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -664,7 +664,7 @@ Date of Offence: ${caseFormData.police_station_details.date_of_offence}`;
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `http://localhost:5000/api/case/${input}/hearings`,
+          `https://ecourt-yr51.onrender.com/api/case/${input}/hearings`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -791,7 +791,7 @@ Date of Offence: ${caseFormData.police_station_details.date_of_offence}`;
         
         // Use the litigant cases endpoint as in your fetchDocuments function
         const response = await axios.get(
-          'http://localhost:5000/api/cases/litigant',
+          'https://ecourt-yr51.onrender.com/api/cases/litigant',
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -844,7 +844,7 @@ Date of Offence: ${caseFormData.police_station_details.date_of_offence}`;
         
         // Download document
         const token = localStorage.getItem('token');
-        const downloadUrl = `http://localhost:5000/api/files/${document.filename || document._id}`;
+        const downloadUrl = `https://ecourt-yr51.onrender.com/api/files/${document.filename || document._id}`;
         
         // Create a temporary anchor element to trigger the download
         const a = document.createElement('a');
@@ -891,7 +891,7 @@ let response;
 if (input.toLowerCase() === 'today') {
   // Get today's calendar
   response = await axios.get(
-    `http://localhost:5000/api/calendar/today`,
+    `https://ecourt-yr51.onrender.com/api/calendar/today`,
     {
       headers: { Authorization: `Bearer ${token}` }
     }
@@ -930,7 +930,7 @@ if (input.toLowerCase() === 'today') {
       
       // Get calendar for specific month
       response = await axios.get(
-        `http://localhost:5000/api/calendar/${year}/${month}`,
+        `https://ecourt-yr51.onrender.com/api/calendar/${year}/${month}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -1021,7 +1021,7 @@ try {
   const token = localStorage.getItem('token');
   // Try to get meeting directly first (for authenticated users)
   const response = await axios.get(
-    `http://localhost:5000/api/case/${input}/video-meeting`,
+    `https://ecourt-yr51.onrender.com/api/case/${input}/video-meeting`,
     {
       headers: { Authorization: `Bearer ${token}` }
     }
@@ -1067,7 +1067,7 @@ addThinkingMessage();
 try {
   // Request OTP
   const response = await axios.post(
-    `http://localhost:5000/api/case/${caseNumber}/video-meeting/request-access`,
+    `https://ecourt-yr51.onrender.com/api/case/${caseNumber}/video-meeting/request-access`,
     { email: input }
   );
   
@@ -1089,7 +1089,7 @@ addThinkingMessage();
 
 try {
   const response = await axios.post(
-    `http://localhost:5000/api/case/${caseNumber}/video-meeting/verify-otp`,
+    `https://ecourt-yr51.onrender.com/api/case/${caseNumber}/video-meeting/verify-otp`,
     { 
       email: emailForOTP,
       otp: input

@@ -31,7 +31,7 @@ const ClerkRegistration = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/clerk/register', {
+      const response = await axios.post('https://ecourt-yr51.onrender.com/api/clerk/register', {
         name: formData.name,
         gender: formData.gender,
         district: formData.district,
@@ -52,7 +52,7 @@ const ClerkRegistration = () => {
   const handleEmailVerification = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/clerk/verify-email', {
+      await axios.post('https://ecourt-yr51.onrender.com/api/clerk/verify-email', {
         clerk_id,
         otp: emailOTP
       });

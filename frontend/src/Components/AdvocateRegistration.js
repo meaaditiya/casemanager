@@ -41,7 +41,7 @@ const AdvocateRegistration = () => {
   useEffect(() => {
     const fetchStates = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/states');
+        const response = await fetch('https://ecourt-yr51.onrender.com/api/states');
         if (response.ok) {
           const data = await response.json();
           setStates(data);
@@ -57,7 +57,7 @@ const AdvocateRegistration = () => {
     const fetchDistricts = async () => {
       if (!formData.practice_details.state) return;
       try {
-        const response = await fetch(`http://localhost:5000/api/districts/${formData.practice_details.state}`);
+        const response = await fetch(`https://ecourt-yr51.onrender.com/api/districts/${formData.practice_details.state}`);
         if (response.ok) {
           const data = await response.json();
           setDistricts(data);
@@ -80,7 +80,7 @@ const AdvocateRegistration = () => {
       const formattedDate = `${(dateObj.getMonth() + 1)}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
 
       const response = await axios.post(
-        'http://localhost:5000/api/advocate/verify-enrollment',
+        'https://ecourt-yr51.onrender.com/api/advocate/verify-enrollment',
         { ...enrollmentData, date_of_registration: formattedDate }
       );
 
@@ -125,7 +125,7 @@ const AdvocateRegistration = () => {
       }
 
       const response = await axios.post(
-        'http://localhost:5000/api/advocate/register',
+        'https://ecourt-yr51.onrender.com/api/advocate/register',
         registrationFormData,
         {
           headers: {
@@ -144,7 +144,7 @@ const AdvocateRegistration = () => {
   const handleEmailVerification = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/advocate/verify-email', {
+      await axios.post('https://ecourt-yr51.onrender.com/api/advocate/verify-email', {
         advocate_id,
         otp: emailOTP
       });

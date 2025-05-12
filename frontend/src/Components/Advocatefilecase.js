@@ -150,7 +150,7 @@ const AdvocateCaseFiling = ({ setActiveSection, advocateData }) => {
     try {
       // Make API call to file the case
       const response = await axios.post(
-        'http://localhost:5000/api/filecase/advocate',
+        'https://ecourt-yr51.onrender.com/api/filecase/advocate',
         formData,
         {
           headers: {
