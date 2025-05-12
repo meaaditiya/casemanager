@@ -45,7 +45,7 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + '-' + file.originalname)
     }
 });
-
+//multer ki configuration
 const upload = multer({ 
     storage: storage,
     fileFilter: (req, file, cb) => {
