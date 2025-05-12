@@ -33,7 +33,7 @@ app.use(express.json());
 
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_schedule')
-    .then(() => console.log('MongoDB connected!'))
+    .then(() => console.log('Connection to Database Successful , MongoDB connected!'))
     .catch(err => console.error('MongoDB connection error:', err));
 
 const multer = require('multer');
@@ -7488,5 +7488,5 @@ app.get('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async 
 
  PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Site Server is live on ${PORT}`);
 });
