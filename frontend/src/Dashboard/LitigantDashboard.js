@@ -118,7 +118,7 @@ const LitigantDashboard = () => {
           navigate('/litilogin');
           throw new Error('No authentication token found');
         }
-        const response = await axios.get('http://localhost:5000/api/litigant/profile', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/litigant/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProfile(response.data.litigant);
@@ -138,7 +138,7 @@ const LitigantDashboard = () => {
       setCasesLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/cases/litigant', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/litigant', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCases(response.data.cases || []);
@@ -160,7 +160,7 @@ const LitigantDashboard = () => {
       try {
         const token = localStorage.getItem('token');
         const hearingPromises = cases.map((legalCase) =>
-          axios.get(`http://localhost:5000/api/case/${legalCase.case_num}/hearings`, {
+          axios.get(`https://ecourt-yr51.onrender.com/api/case/${legalCase.case_num}/hearings`, {
             headers: { Authorization: `Bearer ${token}` },
           })
         );
@@ -197,7 +197,7 @@ const LitigantDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/case/${searchCaseNum}/hearings`,
+        `https://ecourt-yr51.onrender.com/api/case/${searchCaseNum}/hearings`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSearchedHearings(response.data.hearings);
@@ -212,7 +212,7 @@ const LitigantDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/litigant/logout',
+        'https://ecourt-yr51.onrender.com/api/litigant/logout',
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -227,7 +227,7 @@ const LitigantDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/litigant/logout-all',
+        'https://ecourt-yr51.onrender.com/api/litigant/logout-all',
         { password: logoutPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -279,7 +279,7 @@ const LitigantDashboard = () => {
         delete dataToSubmit.police_station_details;
       }
       const response = await axios.post(
-        'http://localhost:5000/api/filecase/litigant',
+        'https://ecourt-yr51.onrender.com/api/filecase/litigant',
         dataToSubmit,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -295,7 +295,7 @@ const LitigantDashboard = () => {
     setDocumentsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/cases/litigant', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/litigant', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const caseData = response.data.cases.find((c) => c.case_num === caseNum);
@@ -338,7 +338,7 @@ const LitigantDashboard = () => {
       formData.append('document_type', documentType);
       formData.append('description', documentDescription);
       await axios.post(
-        `http://localhost:5000/api/case/${selectedCaseForDocuments.case_num}/document`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCaseForDocuments.case_num}/document`,
         formData,
         {
           headers: {
@@ -362,7 +362,7 @@ const LitigantDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/document/${documentId}/download`,
+        `https://ecourt-yr51.onrender.com/api/document/${documentId}/download`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: 'blob',
@@ -385,7 +385,7 @@ const LitigantDashboard = () => {
   const downloadAttachment = async (filename, originalname) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/files/${filename}`, {
+      const response = await axios.get(`https://ecourt-yr51.onrender.com/api/files/${filename}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob',
       });

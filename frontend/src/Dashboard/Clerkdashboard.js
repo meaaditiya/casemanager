@@ -55,7 +55,7 @@ const ClerkDashboard = () => {
                 navigate('/clerklogin');
                 throw new Error('No authentication token found');
             }
-            const response = await axios.get('http://localhost:5000/api/clerk/profile', {
+            const response = await axios.get('https://ecourt-yr51.onrender.com/api/clerk/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setProfile(response.data.clerk);
@@ -73,7 +73,7 @@ const ClerkDashboard = () => {
     const fetchAdvocates = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/clerk/dashboard/advocates', {
+            const response = await axios.get('https://ecourt-yr51.onrender.com/api/clerk/dashboard/advocates', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setAdvocates(response.data);
@@ -87,7 +87,7 @@ const ClerkDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/api/clerk/advocate/cop-document/${advocateId}`,
+                `https://ecourt-yr51.onrender.com/api/clerk/advocate/cop-document/${advocateId}`,
                 {
                     headers: { 'Authorization': `Bearer ${token}` },
                     responseType: 'blob'
@@ -157,7 +157,7 @@ const ClerkDashboard = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.post(
-                `http://localhost:5000/api/clerk/verify-advocate/${selectedAdvocate.advocate_id}`,
+                `https://ecourt-yr51.onrender.com/api/clerk/verify-advocate/${selectedAdvocate.advocate_id}`,
                 {
                     verificationDeclaration,
                     notes: verificationNotes,
@@ -180,7 +180,7 @@ const ClerkDashboard = () => {
     const handleLogout = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/clerk/logout', {}, {
+            await axios.post('https://ecourt-yr51.onrender.com/api/clerk/logout', {}, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             localStorage.removeItem('token');
@@ -193,7 +193,7 @@ const ClerkDashboard = () => {
     const handleLogoutAll = async () => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/clerk/logout-all',
+            await axios.post('https://ecourt-yr51.onrender.com/api/clerk/logout-all',
                 { password: logoutPassword },
                 { headers: { 'Authorization': `Bearer ${token}` } }
             );
