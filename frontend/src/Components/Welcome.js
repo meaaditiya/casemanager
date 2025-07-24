@@ -159,7 +159,7 @@ const CaseManagement = () => {
             <div className="portal-card litigant">
               <User size={48} className="portal-icon" />
               <h3>Litigant Portal</h3>
-              <p>Track case progress and access documents.</p>
+              <p>Track case progress.</p>
               <div className="portal-stats">
                 <div className="stat">
                   <span className="stat-number">100%</span>
@@ -170,7 +170,7 @@ const CaseManagement = () => {
                   <span className="stat-label">Time Saved</span>
                 </div>
               </div>
-              <a href="/litigant" className="portal-btn litigant-btn">Continue as Litigant</a>
+              <a href="/litigant" className="portal-btn advocate-btn">Continue as Litigant</a>
             </div>
             <div className="portal-card admin">
               <Settings size={48} className="portal-icon" />
@@ -263,78 +263,6 @@ const CaseManagement = () => {
           </div>
         </div>
       </section>
-
-      {/* User Manual Section */}
-      <section id="guide" className="modern-manual">
-        <div className="section-container">
-          <div className="manual-header" onClick={toggleManual}>
-            <div className="manual-title">
-              <BookOpen size={24} />
-              <h3>User Manual</h3>
-            </div>
-            <button className="toggle-button" onClick={toggleManual}>
-              {showManual ? <ChevronDown size={24} /> : <ChevronRight size={24} />}
-            </button>
-          </div>
-          {showManual && (
-            <div className="manual-content">
-              <div className="manual-intro">
-                <h4>Welcome to the Case Management System</h4>
-                <p>Comprehensive guide to using our portals and features.</p>
-              </div>
-              <div className="manual-navigation">
-                <div className={`manual-section ${activeSection === 'getting-started' ? 'active' : ''}`}>
-                  <div className="section-header" onClick={() => toggleSection('getting-started')}>
-                    <h5>Getting Started</h5>
-                    {activeSection === 'getting-started' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  </div>
-                  {activeSection === 'getting-started' && (
-                    <div className="section-content">
-                      <h6>System Requirements</h6>
-                      <ul>
-                        <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
-                        <li>Stable internet connection</li>
-                        <li>Screen resolution of 1280×720 or higher</li>
-                      </ul>
-                      <h6>Accessing the System</h6>
-                      <ol>
-                        <li>Navigate to the Case Management System URL</li>
-                        <li>Choose your portal (Advocate, Litigant, Admin)</li>
-                        <li>Login or register as a new user</li>
-                      </ol>
-                    </div>
-                  )}
-                </div>
-                <div className={`manual-section ${activeSection === 'advocate' ? 'active' : ''}`}>
-                  <div className="section-header" onClick={() => toggleSection('advocate')}>
-                    <h5>Advocate Portal Guide</h5>
-                    {activeSection === 'advocate' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  </div>
-                  {activeSection === 'advocate' && (
-                    <div className="section-content">
-                      <h6>Dashboard Overview</h6>
-                      <ul>
-                        <li>Active cases</li>
-                        <li>Upcoming hearings</li>
-                        <li>Client requests</li>
-                        <li>Document status</li>
-                      </ul>
-                      <h6>Managing Cases</h6>
-                      <p>Create new cases, upload documents, and track progress.</p>
-                    </div>
-                  )}
-                </div>
-                {/* Other sections remain the same */}
-              </div>
-              <div className="manual-support">
-                <HelpCircle size={16} />
-                <p>Contact support at <strong>support@casemanagement.com</strong></p>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* Contact Section */}
       <section id="contact" className="modern-contact">
         <div className="section-container">

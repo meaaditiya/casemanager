@@ -24,13 +24,12 @@ const Clerk = require ('./models/Clerk');
 const BlacklistedToken = require('./models/Blaclisttoken');
 const clerkRoutes = require('./routes/clerkRoutes');
 const CourtAdmin = require('./models/CourtAdmin');
-app.use('/api/clerk', clerkRoutes);
 app.use(cors({
     origin:  ['http://localhost:3000', 'http://192.168.1.39:3000','https://ecourt-yr51.onrender.com','https://ecourtfiling.onrender.com'],
     credentials: true
 }));
 app.use(express.json());
-
+app.use('/api/clerk', clerkRoutes);
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_schedule')
     .then(() => console.log('Connection to Database Successful , MongoDB connected!'))
