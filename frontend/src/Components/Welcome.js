@@ -146,7 +146,7 @@ const CaseManagement = () => {
               <p>Manage cases, clients, and schedules.</p>
               <div className="portal-stats">
                 <div className="stat">
-                  <span className="stat-number">98%</span>
+                  <span className="stat-number">Better and</span>
                   <span className="stat-label">Faster Filing</span>
                 </div>
                 <div className="stat">
@@ -166,7 +166,7 @@ const CaseManagement = () => {
                   <span className="stat-label">Transparency</span>
                 </div>
                 <div className="stat">
-                  <span className="stat-number">80%</span>
+                  <span className="stat-number">Recognisable</span>
                   <span className="stat-label">Time Saved</span>
                 </div>
               </div>
@@ -178,11 +178,11 @@ const CaseManagement = () => {
               <p>Manage users and system performance.</p>
               <div className="portal-stats">
                 <div className="stat">
-                  <span className="stat-number">500+</span>
+                  <span className="stat-number">Certified</span>
                   <span className="stat-label">Users</span>
                 </div>
                 <div className="stat">
-                  <span className="stat-number">99.9%</span>
+                  <span className="stat-number">100%</span>
                   <span className="stat-label">Uptime</span>
                 </div>
               </div>
@@ -195,7 +195,7 @@ const CaseManagement = () => {
               <p>Manage cases and schedules.</p>
               <div className="portal-stats">
                 <div className="stat">
-                  <span className="stat-number">98%</span>
+                  <span className="stat-number">Absolute</span>
                   <span className="stat-label">Faster Filing</span>
                 </div>
                 <div className="stat">
