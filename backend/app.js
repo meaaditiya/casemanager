@@ -7481,6 +7481,9 @@ app.get('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async 
 // Function to send video meeting notification emails without OTP
 
 
+app.get("/ping", (req, res) => {
+  res.status(200).send("Pong!");
+});
 
 
 
