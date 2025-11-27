@@ -79,6 +79,10 @@
 .logo-section .court-logo {
   height: 64px;
   width: auto;
+  background-color: #fff;
+  height:70px;
+  width:60px;
+  border-radius: 10px;
 }
 
 /* Notice Grid */
