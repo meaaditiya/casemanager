@@ -30,6 +30,7 @@
     "node-tesseract-ocr": "^2.2.1",
     "path": "^0.12.7",
     "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^2.16.105",
     "uuid": "^11.1.0"
   }
 }
