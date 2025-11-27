@@ -1,0 +1,68 @@
+:root {
+  /* Primary Background Colors - Claude.ai inspired */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --bg-tertiary: #F3F4F6;
+  
+  /* Text Colors */
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  
+  /* Accent Colors - Claude theme */
+  --accent-primary: #9B6B43;
+  --accent-primary-hover: #8A5F3B;
+  --accent-primary-active: #795333;
+  
+  --accent-secondary: #7C3AED;
+  --accent-secondary-hover: #6D28D9;
+  --accent-secondary-active: #5B21B6;
+  
+  --accent-tertiary: #059669;
+  --accent-tertiary-hover: #047857;
+  --accent-tertiary-active: #065F46;
+  
+  --accent-quaternary: #DC2626;
+  --accent-quaternary-hover: #B91C1C;
+  --accent-quaternary-active: #991B1B;
+  
+  /* Border Colors */
+  --border-color: #E5E7EB;
+  --border-subtle: #F3F4F6;
+  
+  /* Interactive States */
+  --hover-bg: #F3F4F6;
+  --active-bg: #E5E7EB;
+  
+  /* Gradient Colors */
+  --gradient-start: #FEF3F2;
+  --gradient-end: #FFFBEB;
+  
+  /* Shadow Colors */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #111827;
+    --bg-secondary: #1F2937;
+    --bg-tertiary: #374151;
+    
+    --text-primary: #F9FAFB;
+    --text-secondary: #D1D5DB;
+    --text-tertiary: #9CA3AF;
+    
+    --border-color: #374151;
+    --border-subtle: #4B5563;
+    
+    --hover-bg: #374151;
+    --active-bg: #4B5563;
+    
+    --gradient-start: #1F2937;
+    --gradient-end: #374151;
+  }
+}

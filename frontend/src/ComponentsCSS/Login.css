@@ -1,105 +1,56 @@
-/* Login.css - Official Government Styled CSS for Advocate Login */
-:root {
-  --primary-color: #1a3c6e; /* Deep Blue for official look */
-  --secondary-color: #f5f6f5; /* Light Grey for backgrounds */
-  --accent-color: #d4a017; /* Gold accent for highlights */
-  --text-color: #333333; /* Dark grey for text */
-  --error-color: #a94442; /* Muted red for errors */
-  --success-color: #3c763d; /* Muted green for success */
-  --border-color: #d1d5db; /* Light grey for borders */
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+/* Import color theme */
+@import url('./theme-colors.css');
 
+/* Container Styles */
 .advocate-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background: radial-gradient(
-    circle at 30% 20%,
-    #e6f0fa 0%,
-    #d6e3f0 30%,
-    var(--secondary-color) 60%,
-    #f0f4f8 100%
-  );
-  position: relative;
-  padding: 20px;
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  padding: 24px;
 }
 
-/* Subtle noise texture overlay */
-.advocate-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
-  opacity: 0.05;
-  pointer-events: none;
-}
-
+/* Login Box */
 .advocate-login-box {
-  background: #ffffff;
   width: 100%;
-  max-width: 480px;
-  padding: 40px 32px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  max-width: 440px;
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  position: relative;
-  overflow: hidden;
-  z-index: 1; /* Ensure box is above background texture */
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
 }
 
-.advocate-login-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 6px;
-  background: var(--primary-color);
-}
-
-/* Logo Styling */
-.official-logo {
-  display: block;
-  margin: 0 auto 20px;
+/* Logo */
+.advocate-login-box .official-logo {
+  width: 60px;
   height: 60px;
-  width: auto;
+  display: block;
+  margin: 0 auto 16px;
+  object-fit: contain;
 }
 
 /* Secure Authentication Badge */
-.secure-authentication {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: var(--success-color);
-  background: #e6f3e6;
-  padding: 6px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--success-color);
+.advocate-login-box .secure-authentication {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.secure-authentication::before {
-  content: '🔒';
-  font-size: 1rem;
-}
-
-/* Title Styling */
+/* Title */
 .advocate-title {
-  font-size: 1.75rem;
+  font-size: 24px;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--text-primary);
   text-align: center;
   margin-bottom: 24px;
-  letter-spacing: 0.5px;
 }
 
 /* Form Group */
@@ -107,90 +58,224 @@
   margin-bottom: 20px;
 }
 
+/* Label */
 .advocate-label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
+/* Input */
 .advocate-input {
   width: 100%;
   padding: 12px 16px;
-  font-size: 1rem;
-  color: var(--text-color);
-  background: #ffffff;
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
 }
 
 .advocate-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(26, 60, 110, 0.1);
+  border-color: var(--accent-primary);
+  background-color: var(--bg-primary);
 }
 
-/* Buttons */
-.advocate-submit-btn {
-  width: 100%;
-  padding: 14px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--primary-color);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.advocate-submit-btn:hover {
-  background: #15325b;
-  transform: translateY(-1px);
-}
-
-.advocate-submit-btn:disabled {
-  background: #a3bffa;
+.advocate-input:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
-/* Error Messages */
-.advocate-error-box {
-  padding: 12px;
-  margin-bottom: 16px;
-  background: #f8d7da;
-  color: var(--error-color);
-  border: 1px solid var(--error-color);
+.advocate-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Turnstile Container */
+.advocate-form-group.turnstile-container {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+/* Submit Button */
+.advocate-submit-btn {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--accent-primary);
+  border: none;
   border-radius: 8px;
-  font-size: 0.875rem;
-  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.advocate-submit-btn:hover:not(:disabled) {
+  background-color: var(--accent-primary-hover);
+}
+
+.advocate-submit-btn:active:not(:disabled) {
+  background-color: var(--accent-primary-active);
+}
+
+.advocate-submit-btn:disabled {
+  background-color: var(--text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Error Box */
+.advocate-error-box {
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background-color: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 8px;
+  color: #991B1B;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Loading State Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.advocate-submit-btn:disabled::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .advocate-container {
+    padding: 16px;
+  }
+
   .advocate-login-box {
-    padding: 24px 20px;
-    margin: 0 16px;
+    padding: 32px 24px;
+    max-width: 100%;
   }
 
-  .advocate-title {
-    font-size: 1.5rem;
-  }
-
-  .advocate-submit-btn {
-    padding: 12px;
-  }
-
-  .official-logo {
+  .advocate-login-box .official-logo {
+    width: 50px;
     height: 50px;
   }
 
-  .secure-authentication {
-    top: 10px;
-    right: 10px;
-    font-size: 0.7rem;
-    padding: 4px 8px;
+  .advocate-title {
+    font-size: 22px;
+  }
+
+  .advocate-login-box .secure-authentication {
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .advocate-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .advocate-login-box {
+    padding: 24px 20px;
+  }
+
+  .advocate-login-box .official-logo {
+    width: 45px;
+    height: 45px;
+    margin-bottom: 12px;
+  }
+
+  .advocate-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .advocate-login-box .secure-authentication {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .advocate-form-group {
+    margin-bottom: 16px;
+  }
+
+  .advocate-label {
+    font-size: 13px;
+  }
+
+  .advocate-input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .advocate-submit-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .advocate-form-group.turnstile-container {
+    margin: 20px 0;
+  }
+}
+
+/* Turnstile Responsive */
+@media (max-width: 480px) {
+  .advocate-form-group.turnstile-container iframe {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .advocate-input,
+  .advocate-submit-btn {
+    transition: none;
+  }
+}
+
+/* Focus Visible for Keyboard Navigation */
+.advocate-input:focus-visible,
+.advocate-submit-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .advocate-error-box {
+    background-color: #7F1D1D;
+    border-color: #991B1B;
+    color: #FEE2E2;
+  }
+
+  .advocate-container {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  }
+
+  .advocate-login-box .official-logo {
+    filter: brightness(0.9);
   }
 }

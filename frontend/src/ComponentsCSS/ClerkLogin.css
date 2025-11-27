@@ -1,200 +1,281 @@
-/* ClerkLogin.css - High-end CSS for a government official application look */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+/* Import color theme */
+@import url('./theme-colors.css');
 
-:root {
-  --primary-color: #003087; /* Deep navy blue for authority */
-  --secondary-color: #f5f6f5; /* Light grey for clean backgrounds */
-  --accent-color: #c8102e; /* Deep red for emphasis (government-like) */
-  --text-color: #1a1a1a; /* Dark grey for readability */
-  --border-color: #d1d5db; /* Subtle grey for borders */
-  --error-color: #b91c1c; /* Red for errors */
-  --success-color: #15803d; /* Green for success */
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s ease;
-}
-
-
+/* Container Styles */
 .clerk-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  padding: 24px;
 }
 
+/* Login Box */
 .clerk-login-box {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  padding: 2.5rem;
   width: 100%;
-  max-width: 450px;
+  max-width: 440px;
+  background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  transition: var(--transition);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
 }
 
-.clerk-login-box:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.official-logo {
+/* Logo */
+.clerk-login-box .official-logo {
+  width: 60px;
+  height: 60px;
   display: block;
-  margin: 0 auto 1.5rem;
-  max-width: 120px;
-  height: auto;
+  margin: 0 auto 16px;
+  object-fit: contain;
 }
 
+/* Secure Authentication Badge */
 .secure-authentication2 {
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--primary-color);
-  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.secure-authentication2{
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: var(--success-color);
-  background: #e6f3e6;
-  padding: 6px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--success-color);
+  letter-spacing: 0.5px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.secure-authentication2::before {
-  content: '🔒';
-  font-size: 1rem;
-}
-
+/* Title */
 .clerk-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--primary-color);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
   text-align: center;
-  margin-bottom: 1.5rem;
-  letter-spacing: 0.02em;
+  margin-bottom: 24px;
 }
 
-.clerk-error-box {
-  background: #fee2e2;
-  color: var(--error-color);
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  text-align: center;
-  border: 1px solid var(--error-color);
-}
-
+/* Form Group */
 .clerk-form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
 }
 
+/* Label */
 .clerk-label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--text-color);
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
+/* Input */
 .clerk-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  color: var(--text-color);
-  background: #f9fafb;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  transition: var(--transition);
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
 }
 
 .clerk-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
+  border-color: var(--accent-primary);
+  background-color: var(--bg-primary);
 }
 
-.clerk-input::placeholder {
-  color: #6b7280;
-  font-size: 0.9rem;
-}
-
-.turnstile-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-
-.clerk-submit-btn {
-  width: 100%;
-  padding: 0.9rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #ffffff;
-  background: var(--primary-color);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: var(--transition);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.clerk-submit-btn:hover {
-  background: #00266e;
-}
-
-.clerk-submit-btn:disabled {
-  background: #6b7280;
+.clerk-input:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
-.clerk-submit-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.3);
+.clerk-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Turnstile Container */
+.clerk-form-group.turnstile-container {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+/* Submit Button */
+.clerk-submit-btn {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  background-color: var(--accent-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.clerk-submit-btn:hover:not(:disabled) {
+  background-color: var(--accent-primary-hover);
+}
+
+.clerk-submit-btn:active:not(:disabled) {
+  background-color: var(--accent-primary-active);
+}
+
+.clerk-submit-btn:disabled {
+  background-color: var(--text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Error Box */
+.clerk-error-box {
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background-color: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 8px;
+  color: #991B1B;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Loading State Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.clerk-submit-btn:disabled::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
 }
 
 /* Responsive Design */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .clerk-container {
+    padding: 16px;
+  }
+
   .clerk-login-box {
-    padding: 1.5rem;
-    margin: 0 1rem;
+    padding: 32px 24px;
+    max-width: 100%;
+  }
+
+  .clerk-login-box .official-logo {
+    width: 50px;
+    height: 50px;
   }
 
   .clerk-title {
-    font-size: 1.5rem;
+    font-size: 22px;
   }
 
-  .official-logo {
-    max-width: 100px;
+  .secure-authentication2 {
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .clerk-container {
+    padding: 12px;
+    align-items: flex-start;
+    padding-top: 40px;
+  }
+
+  .clerk-login-box {
+    padding: 24px 20px;
+  }
+
+  .clerk-login-box .official-logo {
+    width: 45px;
+    height: 45px;
+    margin-bottom: 12px;
+  }
+
+  .clerk-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .secure-authentication2 {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .clerk-form-group {
+    margin-bottom: 16px;
+  }
+
+  .clerk-label {
+    font-size: 13px;
   }
 
   .clerk-input {
-    font-size: 0.9rem;
-    padding: 0.65rem 0.9rem;
+    padding: 10px 14px;
+    font-size: 14px;
   }
 
   .clerk-submit-btn {
-    padding: 0.8rem;
-    font-size: 0.9rem;
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .clerk-form-group.turnstile-container {
+    margin: 20px 0;
   }
 }
 
-/* Animation for smooth transitions */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Turnstile Responsive */
+@media (max-width: 480px) {
+  .clerk-form-group.turnstile-container iframe {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
 }
 
-.clerk-login-box {
-  animation: fadeIn 0.5s ease-out;
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .clerk-input,
+  .clerk-submit-btn {
+    transition: none;
+  }
+}
+
+/* Focus Visible for Keyboard Navigation */
+.clerk-input:focus-visible,
+.clerk-submit-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .clerk-error-box {
+    background-color: #7F1D1D;
+    border-color: #991B1B;
+    color: #FEE2E2;
+  }
+
+  .clerk-container {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  }
+
+  .clerk-login-box .official-logo {
+    filter: brightness(0.9);
+  }
 }

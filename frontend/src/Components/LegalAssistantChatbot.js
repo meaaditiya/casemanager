@@ -1,119 +1,121 @@
-import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
-import '../ComponentsCSS/Chatbot.css';
-import { Send } from "lucide-react";
 
-const LegalAssistantChatbot = () => {
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Loader,Volume2 , VolumeX} from "lucide-react";
+
+const GeminiLegalAssistantChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { 
       type: 'bot', 
-      content: 'Hello! I am your legal assistant. How can I help you today?',
-      options: [
-        { text: 'Create new case', value: 'create_case' },
-        { text: 'Find hearing details', value: 'find_hearing' },
-        { text: 'Find documents', value: 'find_documents' },
-        { text: 'Check calendar', value: 'check_calendar' },
-        { text: 'Find meeting link', value: 'find_meeting' },
-      ]
+      content: 'Hello! I am Nova, your AI-powered legal assistant. I can help you:\n\n1. File a new case\n2. Find hearing details\n3. Check documents\n4. View court calendar\n5. Get meeting links\n\nHow can I assist you today?'
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeFlow, setActiveFlow] = useState(null);
-  const [flowData, setFlowData] = useState({});
-  
-  // For finding hearings and documents
-  const [caseNumber, setCaseNumber] = useState('');
-  const [hearings, setHearings] = useState([]);
-  
-  // For calendar
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [calendarData, setCalendarData] = useState(null);
-  
-  // For finding documents
-  const [documents, setDocuments] = useState([]);
-  const [selectedCaseForDocuments, setSelectedCaseForDocuments] = useState(null);
-  const [documentsLoading, setDocumentsLoading] = useState(false);
-  const [documentError, setDocumentError] = useState('');
-  
-  // For meeting links
-  const [meetingDetails, setMeetingDetails] = useState(null);
-  const [emailForOTP, setEmailForOTP] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  
-  // For case filing
+  const [flowStep, setFlowStep] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+const [speechEnabled, setSpeechEnabled] = useState(true);
+const speechSynthesisRef = useRef(null);
   const [caseFormData, setCaseFormData] = useState({
     court: 'District & Sessions Court',
-    case_type: 'Civil',
+    case_type: '',
     plaintiff_details: {
-      name: '',
-      father_mother_husband: '',
-      address: '',
-      pin: '',
-      sex: 'Male',
-      age: '',
-      caste: '',
-      nationality: 'Indian',
-      if_other_mention: '',
-      occupation: '',
-      email: '',
-      phone: '',
-      mobile: '',
-      fax: '',
-      subject: '',
-      advocate_id: '',
-      advocate: ''
+      name: '', father_mother_husband: '', address: '', pin: '', sex: 'Male',
+      age: '', caste: '', nationality: 'Indian', if_other_mention: '',
+      occupation: '', email: '', phone: '', mobile: '', fax: '', subject: '', advocate_id: '', advocate: ''
     },
     respondent_details: {
-      party_id: '',
-      name: '',
-      father_mother_husband: '',
-      address: '',
-      pin: '',
-      sex: 'Male',
-      age: '',
-      caste: '',
-      nationality: 'Indian',
-      if_other_mention: '',
-      occupation: '',
-      email: '',
-      phone: '',
-      mobile: '',
-      fax: '',
-      subject: '',
-      advocate_id: '',
-      advocate: ''
+      party_id: '', name: '', father_mother_husband: '', address: '', pin: '', sex: 'Male',
+      age: '', caste: '', nationality: 'Indian', if_other_mention: '',
+      occupation: '', email: '', phone: '', mobile: '', fax: '', subject: '', advocate_id: '', advocate: ''
     },
-    police_station_details: {
-      police_station: '',
-      fir_no: '',
-      fir_year: '',
-      date_of_offence: ''
-    },
-    lower_court_details: {
-      court_name: '',
-      case_no: '',
-      decision_date: ''
-    },
-    main_matter_details: {
-      case_type: '',
-      case_no: '',
-      year: new Date().getFullYear()
-    },
-    hearings: [],
-    status: 'Pending',
+    police_station_details: { police_station: '', fir_no: '', fir_year: '', date_of_offence: '' },
+    lower_court_details: { court_name: '', case_no: '', decision_date: '' },
+    main_matter_details: { case_type: '', case_no: '', year: new Date().getFullYear() },
+    hearings: [], 
+    status: 'Pending', 
     case_approved: false
   });
+
+  const [caseNumber, setCaseNumber] = useState('');
   
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  // Load voices when component mounts
+useEffect(() => {
+  if (window.speechSynthesis) {
+    // Load voices
+    window.speechSynthesis.getVoices();
+    
+    // Some browsers need this event
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+  }
+  
+  // Cleanup: stop speech when component unmounts
+  return () => {
+    stopSpeech();
+  };
+}, []);
+// Stop any ongoing speech
+const stopSpeech = () => {
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  }
+};
 
+// Speak the bot's message
+const speakMessage = (text) => {
+  if (!speechEnabled || !window.speechSynthesis) return;
+  
+  // Stop any ongoing speech first
+  stopSpeech();
+  
+  // Clean text for better speech
+  const cleanText = text
+    .replace(/[━─═]+/g, '') // Remove decorative lines
+    .replace(/[📋📌👤📧📱🏠👥📝✅❌🔔📭📄🎉🔗📹🕐🕑📅📍📎🟢🔴⏰]/g, '') // Remove emojis
+    .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
+    .trim();
+  
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  
+  // Configure speech settings
+  utterance.rate = 0.9; // Slightly slower for clarity
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  utterance.lang = 'en-IN'; // Indian English
+  
+  // Select a voice (prefer female voice for assistant)
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(voice => 
+    voice.lang.includes('en') && voice.name.includes('Female')
+  ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
+  
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+  
+  utterance.onstart = () => setIsSpeaking(true);
+  utterance.onend = () => setIsSpeaking(false);
+  utterance.onerror = () => setIsSpeaking(false);
+  
+  window.speechSynthesis.speak(utterance);
+};
+
+// Toggle speech on/off
+const toggleSpeech = () => {
+  setSpeechEnabled(!speechEnabled);
+  if (isSpeaking) {
+    stopSpeech();
+  }
+};
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -122,84 +124,15 @@ const LegalAssistantChatbot = () => {
     setIsOpen(!isOpen);
   };
 
-  const handleOptionClick = (optionValue) => {
-    // Find the option text based on the value
-    let optionText = '';
-    
-    // Look for the option in the last message first
-    const lastMessageOptions = messages[messages.length - 1].options;
-    if (lastMessageOptions) {
-      const option = lastMessageOptions.find(opt => opt.value === optionValue);
-      if (option) {
-        optionText = option.text;
-      }
-    }
-    
-    // If not found in the last message, search through all messages
-    if (!optionText) {
-      for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].options) {
-          const option = messages[i].options.find(opt => opt.value === optionValue);
-          if (option) {
-            optionText = option.text;
-            break;
-          }
-        }
-      }
-    }
-    
-    // Add the selected option as a user message
-    if (optionText) {
-      addMessage('user', optionText);
-    } else {
-      // Fallback in case we can't find the option text
-      addMessage('user', optionValue);
-    }
-    
-    // Set active flow and handle the option selection
-    switch (optionValue) {
-      case 'create_case':
-        setActiveFlow('create_case');
-        startCreateCaseFlow();
-        break;
-      case 'find_hearing':
-        setActiveFlow('find_hearing');
-        startFindHearingFlow();
-        break;
-      case 'find_documents':
-        setActiveFlow('find_documents');
-        startFindDocumentsFlow();
-        break;
-      case 'check_calendar':
-        setActiveFlow('check_calendar');
-        startCheckCalendarFlow();
-        break;
-      case 'find_meeting':
-        setActiveFlow('find_meeting');
-        startFindMeetingFlow();
-        break;
-      case 'main_menu':
-        resetToMainMenu();
-        break;
-      case 'civil':
-        handleCaseTypeSelection('Civil');
-        break;
-      case 'criminal':
-        handleCaseTypeSelection('Criminal');
-        break;
-      case 'submit_case':
-        handleCaseSubmission();
-        break;
-      default:
-        addMessage('bot', 'I\'m not sure how to help with that. Please select one of the options.', [
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
-    }
-  };
-
-  const addMessage = (type, content, options = []) => {
-    setMessages(prev => [...prev, { type, content, options }]);
-  };
+ const addMessage = (type, content) => {
+  setMessages(prev => [...prev, { type, content }]);
+  
+  // Auto-speak bot messages
+  if (type === 'bot' && speechEnabled) {
+    // Small delay to ensure message is rendered
+    setTimeout(() => speakMessage(content), 300);
+  }
+};
 
   const addThinkingMessage = () => {
     setMessages(prev => [...prev, { type: 'thinking' }]);
@@ -211,995 +144,866 @@ const LegalAssistantChatbot = () => {
     setIsProcessing(false);
   };
 
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
+  const callGeminiAPI = async (prompt) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await response.json();
+      return data.text || "No response";
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      return "Error contacting AI service.";
+    }
   };
 
-  const handleSubmit = (e) => {
+  const determineIntent = async (userInput) => {
+    const lowerInput = userInput.toLowerCase();
+    
+    // Direct keyword matching for better accuracy
+    if (lowerInput.includes('file') || lowerInput.includes('create') || lowerInput.includes('new case')) {
+      return 'create_case';
+    }
+    if (lowerInput.includes('hearing')) {
+      return 'find_hearing';
+    }
+    if (lowerInput.includes('document')) {
+      return 'find_documents';
+    }
+    if (lowerInput.includes('calendar') || lowerInput.includes('schedule')) {
+      return 'check_calendar';
+    }
+    if (lowerInput.includes('meeting') || lowerInput.includes('video')) {
+      return 'find_meeting';
+    }
+
+    // Fallback to AI for complex queries
+    const prompt = `Classify this user request into ONE of these categories: create_case, find_hearing, find_documents, check_calendar, find_meeting, or general_query.
+
+User input: "${userInput}"
+
+Respond with ONLY the category name, nothing else.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const intent = response.trim().toLowerCase().replace(/[^a-z_]/g, '');
+      
+      const validIntents = ['create_case', 'find_hearing', 'find_documents', 'check_calendar', 'find_meeting'];
+      if (validIntents.includes(intent)) {
+        return intent;
+      }
+      return 'general_query';
+    } catch {
+      return 'general_query';
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputValue.trim() || isProcessing) return;
-    
-    // Add user message
-    addMessage('user', inputValue);
-    
-    // Handle input based on active flow
-    if (activeFlow) {
-      switch (activeFlow) {
+
+    const userInput = inputValue.trim();
+    addMessage('user', userInput);
+    setInputValue('');
+
+    // If we're in an active flow, continue that flow
+    if (activeFlow === 'create_case') {
+      await handleCreateCaseFlow(userInput);
+      return;
+    }
+
+    if (activeFlow === 'find_hearing') {
+      await handleFindHearingFlow(userInput);
+      return;
+    }
+
+    if (activeFlow === 'find_documents') {
+      await handleFindDocumentsFlow(userInput);
+      return;
+    }
+
+    // Otherwise determine intent
+    addThinkingMessage();
+    try {
+      const intent = await determineIntent(userInput);
+      removeThinkingMessage();
+
+      switch (intent) {
         case 'create_case':
-          handleCreateCaseInput(inputValue);
+          setActiveFlow('create_case');
+          setFlowStep(0);
+          addMessage('bot', '📋 Let\'s file a new case! First, what type of case is this?\n\nType "Civil" or "Criminal"');
           break;
         case 'find_hearing':
-          handleFindHearingInput(inputValue);
+          setActiveFlow('find_hearing');
+          await handleFindHearingFlow(userInput);
           break;
         case 'find_documents':
-          handleFindDocumentsInput(inputValue);
+          setActiveFlow('find_documents');
+          await handleFindDocumentsFlow(userInput);
           break;
         case 'check_calendar':
-          handleCheckCalendarInput(inputValue);
+          await handleCheckCalendarFlow(userInput);
           break;
         case 'find_meeting':
-          handleFindMeetingInput(inputValue);
+          await handleFindMeetingFlow(userInput);
           break;
         default:
-          handleDefaultInput(inputValue);
+          await handleGeneralQuery(userInput);
       }
-    } else {
-      handleDefaultInput(inputValue);
-    }
-    
-    setInputValue('');
-  };
-
-  const handleDefaultInput = (input) => {
-    // Handle custom message responses
-    if (input.toLowerCase().includes('hi') || 
-        input.toLowerCase().includes('hello') || 
-        input.toLowerCase().includes('hey')) {
-      addMessage('bot', 'Hello! How can I assist you with your legal needs today?', [
-        { text: 'Create new case', value: 'create_case' },
-        { text: 'Find hearing details', value: 'find_hearing' },
-        { text: 'Find documents', value: 'find_documents' },
-        { text: 'Check calendar', value: 'check_calendar' },
-        { text: 'Find meeting link', value: 'find_meeting' },
-      ]);
-    } else if (input.toLowerCase().includes('help')) {
-      addMessage('bot', 'I can help you with various legal services. What would you like to do?', [
-        { text: 'Create new case', value: 'create_case' },
-        { text: 'Find hearing details', value: 'find_hearing' },
-        { text: 'Find documents', value: 'find_documents' },
-        { text: 'Check calendar', value: 'check_calendar' },
-        { text: 'Find meeting link', value: 'find_meeting' },
-      ]);
-    } else if (input.toLowerCase().includes('thank')) {
-      addMessage('bot', 'You\'re welcome! Is there anything else I can help you with?', [
-        { text: 'Create new case', value: 'create_case' },
-        { text: 'Find hearing details', value: 'find_hearing' },
-        { text: 'Find documents', value: 'find_documents' },
-        { text: 'Check calendar', value: 'check_calendar' },
-        { text: 'Find meeting link', value: 'find_meeting' },
-      ]);
-    } else {
-      addMessage('bot', 'I\'m not sure I understand. Please select one of these options to proceed:', [
-        { text: 'Create new case', value: 'create_case' },
-        { text: 'Find hearing details', value: 'find_hearing' },
-        { text: 'Find documents', value: 'find_documents' },
-        { text: 'Check calendar', value: 'check_calendar' },
-        { text: 'Find meeting link', value: 'find_meeting' },
-      ]);
+    } catch (error) {
+      removeThinkingMessage();
+      addMessage('bot', `❌ Error: ${error.message}`);
     }
   };
 
-  const getMonthName = (month) => {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return months[month - 1];
+  const handleCreateCaseFlow = async (userInput) => {
+    const lowerInput = userInput.toLowerCase();
+
+    try {
+      // Step 0: Case Type
+      if (flowStep === 0) {
+        if (lowerInput.includes('civil')) {
+          setCaseFormData(prev => ({ ...prev, case_type: 'Civil' }));
+          setFlowStep(1);
+          addMessage('bot', '✅ Civil case selected.\n\n👤 Please provide the plaintiff\'s (your) full name:');
+        } else if (lowerInput.includes('criminal')) {
+          setCaseFormData(prev => ({ ...prev, case_type: 'Criminal' }));
+          setFlowStep(1);
+          addMessage('bot', '✅ Criminal case selected.\n\n👤 Please provide the plaintiff\'s (your) full name:');
+        } else {
+          addMessage('bot', 'Please specify either "Civil" or "Criminal" case type.');
+        }
+        return;
+      }
+
+      // Step 1: Plaintiff Name
+      if (flowStep === 1) {
+        setCaseFormData(prev => ({
+          ...prev,
+          plaintiff_details: { ...prev.plaintiff_details, name: userInput }
+        }));
+        setFlowStep(2);
+        addMessage('bot', `✅ Name recorded: ${userInput}\n\n📧 What is the plaintiff's email address?`);
+        return;
+      }
+
+      // Step 2: Plaintiff Email
+      if (flowStep === 2) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(userInput)) {
+          addMessage('bot', '❌ Invalid email format. Please provide a valid email address:');
+          return;
+        }
+        setCaseFormData(prev => ({
+          ...prev,
+          plaintiff_details: { ...prev.plaintiff_details, email: userInput }
+        }));
+        setFlowStep(3);
+        addMessage('bot', `✅ Email recorded.\n\n📱 What is the plaintiff's mobile number?`);
+        return;
+      }
+
+      // Step 3: Plaintiff Mobile
+      if (flowStep === 3) {
+        const mobileRegex = /^[6-9]\d{9}$/;
+        if (!mobileRegex.test(userInput.replace(/[\s-]/g, ''))) {
+          addMessage('bot', '❌ Invalid mobile number. Please provide a 10-digit Indian mobile number:');
+          return;
+        }
+        setCaseFormData(prev => ({
+          ...prev,
+          plaintiff_details: { ...prev.plaintiff_details, mobile: userInput }
+        }));
+        setFlowStep(4);
+        addMessage('bot', `✅ Mobile recorded.\n\n🏠 What is the plaintiff's address?`);
+        return;
+      }
+
+      // Step 4: Plaintiff Address
+      if (flowStep === 4) {
+        setCaseFormData(prev => ({
+          ...prev,
+          plaintiff_details: { ...prev.plaintiff_details, address: userInput }
+        }));
+        setFlowStep(5);
+        addMessage('bot', `✅ Address recorded.\n\n👥 Now, what is the respondent's (defendant's) full name?`);
+        return;
+      }
+
+      // Step 5: Respondent Name
+      if (flowStep === 5) {
+        setCaseFormData(prev => ({
+          ...prev,
+          respondent_details: { ...prev.respondent_details, name: userInput }
+        }));
+        setFlowStep(6);
+        addMessage('bot', `✅ Respondent name: ${userInput}\n\n📧 What is the respondent's email address?`);
+        return;
+      }
+
+      // Step 6: Respondent Email
+      if (flowStep === 6) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(userInput)) {
+          addMessage('bot', '❌ Invalid email format. Please provide a valid email address:');
+          return;
+        }
+        setCaseFormData(prev => ({
+          ...prev,
+          respondent_details: { ...prev.respondent_details, email: userInput }
+        }));
+        setFlowStep(7);
+        addMessage('bot', `✅ Email recorded.\n\n📱 What is the respondent's mobile number?`);
+        return;
+      }
+
+      // Step 7: Respondent Mobile
+      if (flowStep === 7) {
+        const mobileRegex = /^[6-9]\d{9}$/;
+        if (!mobileRegex.test(userInput.replace(/[\s-]/g, ''))) {
+          addMessage('bot', '❌ Invalid mobile number. Please provide a 10-digit Indian mobile number:');
+          return;
+        }
+        setCaseFormData(prev => ({
+          ...prev,
+          respondent_details: { ...prev.respondent_details, mobile: userInput }
+        }));
+        setFlowStep(8);
+        addMessage('bot', `✅ Mobile recorded.\n\n🏠 What is the respondent's address?`);
+        return;
+      }
+
+      // Step 8: Respondent Address
+      if (flowStep === 8) {
+        setCaseFormData(prev => ({
+          ...prev,
+          respondent_details: { ...prev.respondent_details, address: userInput }
+        }));
+        setFlowStep(9);
+        addMessage('bot', `✅ Address recorded.\n\n📝 Please describe the case subject/matter (what is this case about?):)`);
+        return;
+      }
+
+      // Step 9: Case Subject
+      if (flowStep === 9) {
+        setCaseFormData(prev => ({
+          ...prev,
+          plaintiff_details: { ...prev.plaintiff_details, subject: userInput },
+          respondent_details: { ...prev.respondent_details, subject: userInput }
+        }));
+        setFlowStep(10);
+
+        const summary = `
+━━━━━━━━━━━━━━━━━━━━━
+📋 CASE FILING SUMMARY
+━━━━━━━━━━━━━━━━━━━━━
+
+📌 Case Type: ${caseFormData.case_type}
+
+👤 PLAINTIFF DETAILS:
+   Name: ${caseFormData.plaintiff_details.name}
+   Email: ${caseFormData.plaintiff_details.email}
+   Mobile: ${caseFormData.plaintiff_details.mobile}
+   Address: ${caseFormData.plaintiff_details.address}
+
+👥 RESPONDENT DETAILS:
+   Name: ${caseFormData.respondent_details.name}
+   Email: ${caseFormData.respondent_details.email}
+   Mobile: ${caseFormData.respondent_details.mobile}
+   Address: ${caseFormData.respondent_details.address}
+
+📝 Subject: ${userInput}
+
+━━━━━━━━━━━━━━━━━━━━━
+
+Please review the information above.
+Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
+
+        addMessage('bot', summary);
+        return;
+      }
+
+      // Step 10: Confirmation
+      if (flowStep === 10) {
+        if (lowerInput === 'confirm') {
+          await submitCase();
+        } else if (lowerInput === 'cancel') {
+          resetCaseFlow();
+          addMessage('bot', '❌ Case filing cancelled. How else can I help you?');
+        } else {
+          addMessage('bot', 'Please type "CONFIRM" to submit or "CANCEL" to start over.');
+        }
+        return;
+      }
+
+    } catch (error) {
+      addMessage('bot', `❌ Error: ${error.message}`);
+    }
   };
 
-  const resetToMainMenu = () => {
+  const submitCase = async () => {
+    addThinkingMessage();
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        removeThinkingMessage();
+        addMessage('bot', '❌ Authentication required. Please log in first.');
+        resetCaseFlow();
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/filecase/litigant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(caseFormData)
+      });
+
+      const data = await response.json();
+      removeThinkingMessage();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to file case');
+      }
+
+      addMessage('bot', `✅ SUCCESS! Case Filed Successfully!\n\n📌 Your Case Number: ${data.case_num || data.case_no}\n\n🎉 An email notification has been sent to the registered email address.\n\nIs there anything else I can help you with?`);
+      
+      resetCaseFlow();
+    } catch (error) {
+      removeThinkingMessage();
+      addMessage('bot', `❌ Error filing case: ${error.message}\n\nPlease try again or contact support.`);
+      resetCaseFlow();
+    }
+  };
+
+  const resetCaseFlow = () => {
     setActiveFlow(null);
-    setFlowData({});
-    setCaseNumber('');
-    setHearings([]);
-    setDocuments([]);
-    setCalendarData(null);
-    setMeetingDetails(null);
-    setEmailForOTP('');
-    setOtp('');
-    setOtpSent(false);
-
-    addMessage('bot', 'What would you like to do?', [
-      { text: 'Create new case', value: 'create_case' },
-      { text: 'Find hearing details', value: 'find_hearing' },
-      { text: 'Find documents', value: 'find_documents' },
-      { text: 'Check calendar', value: 'check_calendar' },
-      { text: 'Find meeting link', value: 'find_meeting' },
-    ]);
-  };
-  // Case Filing Flow - Fixed Implementation
-  const startCreateCaseFlow = () => {
-    addMessage('bot', 'Let\'s create a new case. First, please select the case type:', [
-      { text: 'Civil Case', value: 'civil' },
-      { text: 'Criminal Case', value: 'criminal' },
-    ]);
-    
-    // Reset case form data to default values
+    setFlowStep(0);
     setCaseFormData({
       court: 'District & Sessions Court',
-      case_type: 'Civil',
+      case_type: '',
       plaintiff_details: {
-        name: '',
-        father_mother_husband: '',
-        address: '',
-        pin: '',
-        sex: 'Male',
-        age: '',
-        caste: '',
-        nationality: 'Indian',
-        if_other_mention: '',
-        occupation: '',
-        email: '',
-        phone: '',
-        mobile: '',
-        fax: '',
-        subject: '',
-        advocate_id: '',
-        advocate: ''
+        name: '', father_mother_husband: '', address: '', pin: '', sex: 'Male',
+        age: '', caste: '', nationality: 'Indian', if_other_mention: '',
+        occupation: '', email: '', phone: '', mobile: '', fax: '', subject: '', advocate_id: '', advocate: ''
       },
       respondent_details: {
-        party_id: '',
-        name: '',
-        father_mother_husband: '',
-        address: '',
-        pin: '',
-        sex: 'Male',
-        age: '',
-        caste: '',
-        nationality: 'Indian',
-        if_other_mention: '',
-        occupation: '',
-        email: '',
-        phone: '',
-        mobile: '',
-        fax: '',
-        subject: '',
-        advocate_id: '',
-        advocate: ''
+        party_id: '', name: '', father_mother_husband: '', address: '', pin: '', sex: 'Male',
+        age: '', caste: '', nationality: 'Indian', if_other_mention: '',
+        occupation: '', email: '', phone: '', mobile: '', fax: '', subject: '', advocate_id: '', advocate: ''
       },
-      police_station_details: {
-        police_station: '',
-        fir_no: '',
-        fir_year: '',
-        date_of_offence: ''
-      },
-      lower_court_details: {
-        court_name: '',
-        case_no: '',
-        decision_date: ''
-      },
-      main_matter_details: {
-        case_type: '',
-        case_no: '',
-        year: new Date().getFullYear()
-      },
-      hearings: [],
-      status: 'Pending',
+      police_station_details: { police_station: '', fir_no: '', fir_year: '', date_of_offence: '' },
+      lower_court_details: { court_name: '', case_no: '', decision_date: '' },
+      main_matter_details: { case_type: '', case_no: '', year: new Date().getFullYear() },
+      hearings: [], 
+      status: 'Pending', 
       case_approved: false
     });
   };
 
-  // Handle case type selection
-  const handleCaseTypeSelection = (caseType) => {
-    setCaseFormData(prev => ({
-      ...prev,
-      case_type: caseType
-    }));
-    
-    addMessage('bot', `You've selected a ${caseType} case. Now, I need plaintiff details. Please provide the name of the plaintiff:`);
-  };
-
-  // Handle case submission
-  const handleCaseSubmission = async () => {
+  const handleFindHearingFlow = async (userInput) => {
     addThinkingMessage();
-    
     try {
+      // Extract case number from input
+      const caseNumMatch = userInput.match(/[A-Z]{2}\d{4}[A-Z]\d{3}/i) || userInput.match(/\b[A-Z0-9]{8,}\b/i) || userInput.match(/\d+/);
+      const targetCaseNumber = caseNumMatch ? caseNumMatch[0] : caseNumber;
+
+      if (!targetCaseNumber) {
+        removeThinkingMessage();
+        addMessage('bot', '📋 Please provide the case number to find hearing details.\n\nExample: "Find hearings for case ABC123XYZ456"');
+        setActiveFlow(null);
+        return;
+      }
+
+      setCaseNumber(targetCaseNumber);
       const token = localStorage.getItem('token');
-      
-      // Use the correct API endpoint for litigant case filing
-      const response = await axios.post(
-        'https://ecourt-yr51.onrender.com/api/filecase/litigant',
-        caseFormData,
-        {
-          headers: { Authorization: `Bearer ${token}` }
+
+      if (!token) {
+        removeThinkingMessage();
+        addMessage('bot', '❌ Authentication required. Please log in first.');
+        setActiveFlow(null);
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:5000/api/case/${targetCaseNumber}/hearings`,
+        { 
+          headers: { 'Authorization': `Bearer ${token}` },
+          method: 'GET'
         }
       );
-      
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch hearings');
+      }
+
+      const data = await response.json();
       removeThinkingMessage();
+
+      if (data.hearings && data.hearings.length > 0) {
+        const hearingsList = data.hearings.map((h, i) => 
+          `${i + 1}. ${h.hearing_type || 'General Hearing'}\n   📅 Date: ${new Date(h.hearing_date).toLocaleDateString()}\n   📍 ${h.location || 'Court Room'}\n`
+        ).join('\n');
+        
+        addMessage('bot', `🔔 Found ${data.hearings.length} hearing(s) for case ${targetCaseNumber}:\n\n${hearingsList}\n\nAnything else I can help with?`);
+      } else {
+        addMessage('bot', `📭 No hearings scheduled yet for case ${targetCaseNumber}.`);
+      }
       
-      // Display success message with case number
-      addMessage('bot', `Case filed successfully! Your case number is ${response.data.case_no || response.data.case_num}.\n\nWhat would you like to do next?`, [
-        { text: 'File another case', value: 'create_case' },
-        { text: 'Return to main menu', value: 'main_menu' }
-      ]);
-      
+      setActiveFlow(null);
     } catch (error) {
       removeThinkingMessage();
-      addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to file case. Please try again later.'}`, [
-        { text: 'Try again', value: 'create_case' },
-        { text: 'Return to main menu', value: 'main_menu' }
-      ]);
+      addMessage('bot', `❌ Error: ${error.message}`);
+      setActiveFlow(null);
     }
   };
 
-  const handleCreateCaseInput = async (input) => {
-    // Handle plaintiff name
-    if (!caseFormData.plaintiff_details.name) {
-      setCaseFormData(prev => ({
-        ...prev,
-        plaintiff_details: {
-          ...prev.plaintiff_details,
-          name: input
-        }
-      }));
-      
-      addMessage('bot', `Thank you. Now, please provide the plaintiff's address:`);
-    }
-    // Handle plaintiff address
-    else if (!caseFormData.plaintiff_details.address) {
-      setCaseFormData(prev => ({
-        ...prev,
-        plaintiff_details: {
-          ...prev.plaintiff_details,
-          address: input
-        }
-      }));
-      
-      addMessage('bot', `Now, please provide the plaintiff's email address:`);
-    }
-    // Handle plaintiff email
-    else if (!caseFormData.plaintiff_details.email) {
-      setCaseFormData(prev => ({
-        ...prev,
-        plaintiff_details: {
-          ...prev.plaintiff_details,
-          email: input
-        }
-      }));
-      
-      addMessage('bot', `Now, please provide the plaintiff's mobile number:`);
-    }
-    // Handle plaintiff mobile
-    else if (!caseFormData.plaintiff_details.mobile) {
-      setCaseFormData(prev => ({
-        ...prev,
-        plaintiff_details: {
-          ...prev.plaintiff_details,
-          mobile: input
-        }
-      }));
-      
-      addMessage('bot', `Great! Now I need respondent details. Please provide the name of the respondent:`);
-    }
-    // Handle respondent name
-    else if (!caseFormData.respondent_details.name) {
-      setCaseFormData(prev => ({
-        ...prev,
-        respondent_details: {
-          ...prev.respondent_details,
-          name: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide the respondent's address:`);
-    }
-    // Handle respondent address
-    else if (!caseFormData.respondent_details.address) {
-      setCaseFormData(prev => ({
-        ...prev,
-        respondent_details: {
-          ...prev.respondent_details,
-          address: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide the respondent's email address:`);
-    }
-    // Handle respondent email
-    else if (!caseFormData.respondent_details.email) {
-      setCaseFormData(prev => ({
-        ...prev,
-        respondent_details: {
-          ...prev.respondent_details,
-          email: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide the respondent's mobile number:`);
-    }
-    // Handle respondent mobile
-    else if (!caseFormData.respondent_details.mobile) {
-      setCaseFormData(prev => ({
-        ...prev,
-        respondent_details: {
-          ...prev.respondent_details,
-          mobile: input
-        }
-      }));
-      
-      // If it's a criminal case, ask for police station details
-      if (caseFormData.case_type === 'Criminal') {
-        addMessage('bot', `For criminal cases, I need police station details. Please provide the police station name:`);
-      } else {
-        // For civil cases, ask for subject/description
-        addMessage('bot', `Please provide a brief subject or description of the case:`);
+  const handleFindDocumentsFlow = async (userInput) => {
+    addThinkingMessage();
+    try {
+   const caseNumMatch = userInput.match(/[A-Z]{2}\d{4}[A-Z]\d{3}/i) || userInput.match(/\b[A-Z0-9]{8,}\b/i) || userInput.match(/\d+/);
+      const targetCaseNumber = caseNumMatch ? caseNumMatch[0] : caseNumber;
+
+      if (!targetCaseNumber) {
+        removeThinkingMessage();
+        addMessage('bot', '📋 Please provide the case number to find documents.\n\nExample: "Find documents for case ABC123XYZ456"');
+        setActiveFlow(null);
+        return;
       }
-    }
-    // Handle police station for criminal cases
-    else if (caseFormData.case_type === 'Criminal' && !caseFormData.police_station_details.police_station) {
-      setCaseFormData(prev => ({
-        ...prev,
-        police_station_details: {
-          ...prev.police_station_details,
-          police_station: input
-        }
-      }));
+
+      setCaseNumber(targetCaseNumber);
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        removeThinkingMessage();
+        addMessage('bot', '❌ Authentication required. Please log in first.');
+        setActiveFlow(null);
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/cases/litigant', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents');
+      }
+
+      const data = await response.json();
+      const caseData = data.cases?.find(c => c.case_num === targetCaseNumber || c.case_no === targetCaseNumber);
       
-      addMessage('bot', `Please provide the FIR number:`);
-    }
-    // Handle FIR number for criminal cases
-    else if (caseFormData.case_type === 'Criminal' && !caseFormData.police_station_details.fir_no) {
-      setCaseFormData(prev => ({
-        ...prev,
-        police_station_details: {
-          ...prev.police_station_details,
-          fir_no: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide the FIR year:`);
-    }
-    // Handle FIR year for criminal cases
-    else if (caseFormData.case_type === 'Criminal' && !caseFormData.police_station_details.fir_year) {
-      setCaseFormData(prev => ({
-        ...prev,
-        police_station_details: {
-          ...prev.police_station_details,
-          fir_year: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide the date of offence (YYYY-MM-DD):`);
-    }
-    // Handle date of offence for criminal cases
-    else if (caseFormData.case_type === 'Criminal' && !caseFormData.police_station_details.date_of_offence) {
-      setCaseFormData(prev => ({
-        ...prev,
-        police_station_details: {
-          ...prev.police_station_details,
-          date_of_offence: input
-        }
-      }));
-      
-      addMessage('bot', `Please provide a brief subject or description of the case:`);
-    }
-    // Handle subject for both case types
-    else if (!caseFormData.plaintiff_details.subject) {
-      setCaseFormData(prev => ({
-        ...prev,
-        plaintiff_details: {
-          ...prev.plaintiff_details,
-          subject: input
-        },
-        respondent_details: {
-          ...prev.respondent_details,
-          subject: input
-        }
-      }));
-      
-      // Display summary and ask for confirmation
-      const summary = `Case Summary:
-Court: ${caseFormData.court}
-Case Type: ${caseFormData.case_type}
-Plaintiff: ${caseFormData.plaintiff_details.name}
-Plaintiff Email: ${caseFormData.plaintiff_details.email}
-Plaintiff Mobile: ${caseFormData.plaintiff_details.mobile}
-Respondent: ${caseFormData.respondent_details.name}
-Respondent Email: ${caseFormData.respondent_details.email}
-Respondent Mobile: ${caseFormData.respondent_details.mobile}
-Subject: ${input}`;
-      
-      if (caseFormData.case_type === 'Criminal') {
-        const criminalDetails = `Police Station: ${caseFormData.police_station_details.police_station}
-FIR Number: ${caseFormData.police_station_details.fir_no}
-FIR Year: ${caseFormData.police_station_details.fir_year}
-Date of Offence: ${caseFormData.police_station_details.date_of_offence}`;
+      removeThinkingMessage();
+
+      if (caseData && caseData.documents && caseData.documents.length > 0) {
+        const docList = caseData.documents.map((d, i) => 
+          `${i + 1}. ${d.description || d.name || 'Document'}\n   📎 Type: ${d.document_type || 'General'}\n   📅 Uploaded: ${d.upload_date ? new Date(d.upload_date).toLocaleDateString() : 'N/A'}\n`
+        ).join('\n');
         
-        addMessage('bot', `${summary}\n${criminalDetails}\n\nWould you like to submit this case?`, [
-          { text: 'Yes, submit case', value: 'submit_case' },
-          { text: 'No, start over', value: 'create_case' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
+        addMessage('bot', `📄 Found ${caseData.documents.length} document(s) for case ${targetCaseNumber}:\n\n${docList}\n\nAnything else I can help with?`);
       } else {
-        addMessage('bot', `${summary}\n\nWould you like to submit this case?`, [
-          { text: 'Yes, submit case', value: 'submit_case' },
-          { text: 'No, start over', value: 'create_case' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
+        addMessage('bot', `📭 No documents found for case ${targetCaseNumber}.`);
       }
+      
+      setActiveFlow(null);
+    } catch (error) {
+      removeThinkingMessage();
+      addMessage('bot', `❌ Error: ${error.message}`);
+      setActiveFlow(null);
     }
-    // Handle confirmation responses
-    else if (input.toLowerCase().includes('yes') || input === 'Yes, submit case') {
-      handleCaseSubmission();
-    } 
-    else if (input.toLowerCase().includes('no') || input === 'No, start over') {
-      startCreateCaseFlow();
-    } 
-    else if (input.toLowerCase().includes('main') || input === 'Return to main menu') {
-      resetToMainMenu();
-    }
-    else {
-      addMessage('bot', 'I didn\'t understand your response. Please answer with "yes" to submit, "no" to start over, or "main" to return to the main menu.', [
-        { text: 'Yes, submit case', value: 'submit_case' },
-        { text: 'No, start over', value: 'create_case' },
-        { text: 'Return to main menu', value: 'main_menu' }
-      ]);
-    }
-  };// Find Hearing Flow
-  const startFindHearingFlow = () => {
-    addMessage('bot', 'Please enter the case number to find hearing details:');
-    setCaseNumber('');
-    setHearings([]);
   };
 
-  const handleFindHearingInput = async (input) => {
-    addMessage('user', input);
-    
-    if (input.toLowerCase() === 'main' || input.toLowerCase() === 'return to main menu') {
-      resetToMainMenu();
-      return;
-    }
-    
-    if (!caseNumber) {
-      setCaseNumber(input);
-      addThinkingMessage();
+  const handleCheckCalendarFlow = async (userInput) => {
+    addThinkingMessage();
+    try {
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        removeThinkingMessage();
+        addMessage('bot', '❌ Authentication required. Please log in first.');
+        return;
+      }
+
+      const lowerInput = userInput.toLowerCase();
       
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          `https://ecourt-yr51.onrender.com/api/case/${input}/hearings`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        
+      if (lowerInput.includes('today')) {
+        const response = await fetch('http://localhost:5000/api/calendar/today', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          method: 'GET'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch calendar');
+        }
+
+        const data = await response.json();
         removeThinkingMessage();
         
-        if (response.data.hearings && response.data.hearings.length > 0) {
-          setHearings(response.data.hearings);
-          
-          const hearingsList = response.data.hearings.map((hearing, index) => {
-            const hearingDate = new Date(hearing.hearing_date).toLocaleDateString();
-            return `${index + 1}. ${hearing.hearing_type} - ${hearingDate}`;
-          }).join('\n');
-          
-          addMessage('bot', `Found ${response.data.hearings.length} hearings for case ${input}:\n\n${hearingsList}\n\nSelect a hearing number for details, or type 'main' to return to main menu.`);
-        } else {
-          addMessage('bot', `No hearings found for case ${input}.`, [
-            { text: 'Try another case number', value: 'find_hearing' },
-            { text: 'Return to main menu', value: 'main_menu' }
-          ]);
-        }
-      } catch (error) {
-        removeThinkingMessage();
-        addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to fetch hearings.'}`, [
-          { text: 'Try again', value: 'find_hearing' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
-      }
-    } else {
-      // Check if user selected a hearing number
-      const hearingIndex = parseInt(input) - 1;
-      if (!isNaN(hearingIndex) && hearingIndex >= 0 && hearingIndex < hearings.length) {
-        const hearing = hearings[hearingIndex];
-        const hearingDate = new Date(hearing.hearing_date).toLocaleDateString();
-        const nextHearingDate = hearing.next_hearing_date ? new Date(hearing.next_hearing_date).toLocaleDateString() : 'Not scheduled';
+        const { date, district, is_holiday, holiday_reason, opening_time, closing_time } = data;
+        const info = `📅 COURT CALENDAR - TODAY\n━━━━━━━━━━━━━━━━━━━━━\n📆 Date: ${new Date(date).toLocaleDateString()}\n📍 District: ${district}\n\n${
+          is_holiday 
+            ? `🔴 CLOSED - Holiday${holiday_reason ? `\n📝 Reason: ${holiday_reason}` : ''}` 
+            : `🟢 OPEN\n⏰ Timings: ${opening_time} - ${closing_time}`
+        }\n\nAnything else I can help with?`;
         
-        let hearingDetails = `Hearing Details:\n`;
-        hearingDetails += `Type: ${hearing.hearing_type}\n`;
-        hearingDetails += `Date: ${hearingDate}\n`;
-        hearingDetails += `Next Hearing: ${nextHearingDate}\n`;
-        if (hearing.remarks) hearingDetails += `Remarks: ${hearing.remarks}\n`;
-        
-        if (hearing.attachments && hearing.attachments.length > 0) {
-          hearingDetails += `\nAttachments: ${hearing.attachments.length} document(s)\n`;
-          hearing.attachments.forEach((attachment, i) => {
-            hearingDetails += `${i + 1}. ${attachment.originalname} (${(attachment.size / 1024).toFixed(2)} KB)\n`;
-          });
-          
-          addMessage('bot', hearingDetails);
-          addMessage('bot', 'Would you like to download an attachment? Enter attachment number or "no".', [
-            { text: 'No, thank you', value: 'no' }
-          ]);
-        } else {
-          addMessage('bot', hearingDetails, [
-            { text: 'View another hearing', value: 'find_hearing' },
-            { text: 'Return to main menu', value: 'main_menu' }
-          ]);
-        }
-      } else if (input.toLowerCase() === 'no') {
-        addMessage('bot', 'What would you like to do next?', [
-          { text: 'View another hearing', value: 'find_hearing' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
+        addMessage('bot', info);
       } else {
-        const attachmentIndex = parseInt(input) - 1;
-        const selectedHearing = hearings.find(h => h.attachments && h.attachments.length > attachmentIndex);
-        
-        if (selectedHearing && attachmentIndex >= 0) {
-          const attachment = selectedHearing.attachments[attachmentIndex];
-          if (attachment) {
-            addMessage('bot', `Downloading ${attachment.originalname}...`);
-            
-            // Download attachment
-            const token = localStorage.getItem('token');
-            const downloadUrl = `/api/files/${attachment.filename}`;
-            
-            // Create a temporary anchor element to trigger the download
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = attachment.originalname;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            addMessage('bot', 'Download initiated. What would you like to do next?', [
-              { text: 'View another hearing', value: 'find_hearing' },
-              { text: 'Return to main menu', value: 'main_menu' }
-            ]);
-          } else {
-            addMessage('bot', 'Invalid attachment number. Please try again.');
-          }
-        } else {
-          addMessage('bot', 'Invalid selection. Please enter a valid hearing number or "main" to return to menu.');
-        }
-      }
-    }
-  };
-
-  // Find Documents Flow - FIXED to use correct endpoint
-
-  const startFindDocumentsFlow = () => {
-    addMessage('bot', 'Please enter the case number to find documents:');
-    setCaseNumber('');
-    setDocuments([]);
-    setSelectedCaseForDocuments(null);
-    setDocumentError('');
-  };
-  
-  const handleFindDocumentsInput = async (input) => {
-    addMessage('user', input);
-    
-    if (input.toLowerCase() === 'main' || input.toLowerCase() === 'return to main menu') {
-      resetToMainMenu();
-      return;
-    }
-    
-    if (!caseNumber) {
-      setCaseNumber(input);
-      addThinkingMessage();
-      
-      try {
-        const token = localStorage.getItem('token');
-        
-        // Use the litigant cases endpoint as in your fetchDocuments function
-        const response = await axios.get(
-          'https://ecourt-yr51.onrender.com/api/cases/litigant',
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        
         removeThinkingMessage();
-        
-        // Find the specific case from the cases array
-        const caseData = response.data.cases.find(c => c.case_num === input);
-        
-        if (caseData) {
-          const documentsArray = caseData.documents || [];
-          setDocuments(documentsArray);
-          setSelectedCaseForDocuments(caseData);
-          
-          if (documentsArray.length > 0) {
-            const documentList = documentsArray.map((doc, index) => {
-              const type = doc.document_type;
-              const uploadDate = doc.uploaded_date ? new Date(doc.uploadDate).toLocaleDateString() : 'Unknown date';
-              return `${index + 1}. ${doc.description || doc.name} (${type})`;
-            }).join('\n');
-            
-            addMessage('bot', `Found ${documentsArray.length} documents for case ${input}:\n\n${documentList}\n\nEnter a document number to download, or type 'main' to return to main menu.`);
-          } else {
-            addMessage('bot', `No documents found for case ${input}.`, [
-              { text: 'Try another case number', value: 'find_documents' },
-              { text: 'Return to main menu', value: 'main_menu' }
-            ]);
-          }
-        } else {
-          setDocumentError('Case not found');
-          addMessage('bot', `Case ${input} not found. Please check the case number and try again.`, [
-            { text: 'Try another case number', value: 'find_documents' },
-            { text: 'Return to main menu', value: 'main_menu' }
-          ]);
-        }
-      } catch (error) {
-        removeThinkingMessage();
-        setDocumentError('Error fetching documents');
-        addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to fetch documents.'}`, [
-          { text: 'Try again', value: 'find_documents' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
+        addMessage('bot', '📅 To check court calendar, please type "today" or specify a date.');
       }
-    } else {
-      // Check if user selected a document number
-      const docIndex = parseInt(input) - 1;
-      if (!isNaN(docIndex) && docIndex >= 0 && docIndex < documents.length) {
-        const document = documents[docIndex];
-        
-        addMessage('bot', `Downloading ${document.originalname || document.name}...`);
-        
-        // Download document
-        const token = localStorage.getItem('token');
-        const downloadUrl = `https://ecourt-yr51.onrender.com/api/files/${document.filename || document._id}`;
-        
-        // Create a temporary anchor element to trigger the download
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = document.originalname || document.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        addMessage('bot', 'Download initiated. What would you like to do next?', [
-          { text: 'Download another document', value: 'find_documents' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
-      } else {
-        addMessage('bot', 'Invalid document number. Please enter a valid number or "main" to return to menu.');
-      }
+    } catch (error) {
+      removeThinkingMessage();
+      addMessage('bot', `❌ Error: ${error.message}`);
     }
   };
-// Check Calendar Flow
-const startCheckCalendarFlow = () => {
-const currentYear = new Date().getFullYear();
-const currentMonth = new Date().getMonth() + 1;
 
-addMessage('bot', `Please specify the month and year (MM/YYYY) to check court calendar, or type "today" for today's schedule:`);
-setYear(currentYear);
-setMonth(currentMonth);
-setCalendarData(null);
-};
+  const handleFindMeetingFlow = async (userInput) => {
+    addThinkingMessage();
+    try {
+     const caseNumMatch = userInput.match(/[A-Z]{2}\d{4}[A-Z]\d{3}/i) || userInput.match(/\b[A-Z0-9]{8,}\b/i) || userInput.match(/\d+/);
+      const targetCaseNumber = caseNumMatch ? caseNumMatch[0] : caseNumber;
 
-const handleCheckCalendarInput = async (input) => {
-addMessage('user', input);
+      if (!targetCaseNumber) {
+        removeThinkingMessage();
+        addMessage('bot', '📋 Please provide the case number to find the meeting link.\n\nExample: "Meeting link for case ABC123XYZ456"');
+        return;
+      }
 
-if (input.toLowerCase() === 'main' || input.toLowerCase() === 'return to main menu') {
-resetToMainMenu();
-return;
-}
+      setCaseNumber(targetCaseNumber);
+      const token = localStorage.getItem('token');
 
-addThinkingMessage();
+      if (!token) {
+        removeThinkingMessage();
+        addMessage('bot', '❌ Authentication required. Please log in first.');
+        return;
+      }
 
-try {
-const token = localStorage.getItem('token');
-let response;
-
-if (input.toLowerCase() === 'today') {
-  // Get today's calendar
-  response = await axios.get(
-    `https://ecourt-yr51.onrender.com/api/calendar/today`,
-    {
-      headers: { Authorization: `Bearer ${token}` }
-    }
-  );
-  
-  removeThinkingMessage();
-  
-  const { date, district, is_holiday, holiday_reason, opening_time, closing_time } = response.data;
-  
-  let calendarInfo = `Court Calendar for Today (${new Date(date).toLocaleDateString()}):\n`;
-  calendarInfo += `District: ${district}\n`;
-  
-  if (is_holiday) {
-    calendarInfo += `Status: HOLIDAY\n`;
-    if (holiday_reason) calendarInfo += `Reason: ${holiday_reason}\n`;
-  } else {
-    calendarInfo += `Court Hours: ${opening_time} - ${closing_time}\n`;
-  }
-  
-  addMessage('bot', calendarInfo, [
-    { text: 'Check another date', value: 'check_calendar' },
-    { text: 'Return to main menu', value: 'main_menu' }
-  ]);
-} else {
-  // Parse input as MM/YYYY
-  const dateRegex = /^(\d{1,2})\/(\d{4})$/;
-  const match = input.match(dateRegex);
-  
-  if (match) {
-    const month = parseInt(match[1]);
-    const year = parseInt(match[2]);
-    
-    if (month >= 1 && month <= 12) {
-      setMonth(month);
-      setYear(year);
-      
-      // Get calendar for specific month
-      response = await axios.get(
-        `https://ecourt-yr51.onrender.com/api/calendar/${year}/${month}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
+      const response = await fetch(
+        `http://localhost:5000/api/case/${targetCaseNumber}/video-meeting`,
+        { 
+          headers: { 'Authorization': `Bearer ${token}` },
+          method: 'GET'
         }
       );
-      
-      removeThinkingMessage();
-      
-      const { calendar } = response.data;
-      setCalendarData(calendar);
-      
-      if (calendar && calendar.length > 0) {
-        // Find holidays and special schedules
-        const holidays = calendar.filter(entry => entry.is_holiday);
-        
-        let calendarInfo = `Court Calendar for ${getMonthName(month)} ${year}:\n\n`;
-        
-        if (holidays.length > 0) {
-          calendarInfo += `Holidays:\n`;
-          holidays.forEach(holiday => {
-            calendarInfo += `- ${new Date(holiday.date).toLocaleDateString()}: ${holiday.holiday_reason || 'Court Holiday'}\n`;
-          });
-          calendarInfo += '\n';
-        }
-        
-        // Check if there are special schedules
-        const specialSchedules = calendar.filter(entry => !entry.is_holiday && (entry.opening_time !== '09:00' || entry.closing_time !== '17:00'));
-        
-        if (specialSchedules.length > 0) {
-          calendarInfo += `Special Schedules:\n`;
-          specialSchedules.forEach(schedule => {
-            calendarInfo += `- ${new Date(schedule.date).toLocaleDateString()}: ${schedule.opening_time} - ${schedule.closing_time}\n`;
-          });
-        } else {
-          calendarInfo += `Regular Court Hours: 09:00 - 17:00 (except holidays)`;
-        }
-        
-        addMessage('bot', calendarInfo, [
-          { text: 'Check another month', value: 'check_calendar' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
-      } else {
-        addMessage('bot', `No calendar entries found for ${getMonthName(month)} ${year}. Default court hours are 09:00 - 17:00 on weekdays.`, [
-          { text: 'Check another month', value: 'check_calendar' },
-          { text: 'Return to main menu', value: 'main_menu' }
-        ]);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch meeting details');
       }
-    } else {
+
+      const data = await response.json();
       removeThinkingMessage();
-      addMessage('bot', 'Invalid month. Please enter a valid month (1-12) and year in MM/YYYY format.');
+
+      if (data.meetingLink) {
+        const startTime = new Date(data.startDateTime).toLocaleString();
+        const endTime = new Date(data.endDateTime).toLocaleString();
+        addMessage('bot', `📹 VIRTUAL MEETING DETAILS\n━━━━━━━━━━━━━━━━━━━━━\n📌 Case: ${targetCaseNumber}\n🕐 Start: ${startTime}\n🕑 End: ${endTime}\n🔗 Link: ${data.meetingLink}\n\nClick the link to join the meeting!`);
+      } else {
+        addMessage('bot', `📭 No virtual meeting scheduled for case ${targetCaseNumber}.`);
+      }
+    } catch (error) {
+      removeThinkingMessage();
+      addMessage('bot', `❌ Error: ${error.message}`);
     }
-  } else {
-    removeThinkingMessage();
-    addMessage('bot', 'Invalid date format. Please use MM/YYYY format (e.g., 05/2025) or type "today".');
-  }
-}
-} catch (error) {
-removeThinkingMessage();
-addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to fetch calendar information.'}`, [
-  { text: 'Try again', value: 'check_calendar' },
-  { text: 'Return to main menu', value: 'main_menu' }
-]);
-}
-};
+  };
 
-// Find Meeting Link Flow
-const startFindMeetingFlow = () => {
-addMessage('bot', 'Please enter the case number to find virtual meeting links:');
-setCaseNumber('');
-setMeetingDetails(null);
-setEmailForOTP('');
-setOtp('');
-setOtpSent(false);
-};
+  const handleGeneralQuery = async (userInput) => {
+    const prompt = `You are Nova, a helpful legal assistant AI. Answer this question briefly and professionally.
 
-const handleFindMeetingInput = async (input) => {
-addMessage('user', input);
+User question: "${userInput}"
 
-if (input.toLowerCase() === 'main' || input.toLowerCase() === 'return to main menu') {
-resetToMainMenu();
-return;
-}
+Keep your response concise (2-3 sentences max) and helpful. If it's a legal question, provide general guidance but remind them to consult a lawyer for specific advice.`;
 
-if (!caseNumber) {
-setCaseNumber(input);
-addThinkingMessage();
-
-try {
-  const token = localStorage.getItem('token');
-  // Try to get meeting directly first (for authenticated users)
-  const response = await axios.get(
-    `https://ecourt-yr51.onrender.com/api/case/${input}/video-meeting`,
-    {
-      headers: { Authorization: `Bearer ${token}` }
+    try {
+      const response = await callGeminiAPI(prompt);
+      addMessage('bot', response);
+    } catch (error) {
+      addMessage('bot', `I'm having trouble processing that right now. Please try again or rephrase your question.`);
     }
-  );
-  
-  removeThinkingMessage();
-  
-  if (response.data.meetingLink) {
-    setMeetingDetails(response.data);
-    
-    const startTime = new Date(response.data.startDateTime).toLocaleString();
-    const endTime = new Date(response.data.endDateTime).toLocaleString();
-    
-    addMessage('bot', `Meeting found for case ${input}:\n\nStart: ${startTime}\nEnd: ${endTime}\nMeeting Link: ${response.data.meetingLink}\n\nYou can join the meeting at the scheduled time.`, [
-      { text: 'Find another meeting', value: 'find_meeting' },
-      { text: 'Return to main menu', value: 'main_menu' }
-    ]);
-  }
-} catch (error) {
-  removeThinkingMessage();
-  
-  if (error.response?.status === 403 || error.response?.status === 404) {
-    // Need OTP verification
-    addMessage('bot', `Authentication needed for meeting access. Please enter your email to receive an OTP:`);
-  } else {
-    addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to fetch meeting details.'}`, [
-      { text: 'Try another case number', value: 'find_meeting' },
-      { text: 'Return to main menu', value: 'main_menu' }
-    ]);
-  }
-}
-} else if (!emailForOTP && !otpSent) {
-// Validate email format
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-if (!emailRegex.test(input)) {
-  addMessage('bot', 'Please enter a valid email address.');
-  return;
-}
+  };
 
-setEmailForOTP(input);
-addThinkingMessage();
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  };
 
-try {
-  // Request OTP
-  const response = await axios.post(
-    `https://ecourt-yr51.onrender.com/api/case/${caseNumber}/video-meeting/request-access`,
-    { email: input }
-  );
-  
-  removeThinkingMessage();
-  setOtpSent(true);
-  
-  addMessage('bot', `${response.data.message} Please enter the OTP you received:`);
-} catch (error) {
-  removeThinkingMessage();
-  addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to send OTP.'}`, [
-    { text: 'Try again', value: 'find_meeting' },
-    { text: 'Return to main menu', value: 'main_menu' }
-  ]);
-}
-} else if (otpSent) {
-// Verify OTP
-setOtp(input);
-addThinkingMessage();
-
-try {
-  const response = await axios.post(
-    `https://ecourt-yr51.onrender.com/api/case/${caseNumber}/video-meeting/verify-otp`,
-    { 
-      email: emailForOTP,
-      otp: input
-    }
-  );
-  
-  removeThinkingMessage();
-  
-  if (response.data.meetingLink) {
-    setMeetingDetails(response.data);
-    
-    const startTime = new Date(response.data.startDateTime).toLocaleString();
-    const endTime = new Date(response.data.endDateTime).toLocaleString();
-    
-    addMessage('bot', `Meeting access granted!\n\nStart: ${startTime}\nEnd: ${endTime}\nMeeting Link: ${response.data.meetingLink}\n\nYou can join the meeting at the scheduled time.`, [
-      { text: 'Find another meeting', value: 'find_meeting' },
-      { text: 'Return to main menu', value: 'main_menu' }
-    ]);
-  } else {
-    addMessage('bot', 'OTP verified, but no meeting information found.', [
-      { text: 'Try again', value: 'find_meeting' },
-      { text: 'Return to main menu', value: 'main_menu' }
-    ]);
-  }
-} catch (error) {
-  removeThinkingMessage();
-  addMessage('bot', `Error: ${error.response?.data?.message || 'Failed to verify OTP.'}`, [
-    { text: 'Try again', value: 'find_meeting' },
-    { text: 'Return to main menu', value: 'main_menu' }
-  ]);
-}
-}
-};
-
-return (
-<>
-<div className="chatbot-wrapper">
-      <div className="chatbot-icon" onClick={toggleChatbot}>
-        <div className="avatar-container">
-          <div className="avatar-hair"></div>
-          <div className="avatar-face">
-            <div className="avatar-eyes"></div>
-            <div className="avatar-smile"></div>
-          </div>
-        </div>
-        <span className="chatbot-name">Nova</span>
-        {!isOpen && <div className="pulse-effect"></div>}
-      </div>
-    </div>
-<div className={`chatbot-container ${isOpen ? 'open' : ''}`}>
-  <div className="chatbot-header">
-    <h3>Legal Assistant</h3>
-    <button onClick={toggleChatbot} className="close-btn">
-      ×
-    </button>
-  </div>
-  {isOpen && (
+  return (
     <>
-      <div className="chatbot-messages">
-        {messages.map((message, index) => (
-          <div 
-            key={index} 
-            className={`message ${message.type === 'user' ? 'user-message' : 'bot-message'}`}
-          >
-            {message.type === 'thinking' ? (
-              <div className="thinking-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            ) : (
-              <>
-                <div className="message-content">{message.content}</div>
-                {message.options && message.options.length > 0 && (
-                  <div className="message-options">
-                    {message.options.map((option, i) => (
-                      <button 
-                        key={i} 
-                        onClick={() => handleOptionClick(option.value)}
-                        className="option-button"
-                      >
-                        {option.text}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .thinking-dots span { animation: pulse 1.4s infinite; }
+        .thinking-dots span:nth-child(1) { animation-delay: 0s; }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
+
+      <div style={styles.chatbotWrapper}>
+        <div style={styles.chatbotIcon} onClick={toggleChatbot}>
+          <div style={styles.avatarCircle}>💬</div>
+          <div style={styles.chatbotName}>Nova</div>
+          {!isOpen && <div style={styles.pulse}></div>}
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="chatbot-input">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          placeholder="Type your message..."
-          disabled={isProcessing}
-        />
-        <button type="submit" disabled={isProcessing}><Send /></button>
-      </form>
-    </>
-  )}
+
+      <div style={{...styles.chatbotContainer, ...(isOpen ? styles.chatbotOpen : {})}}>
+       <div style={styles.header}>
+  <h3 style={styles.headerTitle}>Legal Assistant</h3>
+  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+    <button 
+      onClick={toggleSpeech} 
+      style={styles.speechBtn}
+      title={speechEnabled ? "Disable speech" : "Enable speech"}
+    >
+      {speechEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+    </button>
+    <button onClick={toggleChatbot} style={styles.closeBtn}>×</button>
+  </div>
 </div>
-<div className={`chatbot-backdrop ${isOpen ? 'open' : ''}`} onClick={toggleChatbot}></div>
-</>
-);
+
+        {isOpen && (
+          <>
+            <div style={styles.messagesContainer}>
+              {messages.map((msg, i) => (
+                <div key={i} style={{
+                  ...styles.message,
+                  ...(msg.type === 'user' ? styles.userMessageStyle : styles.botMessageStyle),
+                }}>
+                  {msg.type === 'thinking' ? (
+                    <div className="thinking-dots" style={styles.thinkingDots}>
+                      <span style={styles.dot}>●</span>
+                      <span style={styles.dot}>●</span>
+                      <span style={styles.dot}>●</span>
+                    </div>
+                  ) : (
+                    <div style={{
+                      ...styles.messageContent,
+                      ...(msg.type === 'user' ? {backgroundColor: '#0066cc', color: 'white'} : {})
+                    }}>
+                      {msg.content}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div style={styles.inputForm}>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={handleInputChange}
+                placeholder="Type your message..."
+                disabled={isProcessing}
+                style={styles.input}
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
+              />
+              <button 
+                onClick={handleSubmit}
+                disabled={isProcessing} 
+                style={styles.sendBtn}
+              >
+                {isProcessing ? '⟳' : '→'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div
+        style={{...styles.backdrop, ...(isOpen ? styles.backdropOpen : {})}}
+        onClick={toggleChatbot}
+      />
+    </>
+  );
 };
 
-export default LegalAssistantChatbot;
-    
-    
+const styles = {
+  chatbotWrapper: {
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    zIndex: 999,
+  },
+  chatbotIcon: {
+    width: '70px',
+    height: '70px',
+    backgroundColor: '#0066cc',
+    borderRadius: '50%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0, 102, 204, 0.4)',
+    transition: 'all 0.3s ease',
+  },
+  avatarCircle: {
+    fontSize: '32px',
+    lineHeight: '1',
+  },
+  chatbotName: {
+    color: 'white',
+    fontSize: '11px',
+    fontWeight: 'bold',
+    marginTop: '2px',
+  },
+  pulse: {
+    position: 'absolute',
+    top: '-5px',
+    right: '-5px',
+    width: '16px',
+    height: '16px',
+    backgroundColor: '#ff4444',
+    borderRadius: '50%',
+    animation: 'pulse 2s infinite',
+  },
+  chatbotContainer: {
+    position: 'fixed',
+    bottom: '100px',
+    right: '20px',
+    width: '400px',
+    height: '600px',
+    backgroundColor: 'white',
+    borderRadius:'12px',
+boxShadow: '0 5px 40px rgba(0, 0, 0, 0.16)',
+display: 'flex',
+flexDirection: 'column',
+transform: 'scale(0.95) translateY(20px)',
+opacity: 0,
+pointerEvents: 'none',
+transition: 'all 0.3s ease',
+zIndex: 1000,
+},
+chatbotOpen: {
+transform: 'scale(1) translateY(0)',
+opacity: 1,
+pointerEvents: 'auto',
+},
+header: {
+padding: '16px 20px',
+backgroundColor: '#0066cc',
+color: 'white',
+borderRadius: '12px 12px 0 0',
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center',
+},
+headerTitle: {
+margin: 0,
+fontSize: '18px',
+fontWeight: 'bold',
+},
+closeBtn: {
+background: 'none',
+border: 'none',
+color: 'white',
+fontSize: '28px',
+cursor: 'pointer',
+padding: 0,
+},
+messagesContainer: {
+flex: 1,
+overflowY: 'auto',
+padding: '16px',
+display: 'flex',
+flexDirection: 'column',
+gap: '12px',
+},
+message: {
+display: 'flex',
+marginBottom: '4px',
+},
+userMessageStyle: {
+justifyContent: 'flex-end',
+},
+botMessageStyle: {
+justifyContent: 'flex-start',
+},
+messageContent: {
+maxWidth: '85%',
+padding: '12px 14px',
+borderRadius: '12px',
+wordWrap: 'break-word',
+fontSize: '13px',
+lineHeight: '1.5',
+backgroundColor: '#f0f0f0',
+color: '#333',
+whiteSpace: 'pre-wrap',
+},
+thinkingDots: {
+display: 'flex',
+gap: '6px',
+padding: '10px 14px',
+backgroundColor: '#f0f0f0',
+borderRadius: '12px',
+},
+dot: {
+fontSize: '16px',
+color: '#0066cc',
+},
+inputForm: {
+display: 'flex',
+gap: '8px',
+padding: '12px 16px',
+borderTop: '1px solid #e0e0e0',
+backgroundColor: '#fff',
+borderRadius: '0 0 12px 12px',
+},
+input: {
+flex: 1,
+border: '1px solid #ddd',
+borderRadius: '20px',
+padding: '10px 16px',
+fontSize: '13px',
+outline: 'none',
+fontFamily: 'inherit',
+},
+sendBtn: {
+background: '#0066cc',
+border: 'none',
+color: 'white',
+width: '40px',
+height: '40px',
+borderRadius: '50%',
+cursor: 'pointer',
+fontSize: '20px',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'center',
+transition: 'background 0.2s',
+},
+backdrop: {
+position: 'fixed',
+top: 0,
+left: 0,
+right: 0,
+bottom: 0,
+backgroundColor: 'rgba(0, 0, 0, 0.3)',
+opacity: 0,
+pointerEvents: 'none',
+transition: 'opacity 0.3s ease',
+zIndex: 999,
+},
+speechBtn: {
+  background: 'rgba(255, 255, 255, 0.2)',
+  border: 'none',
+  color: 'white',
+  width: '36px',
+  height: '36px',
+  borderRadius: '50%',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'background 0.2s',
+},
+backdropOpen: {
+opacity: 1,
+pointerEvents: 'auto',
+},
+};
+export default GeminiLegalAssistantChatbot;

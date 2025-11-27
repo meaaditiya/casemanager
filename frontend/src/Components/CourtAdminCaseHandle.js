@@ -55,7 +55,7 @@ const CourtAdminCase = () => {
           throw new Error('Authentication token not found. Please login again.');
         }
 
-        const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/courtadmin', {
+        const response = await axios.get('http://localhost:5000/api/cases/courtadmin', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ const CourtAdminCase = () => {
       }
 
       const response = await axios.post(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/hearing/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/courtadmin`,
         formData,
         {
           headers: {
@@ -215,7 +215,7 @@ const CourtAdminCase = () => {
       }
 
       const response = await axios.post(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/document/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/document/courtadmin`,
         formData,
         {
           headers: {
@@ -264,7 +264,7 @@ const CourtAdminCase = () => {
 
     try {
       await axios.patch(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/status/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/status/courtadmin`,
         statusUpdate,
         {
           headers: {
@@ -312,7 +312,7 @@ const CourtAdminCase = () => {
       const token = localStorage.getItem('token');
       const response = await axios({
         method: 'GET',
-        url: `https://ecourt-yr51.onrender.com/api/files/${filename}`,
+        url: `http://localhost:5000/api/files/${filename}`,
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -351,7 +351,7 @@ const CourtAdminCase = () => {
       const token = localStorage.getItem('token');
       const response = await axios({
         method: 'GET',
-        url: `https://ecourt-yr51.onrender.com/api/documents/${documentId}/download/courtadmin`,
+        url: `http://localhost:5000/api/documents/${documentId}/download/courtadmin`,
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`,

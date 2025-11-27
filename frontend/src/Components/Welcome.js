@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Briefcase, User, Settings, BookOpen, ChevronRight, ChevronDown, 
+  Briefcase, User, Settings, ChevronRight, ChevronDown, 
   Info, Calendar, FileText, Bell, Shield, HelpCircle, Phone, Mail, 
   Linkedin, MapPin, Link as LinkIcon, ArrowRight
 } from "lucide-react";
@@ -8,16 +8,11 @@ import "../ComponentsCSS/welcome.css";
  
 import emblem from "../images/aadiimage4.svg";
 import logo from "../images/aadiimage4.png";
-import aadiImage from "../images/aadiimage2.jpg";
-import ankitImage from "../images/aadiimage5.png";
-import akshatImage from "../images/aadiimage6.jpg";
-import akashImage from "../images/aadiimage7.png";
 import banner1 from "../images/aadiimage9.jpg";
 import banner2 from "../images/aadiimage10.jpg";
 import banner3 from "../images/aadiimage11.jpg";
 
 const CaseManagement = () => {
-  // Sliding banner state
   const [sliderIndex, setSliderIndex] = useState(0);
   const banners = [
     { image: banner1, text: "Streamline Your Legal Workflows" },
@@ -32,16 +27,6 @@ const CaseManagement = () => {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  // User manual and contact states
-  const [showManual, setShowManual] = useState(false);
-  const [activeSection, setActiveSection] = useState(null);
-  const [showContact, setShowContact] = useState(false);
-
-  const toggleManual = () => setShowManual(!showManual);
-  const toggleContact = () => setShowContact(!showContact);
-  const toggleSection = (section) => setActiveSection(activeSection === section ? null : section);
-
-  // Smooth scroll to section
   const scrollToSection = (sectionId) => {
     const section = document.getElementById(sectionId);
     if (section) {
@@ -56,7 +41,9 @@ const CaseManagement = () => {
         <div className="header-container">
           <div className="logo-section">
             <div className="emblem-logo">
-              <div className="emblem-image"><img src={emblem} alt="Emblem" /></div>
+              <div className="emblem-image">
+                <img src={emblem} alt="National Emblem" />
+              </div>
             </div>
             <div className="header-title">
               <h1>E-Portal for Case Management</h1>
@@ -68,8 +55,7 @@ const CaseManagement = () => {
             <button onClick={() => scrollToSection("about")} className="nav-link">About</button>
             <button onClick={() => scrollToSection("portals")} className="nav-link">Portals</button>
             <button onClick={() => scrollToSection("resources")} className="nav-link">Resources</button>
-            <button onClick={() => scrollToSection("guide")} className="nav-link">Guide</button>
-            <button onClick={() => scrollToSection("contact")} className="nav-link">Contact</button>
+            <button onClick={() => scrollToSection("system-info")} className="nav-link">System Info</button>
           </nav>
         </div>
       </header>
@@ -113,23 +99,23 @@ const CaseManagement = () => {
           <div className="system-highlights">
             <div className="highlight-item">
               <Calendar size={32} className="highlight-icon" />
-              <h4>Court Calendar Integration</h4>
-              <p>Automated scheduling and timely reminders.</p>
+              <h3>Court Calendar Integration</h3>
+              <p>Automated scheduling and timely reminders for all court proceedings.</p>
             </div>
             <div className="highlight-item">
               <FileText size={32} className="highlight-icon" />
-              <h4>Digital Documentation</h4>
-              <p>Secure storage and management of case documents.</p>
+              <h3>Digital Documentation</h3>
+              <p>Secure storage and management of all case-related documents.</p>
             </div>
             <div className="highlight-item">
               <Bell size={32} className="highlight-icon" />
-              <h4>Real-time Notifications</h4>
-              <p>Instant updates on case developments.</p>
+              <h3>Real-time Notifications</h3>
+              <p>Instant updates on case developments and hearing schedules.</p>
             </div>
             <div className="highlight-item">
               <Shield size={32} className="highlight-icon" />
-              <h4>Enterprise Security</h4>
-              <p>End-to-end encryption for all data.</p>
+              <h3>Enterprise Security</h3>
+              <p>End-to-end encryption ensuring complete data protection.</p>
             </div>
           </div>
         </div>
@@ -138,72 +124,87 @@ const CaseManagement = () => {
       {/* Portals Section */}
       <section id="portals" className="modern-portals">
         <div className="section-container">
-          <h2 className="section-title">Our Portals</h2>
+          <h2 className="section-title">Access Portals</h2>
+          <p className="section-subtitle">Choose your portal to get started</p>
           <div className="portal-container">
             <div className="portal-card advocate">
               <Briefcase size={48} className="portal-icon" />
               <h3>Advocate Portal</h3>
-              <p>Manage cases, clients, and schedules.</p>
+              <p>Manage cases, clients, and schedules with comprehensive tools.</p>
               <div className="portal-stats">
                 <div className="stat">
-                  <span className="stat-number">Better and</span>
-                  <span className="stat-label">Faster Filing</span>
+                  <span className="stat-number">Faster</span>
+                  <span className="stat-label">Case Filing</span>
                 </div>
                 <div className="stat">
                   <span className="stat-number">24/7</span>
                   <span className="stat-label">Access</span>
                 </div>
               </div>
-              <a href="/advocate" className="portal-btn advocate-btn">Continue as Advocate</a>
+              <a href="/advocate" className="portal-btn advocate-btn">
+                Continue as Advocate
+                <ArrowRight size={16} />
+              </a>
             </div>
+
             <div className="portal-card litigant">
               <User size={48} className="portal-icon" />
               <h3>Litigant Portal</h3>
-              <p>Track case progress.</p>
+              <p>Track your case progress and access documents anytime.</p>
               <div className="portal-stats">
                 <div className="stat">
                   <span className="stat-number">100%</span>
                   <span className="stat-label">Transparency</span>
                 </div>
                 <div className="stat">
-                  <span className="stat-number">Recognisable</span>
-                  <span className="stat-label">Time Saved</span>
+                  <span className="stat-number">Real-time</span>
+                  <span className="stat-label">Updates</span>
                 </div>
               </div>
-              <a href="/litigant" className="portal-btn advocate-btn">Continue as Litigant</a>
+              <a href="/litigant" className="portal-btn litigant-btn">
+                Continue as Litigant
+                <ArrowRight size={16} />
+              </a>
             </div>
+
             <div className="portal-card admin">
               <Settings size={48} className="portal-icon" />
-              <h3>Admin Portal</h3>
-              <p>Manage users and system performance.</p>
+              <h3>Court Clerk Portal</h3>
+              <p>Manage cases, schedules, and administrative tasks efficiently.</p>
               <div className="portal-stats">
                 <div className="stat">
-                  <span className="stat-number">Certified</span>
-                  <span className="stat-label">Users</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-number">100%</span>
-                  <span className="stat-label">Uptime</span>
-                </div>
-              </div>
-              <a href="/clerk" className="portal-btn advocate-btn">Continue as Admin</a>
-            </div>
-            
-            <div className="portal-card advocate">
-              <Briefcase size={48} className="portal-icon" />
-              <h3>Court Clerk</h3>
-              <p>Manage cases and schedules.</p>
-              <div className="portal-stats">
-                <div className="stat">
-                  <span className="stat-number">Absolute</span>
-                  <span className="stat-label">Faster Filing</span>
+                  <span className="stat-number">Streamlined</span>
+                  <span className="stat-label">Workflow</span>
                 </div>
                 <div className="stat">
                   <span className="stat-number">24/7</span>
                   <span className="stat-label">Access</span>
                 </div>
               </div>
-              <a href="/admin" className="portal-btn advocate-btn">Continue as Court Clerk</a>
+              <a href="/admin" className="portal-btn admin-btn">
+                Continue as Court Clerk
+                <ArrowRight size={16} />
+              </a>
+            </div>
+            
+            <div className="portal-card clerk">
+              <Settings size={48} className="portal-icon" />
+              <h3>Admin Portal</h3>
+              <p>Manage users, system settings, and monitor performance.</p>
+              <div className="portal-stats">
+                <div className="stat">
+                  <span className="stat-number">Complete</span>
+                  <span className="stat-label">Control</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-number">99.9%</span>
+                  <span className="stat-label">Uptime</span>
+                </div>
+              </div>
+              <a href="/clerk" className="portal-btn clerk-btn">
+                Continue as Admin
+                <ArrowRight size={16} />
+              </a>
             </div>
           </div>
         </div>
@@ -213,6 +214,7 @@ const CaseManagement = () => {
       <section id="resources" className="modern-resources">
         <div className="section-container">
           <h2 className="section-title">Judicial Resources</h2>
+          <p className="section-subtitle">Access important judicial information and statistics</p>
           <div className="links-container">
             <a href="https://njdg.ecourts.gov.in/njdg_v3/" className="resource-link" target="_blank" rel="noopener noreferrer">
               <LinkIcon size={20} className="link-icon" />
@@ -220,6 +222,7 @@ const CaseManagement = () => {
                 <span className="link-title">District Courts Case Statistics</span>
                 <span className="link-description">National Judicial Data Grid - District Courts</span>
               </div>
+              <ArrowRight size={16} className="link-arrow" />
             </a>
             <a href="https://njdg.ecourts.gov.in/hcnjdg_v2/" className="resource-link" target="_blank" rel="noopener noreferrer">
               <LinkIcon size={20} className="link-icon" />
@@ -227,124 +230,85 @@ const CaseManagement = () => {
                 <span className="link-title">High Courts Case Statistics</span>
                 <span className="link-description">National Judicial Data Grid - High Courts</span>
               </div>
+              <ArrowRight size={16} className="link-arrow" />
             </a>
-            <a href="/case-status" className="resource-link" target="_blank" rel="noopener noreferrer">
-              <LinkIcon size={20} className="link-icon" />
+            <a href="/case-status" className="resource-link">
+              <FileText size={20} className="link-icon" />
               <div className="link-details">
                 <span className="link-title">Case Status</span>
-                <span className="link-description">Check status of filed cases</span>
+                <span className="link-description">Check the current status of filed cases</span>
               </div>
+              <ArrowRight size={16} className="link-arrow" />
             </a>
-            <a href="/court-orders" className="resource-link" target="_blank" rel="noopener noreferrer">
-              <LinkIcon size={20} className="link-icon" />
+            <a href="/court-orders" className="resource-link">
+              <FileText size={20} className="link-icon" />
               <div className="link-details">
-                <span className="link-title">Court Orders</span>
+                <span className="link-title">Court Orders & Judgments</span>
                 <span className="link-description">Access court judgments and orders</span>
               </div>
+              <ArrowRight size={16} className="link-arrow" />
             </a>
           </div>
         </div>
       </section>
 
       {/* System Info Section */}
-      <section className="modern-system-info">
+      <section id="system-info" className="modern-system-info">
         <div className="section-container">
           <div className="system-info">
             <div className="info-header">
               <Info size={24} />
-              <h3>System Information</h3>
+              <h2>System Information</h2>
             </div>
             <div className="info-content">
-              <p>Last updated: April 25, 2025</p>
-              <p>Version: 3.5.2</p>
-              <p>Supports all modern browsers</p>
-              <p>Compatible with mobile devices</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      {/* Contact Section */}
-      <section id="contact" className="modern-contact">
-        <div className="section-container">
-          <div className="contact-button-container">
-            <button className="contact-toggle-btn" onClick={toggleContact}>
-              {showContact ? "Hide Team Details" : "Meet Our Team"}
-            </button>
-          </div>
-          {showContact && (
-            <div className="contact-content">
-              <h2 className="section-title">Proudly Developed By</h2>
-              <p className="section-subtitle">Our dedicated team is here to support you.</p>
-              <div className="developer-profile">
-                <img src={aadiImage} alt="Aaditiya Tyagi" className="profile-image" />
-                <div className="developer-info">
-                  <h3>Aaditiya Tyagi</h3>
-                  <p className="developer-role">Lead Developer & Project Manager</p>
-                  <div className="contact-details">
-                    <div className="contact-item">
-                      <Phone size={20} className="contact-icon" />
-                      <span>+91 7351102026</span>
-                    </div>
-                    <div className="contact-item">
-                      <Mail size={20} className="contact-icon" />
-                      <span>aaditiyatyagi123@gmail.com</span>
-                    </div>
-                    <div className="contact-item">
-                      <MapPin size={20} className="contact-icon" />
-                      <span>New Delhi, India</span>
-                    </div>
-                    <div className="contact-item">
-                      <Linkedin size={20} className="contact-icon" />
-                      <a href="https://linkedin.com/in/aaditiyatyagi" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-                    </div>
-                  </div>
-                </div>
+              <div className="info-item">
+                <span className="info-label">Last Updated:</span>
+                <span className="info-value">April 25, 2025</span>
               </div>
-              <div className="team-section">
-                <h3>Development Team</h3>
-                <div className="team-members">
-                  <div className="team-member">
-                    <img src={aadiImage} alt="Aaditiya Tyagi" className="team-profile-image" />
-                    <span className="member-name">Aaditiya Tyagi</span>
-                    <span className="member-role">Frontend Developer</span>
-                  </div>
-                  <div className="team-member">
-                    <img src={akashImage} alt="Akash Tiwari" className="team-profile-image" />
-                    <span className="member-name">Akash Tiwari</span>
-                    <span className="member-role">Backend Engineer</span>
-                  </div>
-                  <div className="team-member">
-                    <img src={ankitImage} alt="Ankit Chaudhary" className="team-profile-image" />
-                    <span className="member-name">Ankit Chaudhary</span>
-                    <span className="member-role">Tester</span>
-                  </div>
-                  <div className="team-member">
-                    <img src={akshatImage} alt="Akshat Jain" className="team-profile-image" />
-                    <span className="member-name">Akshat Jain</span>
-                    <span className="member-role">Designer</span>
-                  </div>
-                </div>
+              <div className="info-item">
+                <span className="info-label">Version:</span>
+                <span className="info-value">3.5.2</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Browser Support:</span>
+                <span className="info-value">All modern browsers (Chrome, Firefox, Safari, Edge)</span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">Device Compatibility:</span>
+                <span className="info-value">Desktop, Tablet, and Mobile devices</span>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="modern-footer">
         <div className="footer-content">
-          <div className="footer-logo">
-            <div className="emblem-image"><img src={emblem} alt="Emblem" /></div>
-            <p>Case Management System</p>
+          <div className="footer-section">
+            <div className="footer-logo">
+              <div className="emblem-image">
+                <img src={emblem} alt="National Emblem" />
+              </div>
+              <h3>Case Management System</h3>
+            </div>
+            <p className="footer-description">
+              Empowering justice delivery through innovative technology solutions.
+            </p>
           </div>
-          <div className="footer-links">
-            <button onClick={() => scrollToSection("about")} className="footer-link">About</button>
-            <button onClick={() => scrollToSection("resources")} className="footer-link">Resources</button>
-            <button onClick={() => scrollToSection("guide")} className="footer-link">Guide</button>
-            <button onClick={() => scrollToSection("contact")} className="footer-link">Contact</button>
+          <div className="footer-section">
+            <h4>Quick Links</h4>
+            <div className="footer-links">
+              <button onClick={() => scrollToSection("about")} className="footer-link">About</button>
+              <button onClick={() => scrollToSection("portals")} className="footer-link">Portals</button>
+              <button onClick={() => scrollToSection("resources")} className="footer-link">Resources</button>
+              <button onClick={() => scrollToSection("system-info")} className="footer-link">System Info</button>
+            </div>
           </div>
         </div>
-        <p className="footer-copy">© 2025 Case Management System. All rights reserved.</p>
+        <div className="footer-bottom">
+          <p className="footer-copy">© 2025 Case Management System. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );

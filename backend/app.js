@@ -23,14 +23,30 @@ const StateDistrict = require('./models/Statedistrict');
 const Clerk = require ('./models/Clerk');
 const BlacklistedToken = require('./models/Blaclisttoken');
 const clerkRoutes = require('./routes/clerkRoutes');
+const Gemini = require('./routes/Gemini');
 const CourtAdmin = require('./models/CourtAdmin');
+const { getLeastLoadedCourt } = require("./utils/adminAssignment");
+const {
+  sha256File,
+  encryptFile,
+  decryptFile,
+  extractTextFromPDF,
+  extractTextWithPdfjs,
+  redactSensitive,
+  deterministicChecks
+} = require('./utils/documentUtils');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(cors({
     origin:  ['http://localhost:3000', 'http://192.168.1.39:3000','https://ecourt-yr51.onrender.com','https://ecourtfiling.onrender.com'],
     credentials: true
 }));
-app.use('/api/clerk', clerkRoutes);
 app.use(express.json());
+app.use('/api/clerk', clerkRoutes);
+app.use("/api", Gemini);
+
 
 // MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_schedule')
@@ -1724,7 +1740,13 @@ app.post('/api/filecase/litigant', authenticateToken, async (req, res) => {
           }
           
           userDistrict = litigant.address.district;
+ const assignedCourt = await getLeastLoadedCourt(userDistrict);
 
+const officeDetails = {
+  court_allotted: assignedCourt || null,
+  allocation_date: new Date(),
+  filing_date: new Date()
+};
           // Get district directly from user data
           if (!userDistrict) {
               return res.status(400).json({ 
@@ -1752,25 +1774,23 @@ app.post('/api/filecase/litigant', authenticateToken, async (req, res) => {
               case_type
           });
 
-          const newCase = new LegalCase({
-              court,
-              case_type,
-              district: userDistrict,
-              plaintiff_details,
-              respondent_details,
-              police_station_details,
-              lower_court_details,
-              main_matter_details,
-              hearings,
-              status,
-              case_approved: case_approved || false,
-              case_num: cnrNumber,
-              case_no: cnrNumber,
-              filed_by: {
-                  party_id: litigant.party_id,
-                  party_type: litigant.party_type
-              }
-          });
+         const newCase = new LegalCase({
+  court,
+  case_type,
+  district: userDistrict,
+  plaintiff_details,
+  respondent_details,
+  police_station_details,
+  lower_court_details,
+  main_matter_details,
+  hearings,
+  status,
+  case_approved: case_approved || false,
+  case_num: cnrNumber,
+  case_no: cnrNumber,
+  for_office_use_only: officeDetails
+});
+
 
           await newCase.save();
           
@@ -1875,6 +1895,13 @@ app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
           
           // Get district from advocate profile
           const userDistrict = advocate.district;
+           const assignedCourt = await getLeastLoadedCourt(userDistrict);
+
+const officeDetails = {
+  court_allotted: assignedCourt || null,
+  allocation_date: new Date(),
+  filing_date: new Date()
+};
           if (!userDistrict) {
               return res.status(400).json({
                   message: 'Advocate district information is missing. Please update your profile.'
@@ -1886,21 +1913,22 @@ app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
               case_type
           });
           
-          const newCase = new LegalCase({
-              court,
-              case_type,
-              district: userDistrict,
-              plaintiff_details,
-              respondent_details,
-              police_station_details,
-              lower_court_details,
-              main_matter_details,
-              hearings,
-              status,
-              case_approved: case_approved || false,
-              case_num: cnrNumber,
-              case_no: cnrNumber
-          });
+           const newCase = new LegalCase({
+  court,
+  case_type,
+  district: userDistrict,
+  plaintiff_details,
+  respondent_details,
+  police_station_details,
+  lower_court_details,
+  main_matter_details,
+  hearings,
+  status,
+  case_approved: case_approved || false,
+  case_num: cnrNumber,
+  case_no: cnrNumber,
+  for_office_use_only: officeDetails
+});
           
           await newCase.save();
           
@@ -2633,90 +2661,139 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
     });
   }
 });
-// Modified document upload route - Allow litigants to upload to their cases
+
+
+
+
+
 app.post('/api/case/:caseNum/document', authenticateToken, upload3.single('file'), async (req, res) => {
   try {
     const { caseNum } = req.params;
     const { document_type, description } = req.body;
     const file = req.file;
 
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!document_type) return res.status(400).json({ message: 'Document type is required' });
 
-    if (!document_type) {
-      return res.status(400).json({ message: 'Document type is required' });
-    }
-
-    // Find the case
     const caseData = await LegalCase.findOne({ case_num: caseNum });
-    
-    if (!caseData) {
-      return res.status(404).json({ message: 'Case not found' });
-    }
+    if (!caseData) return res.status(404).json({ message: 'Case not found' });
 
-    // If user is a litigant, verify they are associated with this case
     if (req.user.user_type !== 'clerk') {
-      const isPartyToCase = 
-        caseData.plaintiff_details.party_id === req.user.party_id || 
+      const isParty =
+        caseData.plaintiff_details.party_id === req.user.party_id ||
         caseData.respondent_details.party_id === req.user.party_id;
 
-      if (!isPartyToCase) {
-        return res.status(403).json({
-          message: 'Access denied: You can only upload documents to your own cases'
-        });
+      if (!isParty)
+        return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const filePath = file.path;
+    const originalPath = filePath;
+
+    let extractedText = "";
+
+    try {
+      extractedText = await extractTextFromPDF(filePath);
+    } catch (e) {}
+
+    if (!extractedText || extractedText.trim().length < 30) {
+      try {
+        extractedText = await extractTextWithPdfjs(filePath);
+      } catch (e) {}
+    }
+
+    if (!extractedText || extractedText.trim().length < 30) {
+      return res.status(422).json({ message: 'Unreadable document' });
+    }
+
+    const checks = deterministicChecks(extractedText);
+    const redactedText = redactSensitive(extractedText);
+
+    let geminiDecision;
+
+    if (checks.result === 'legal') {
+      geminiDecision = {
+        is_legal: true,
+        confidence: 0.9,
+        reasons: ['deterministic match']
+      };
+    } else {
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+      const prompt = `
+Return strict JSON only:
+{
+  "is_legal": true/false,
+  "confidence": "0.00-1.00",
+  "reasons": ["reason1","reason2"]
+}
+
+Text:
+${redactedText}
+`;
+
+      const result = await model.generateContent(prompt);
+      let t = result.response.text().trim();
+      t = t.replace(/```json/g, '').replace(/```/g, '').trim();
+
+      try {
+        geminiDecision = JSON.parse(t);
+      } catch {
+        geminiDecision = { is_legal: false, confidence: 0, reasons: ['AI parse error'] };
       }
     }
 
-    // Generate a document ID once and use it consistently
+    if (!geminiDecision.is_legal) {
+      return res.status(422).json({
+        message: 'Document validation failed',
+        reasons: geminiDecision.reasons
+      });
+    }
+
+    const fileHash = sha256File(originalPath);
+    const encryptedPath = path.join(path.dirname(originalPath), file.filename + '.enc');
+
+    await encryptFile(originalPath, encryptedPath);
+    try { fs.unlinkSync(originalPath); } catch (e) {}
+
     const documentId = new mongoose.Types.ObjectId();
-    
-    // Store only the relative path for consistency (relative to uploads dir)
-    const relativePath = file.path.replace(/\\/g, '/'); // Convert Windows backslashes if needed
-    
-    // Create document object - only store essential data
+
     const document = {
-      document_id: documentId.toString(), // Convert ObjectId to string consistently
+      document_id: documentId.toString(),
       document_type,
       description: description || '',
       file_name: file.originalname,
-      file_path: relativePath,
+      file_path: encryptedPath,
       mime_type: file.mimetype,
       size: file.size,
       uploaded_date: new Date(),
-      uploaded_by: req.user.litigant_id
+      uploaded_by: req.user.litigant_id,
+      sha256: fileHash,
+      validator: {
+        method: checks.result === 'legal' ? 'deterministic' : 'ai',
+        decision: geminiDecision
+      }
     };
 
-    // Initialize documents array if it doesn't exist
-    if (!caseData.documents) {
-      caseData.documents = [];
-    }
-    
     caseData.documents.push(document);
     await caseData.save();
 
-    console.log(`Document uploaded successfully:`, {
-      document_id: document.document_id,
-      file_name: document.file_name,
-      file_path: document.file_path
-    });
-
-    res.status(201).json({
-      message: 'Document uploaded successfully',
-      document: {
-        ...document,  // Send back the exact same document object that was saved
-        _id: document.document_id  // Include _id explicitly to match what frontend expects
-      },
+    return res.status(201).json({
+      message: 'Document uploaded and validated successfully',
+      document: { ...document, _id: document.document_id },
       case_num: caseNum
     });
+
   } catch (err) {
-    console.error(`Error uploading document:`, err);
-    res.status(500).json({
-      message: 'Server error while uploading document',
+    return res.status(500).json({
+      message: 'Server error',
       error: err.message
     });
   }
 });
+
 
 // Document download route - Unchanged except for the access control portion
 app.get('/api/document/:documentId/download', authenticateToken, async (req, res) => {
@@ -7479,13 +7556,6 @@ app.get('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async 
 // Admin Route: Get all cases for the admin (filtered by district)
 
 // Function to send video meeting notification emails without OTP
-
-
-
-
-
-
-
 
  PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

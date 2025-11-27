@@ -24,7 +24,7 @@ const LitigantAdvocateSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'https://ecourt-yr51.onrender.com/api/cases/litigant',
+        'http://localhost:5000/api/cases/litigant',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -41,7 +41,7 @@ const LitigantAdvocateSearch = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'https://ecourt-yr51.onrender.com/litigant/pending-requests',
+        'http://localhost:5000/litigant/pending-requests',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -65,7 +65,7 @@ const LitigantAdvocateSearch = () => {
       const token = localStorage.getItem('token');
       // Fixed the URL to match the backend endpoint
       const response = await axios.get(
-        `https://ecourt-yr51.onrender.com/advocates/search?district=${district}`,
+        `http://localhost:5000/advocates/search?district=${district}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -96,7 +96,7 @@ const LitigantAdvocateSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.post(
-        `https://ecourt-yr51.onrender.com/cases/${selectedCase._id}/request-advocate`,
+        `http://localhost:5000/cases/${selectedCase._id}/request-advocate`,
         {
           advocateId,
           advocateName,
@@ -124,7 +124,7 @@ const LitigantAdvocateSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://ecourt-yr51.onrender.com/cases/${caseId}/advocate-requests/${requestId}`,
+        `http://localhost:5000/cases/${caseId}/advocate-requests/${requestId}`,
         { status: 'approved' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -150,7 +150,7 @@ const LitigantAdvocateSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://ecourt-yr51.onrender.com/cases/${caseId}/advocate-requests/${requestId}`,
+        `http://localhost:5000/cases/${caseId}/advocate-requests/${requestId}`,
         { status: 'rejected' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
