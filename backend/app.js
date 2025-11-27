@@ -25,7 +25,11 @@ const BlacklistedToken = require('./models/Blaclisttoken');
 const clerkRoutes = require('./routes/clerkRoutes');
 const Gemini = require('./routes/Gemini');
 const CourtAdmin = require('./models/CourtAdmin');
-const { getLeastLoadedCourt } = require("./utils/adminAssignment");
+const { getBestCourtForCase } = require("./utils/adminAssignment");
+const { generateCaseEmbeddings } = require("./services/courtEmbeddingService");
+const { generateSpecialityEmbeddings } = require("./services/courtEmbeddingService");
+
+
 const {
   sha256File,
   encryptFile,
@@ -1727,7 +1731,18 @@ app.post('/api/filecase/litigant', authenticateToken, async (req, res) => {
               case_approved,
               case_no
           } = req.body;
-
+const plaintiffSubject = plaintiff_details?.subject || "";
+const respondentSubject = respondent_details?.subject || "";
+const {
+    caseEmbedding,
+    plaintiffEmbedding,
+    respondentEmbedding,
+    combinedEmbedding
+} = await generateCaseEmbeddings(
+    case_type,
+    plaintiffSubject,
+    respondentSubject
+);
           if (!court || !case_type || !plaintiff_details || !respondent_details) {
               return res.status(400).json({ message: 'Missing required fields' });
           }
@@ -1740,7 +1755,10 @@ app.post('/api/filecase/litigant', authenticateToken, async (req, res) => {
           }
           
           userDistrict = litigant.address.district;
- const assignedCourt = await getLeastLoadedCourt(userDistrict);
+const assignedCourt = await getBestCourtForCase(
+  userDistrict,
+  combinedEmbedding   
+);
 
 const officeDetails = {
   court_allotted: assignedCourt || null,
@@ -1774,7 +1792,7 @@ const officeDetails = {
               case_type
           });
 
-         const newCase = new LegalCase({
+        const newCase = new LegalCase({
   court,
   case_type,
   district: userDistrict,
@@ -1788,6 +1806,12 @@ const officeDetails = {
   case_approved: case_approved || false,
   case_num: cnrNumber,
   case_no: cnrNumber,
+
+  case_embedding: caseEmbedding,
+  plaintiff_subject_embedding: plaintiffEmbedding,
+  respondent_subject_embedding: respondentEmbedding,
+  combined_case_embedding: combinedEmbedding,
+
   for_office_use_only: officeDetails
 });
 
@@ -1843,7 +1867,6 @@ const officeDetails = {
   }
 });
 
-// Modified advocate route with email notification
 app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
   let retryCount = 0;
   const maxRetries = 3;
@@ -1869,20 +1892,20 @@ app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
               return res.status(400).json({ message: 'Missing required fields' });
           }
           
-          // Find the advocate using the token
+          // Verify advocate by token
           const advocate = await Advocate.findOne({ advocate_id: req.user.advocate_id });
           if (!advocate) {
               return res.status(404).json({ message: 'Advocate not found' });
           }
           
-          // Check if advocate is verified and active
+          // Advocate verification
           if (!advocate.isVerified || advocate.status !== 'active') {
               return res.status(403).json({ 
                   message: 'Your account must be verified and active to file cases' 
               });
           }
           
-          // Set advocate details based on which party they represent
+          // Assign advocate to correct party
           if (representing_party === 'plaintiff') {
               plaintiff_details.advocate_id = advocate.advocate_id;
               plaintiff_details.advocate = advocate.name;
@@ -1893,46 +1916,73 @@ app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
               return res.status(400).json({ message: 'Invalid representing party value' });
           }
           
-          // Get district from advocate profile
+          // Get district from advocate
           const userDistrict = advocate.district;
-           const assignedCourt = await getLeastLoadedCourt(userDistrict);
+        const assignedCourt = await getBestCourtForCase(
+  userDistrict,
+  combinedEmbedding   // the combined_case_embedding we created in Step 5
+);
 
-const officeDetails = {
-  court_allotted: assignedCourt || null,
-  allocation_date: new Date(),
-  filing_date: new Date()
-};
+          const officeDetails = {
+            court_allotted: assignedCourt || null,
+            allocation_date: new Date(),
+            filing_date: new Date()
+          };
+
           if (!userDistrict) {
               return res.status(400).json({
                   message: 'Advocate district information is missing. Please update your profile.'
               });
           }
-          
+
+          // ⭐ Extract subject fields
+          const plaintiffSubject = plaintiff_details?.subject || "";
+          const respondentSubject = respondent_details?.subject || "";
+
+          // ⭐ Generate embeddings for this case
+          const {
+            caseEmbedding,
+            plaintiffEmbedding,
+            respondentEmbedding,
+            combinedEmbedding
+          } = await generateCaseEmbeddings(case_type, plaintiffSubject, respondentSubject);
+
+
           // Generate unique CNR
           const cnrNumber = await generateCNRFromCaseData({
               case_type
           });
           
-           const newCase = new LegalCase({
-  court,
-  case_type,
-  district: userDistrict,
-  plaintiff_details,
-  respondent_details,
-  police_station_details,
-  lower_court_details,
-  main_matter_details,
-  hearings,
-  status,
-  case_approved: case_approved || false,
-  case_num: cnrNumber,
-  case_no: cnrNumber,
-  for_office_use_only: officeDetails
-});
+          // ⭐ Create new case with embeddings included
+          const newCase = new LegalCase({
+            court,
+            case_type,
+            district: userDistrict,
+
+            plaintiff_details,
+            respondent_details,
+            police_station_details,
+            lower_court_details,
+            main_matter_details,
+            hearings,
+            status,
+
+            case_approved: case_approved || false,
+            case_num: cnrNumber,
+            case_no: cnrNumber,
+
+            // ⭐ NEW fields — embeddings
+            case_embedding: caseEmbedding,
+            plaintiff_subject_embedding: plaintiffEmbedding,
+            respondent_subject_embedding: respondentEmbedding,
+            combined_case_embedding: combinedEmbedding,
+
+            for_office_use_only: officeDetails
+          });
           
           await newCase.save();
           
-          // Send email notification to the advocate
+          // Email notification
           if (advocate && advocate.email) {
               const recipient = {
                   name: advocate.name || 'Advocate',
@@ -1948,6 +1998,7 @@ const officeDetails = {
               case_num: cnrNumber,
               case_no: cnrNumber
           });
+
       } catch (error) {
           console.error('Error in advocate case filing:', error);
           
@@ -5593,25 +5644,21 @@ app.get('/api/video-pleading/:documentId/stream/advocate', authenticateToken, as
 // Route for clerk to create a new court admin
 app.post('/create-admin', authenticateToken, async (req, res) => {
   try {
-    // Verify if user is clerk
     if (req.user.user_type !== 'clerk') {
       return res.status(403).json({
         message: 'Access denied: Only clerks can create court administrators'
       });
     }
-    
-    // Extract all required fields including district
-    const { name, court_name, email, mobile, district } = req.body;
-   
-    // Check if required fields are provided
+
+    const { name, court_name, email, mobile, district, specialities } = req.body;
+
     if (!name || !court_name || !email || !district) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields (name, court_name, email, district)'
       });
     }
-   
-    // Check if admin with same email already exists
+
     const existingAdmin = await CourtAdmin.findOne({ 'contact.email': email });
     if (existingAdmin) {
       return res.status(409).json({
@@ -5619,47 +5666,48 @@ app.post('/create-admin', authenticateToken, async (req, res) => {
         message: 'An admin with this email already exists'
       });
     }
-   
-    // Generate unique admin ID
+
     const admin_id = `ADMIN-${uuidv4().slice(0, 8).toUpperCase()}`;
-   
-    // Generate random default password
     const defaultPassword = CourtAdmin.generateRandomPassword();
-   
-    // Create new admin object
+
+    // ⭐ Generate embeddings only if specialities exist
+    let speciality_embeddings = [];
+    if (specialities && Array.isArray(specialities) && specialities.length > 0) {
+      speciality_embeddings = await generateSpecialityEmbeddings(specialities);
+    }
+
     const newAdmin = new CourtAdmin({
       admin_id,
       name,
       court_name,
-      district, // Add the district from request body
+      district,
+      specialities: specialities || [],
+      speciality_embeddings,
       contact: {
         email,
         mobile: mobile || ''
       },
-      password: defaultPassword, // Will be hashed by pre-save hook
-      createdBy: req.user.id // Set clerk ID as creator
+      password: defaultPassword,
+      createdBy: req.user.id
     });
-   
-    // Save admin to database
+
     await newAdmin.save();
-   
-    // Send welcome email with default password
+
     await sendWelcomeEmail(email, name, court_name, defaultPassword);
-   
-    // Return success response without sending password
+
     res.status(201).json({
       success: true,
-      message: 'Court admin created successfully. Password has been sent to their email.',
+      message: 'Court admin created successfully. Password sent via email.',
       admin: {
         admin_id: newAdmin.admin_id,
         name: newAdmin.name,
         court_name: newAdmin.court_name,
         district: newAdmin.district,
-        email: newAdmin.contact.email,
+        specialities: newAdmin.specialities,
         status: newAdmin.status
       }
     });
-   
+
   } catch (error) {
     console.error('Error creating court admin:', error);
     res.status(500).json({
@@ -5669,6 +5717,7 @@ app.post('/create-admin', authenticateToken, async (req, res) => {
     });
   }
 });
+
 
 // Route to get all court admins (for clerk)
 app.get('/admins', authenticateToken, async (req, res) => {
@@ -5702,7 +5751,6 @@ app.get('/admins', authenticateToken, async (req, res) => {
 // Route to update court admin status (activate/suspend)
 app.put('/admin/:adminId/status', authenticateToken, async (req, res) => {
   try {
-    // Verify if user is clerk
     if (req.user.user_type !== 'clerk') {
       return res.status(403).json({
         message: 'Access denied: Only clerks can update administrator status'
@@ -5710,55 +5758,61 @@ app.put('/admin/:adminId/status', authenticateToken, async (req, res) => {
     }
 
     const { adminId } = req.params;
-    const { status, reason } = req.body;
-    
-    // Validate status
+    const { status, reason, specialities } = req.body;
+
     if (!['active', 'suspended'].includes(status)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid status. Status must be either "active" or "suspended".'
       });
     }
-    
-    // Find admin by ID and created by this clerk
+
     const admin = await CourtAdmin.findOne({ 
       admin_id: adminId,
-      createdBy: req.user.id
+      createdBy: req.user.id 
     });
-    
+
     if (!admin) {
       return res.status(404).json({
         success: false,
-        message: 'Court admin not found or you do not have permission to modify this admin'
+        message: 'Court admin not found or access denied.'
       });
     }
-    
+
     // Update status
     admin.status = status;
+
+    // ⭐ If specialities are sent → regenerate embeddings
+    if (specialities && Array.isArray(specialities) && specialities.length > 0) {
+      admin.specialities = specialities;
+      admin.speciality_embeddings = await generateSpecialityEmbeddings(specialities);
+    }
+
     await admin.save();
-    
-    // Send email notification about status change
+
     await sendStatusChangeEmail(admin.contact.email, admin.name, status, reason);
-    
+
     res.status(200).json({
       success: true,
-      message: `Court admin status updated to ${status}`,
+      message: `Court admin updated successfully.`,
       admin: {
         admin_id: admin.admin_id,
         name: admin.name,
-        status: admin.status
+        status: admin.status,
+        specialities: admin.specialities
       }
     });
-    
+
   } catch (error) {
-    console.error('Error updating court admin status:', error);
+    console.error('Error updating court admin:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update court admin status',
+      message: 'Failed to update court admin',
       error: error.message
     });
   }
 });
+
 
 // Email sending function for status changes
 const sendStatusChangeEmail = async (recipient, name, newStatus, reason = null) => {

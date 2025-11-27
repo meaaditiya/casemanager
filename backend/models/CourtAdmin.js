@@ -19,6 +19,14 @@ const CourtAdminSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+     specialities: {
+        type: [String],  
+        default: []
+    },
+    speciality_embeddings: {
+        type: [[Number]], 
+        default: []
+    },
     contact: {
         email: { 
             type: String, 

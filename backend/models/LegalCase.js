@@ -157,6 +157,26 @@ const mongoose = require('mongoose');
       registration_done_by: { type: String },
       allocation_done_by: { type: String }
     },
+    case_embedding: {
+  type: [Number],
+  default: []
+},
+
+plaintiff_subject_embedding: {
+  type: [Number],
+  default: []
+},
+
+respondent_subject_embedding: {
+  type: [Number],
+  default: []
+},
+
+combined_case_embedding: {
+  type: [Number],
+  default: []
+},
+
     documents: [{
       document_id: { type: String, required: true },
   document_type: { type: String, required: true },
