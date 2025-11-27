@@ -2,11 +2,7 @@ const CourtAdmin = require("../models/CourtAdmin");
 const LegalCase = require("../models/LegalCase");
 const { cosineSimilarity } = require("../services/embeddingService");
 
-/**
- * Smart court allocation using:
- *  1. Vector similarity (case meaning ↔ court speciality)
- *  2. Load balancing
- */
+
 async function getBestCourtForCase(district, combinedCaseEmbedding) {
 
   // 1. Get all active court admins from district
