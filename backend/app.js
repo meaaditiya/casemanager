@@ -7557,6 +7557,16 @@ app.get('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async 
 
 // Function to send video meeting notification emails without OTP
 
+
+app.get("/ping", (req, res) => {
+  res.status(200).send("Pong!");
+});
+
+
+
+
+
+
  PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Site Server is live on ${PORT}`);
