@@ -1,8 +1,17 @@
 const express = require("express");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config(); // Add this if not already in your main server file
 
 const router = express.Router();
-const genAI = new GoogleGenerativeAI("AIzaSyA3TaA_kE3MbUr6mQ9sQZrFDPlY1kpUVI4"); 
+
+// Get API key from environment variable
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.error("🔥 ERROR: GEMINI_API_KEY not found in environment variables");
+}
+
+const genAI = new GoogleGenerativeAI(apiKey); 
 
 router.post("/gemini", async (req, res) => {
   try {
