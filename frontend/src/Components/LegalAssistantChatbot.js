@@ -15,8 +15,8 @@ const GeminiLegalAssistantChatbot = () => {
   const [activeFlow, setActiveFlow] = useState(null);
   const [flowStep, setFlowStep] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
-const [speechEnabled, setSpeechEnabled] = useState(true);
-const speechSynthesisRef = useRef(null);
+  const [speechEnabled, setSpeechEnabled] = useState(true);
+  const speechSynthesisRef = useRef(null);
   const [caseFormData, setCaseFormData] = useState({
     court: 'District & Sessions Court',
     case_type: '',
@@ -146,7 +146,7 @@ const toggleSpeech = () => {
 
   const callGeminiAPI = async (prompt) => {
     try {
-      const response = await fetch("http://localhost:5000/api/gemini", {
+      const response = await fetch("https://ecourt-yr51.onrender.com/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt })
@@ -456,7 +456,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/filecase/litigant', {
+      const response = await fetch('https://ecourt-yr51.onrender.com/api/filecase/litigant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -532,7 +532,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/case/${targetCaseNumber}/hearings`,
+        `https://ecourt-yr51.onrender.com/api/case/${targetCaseNumber}/hearings`,
         { 
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'
@@ -587,7 +587,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/cases/litigant', {
+      const response = await fetch('https://ecourt-yr51.onrender.com/api/cases/litigant', {
         headers: { 'Authorization': `Bearer ${token}` },
         method: 'GET'
       });
@@ -633,7 +633,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       const lowerInput = userInput.toLowerCase();
       
       if (lowerInput.includes('today')) {
-        const response = await fetch('http://localhost:5000/api/calendar/today', {
+        const response = await fetch('https://ecourt-yr51.onrender.com/api/calendar/today', {
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'
         });
@@ -685,7 +685,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/case/${targetCaseNumber}/video-meeting`,
+        `https://ecourt-yr51.onrender.com/api/case/${targetCaseNumber}/video-meeting`,
         { 
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'

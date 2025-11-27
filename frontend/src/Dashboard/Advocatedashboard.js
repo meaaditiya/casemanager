@@ -299,13 +299,13 @@ const AdvocateDashboard = () => {
           navigate('/advlogin');
           throw new Error('No authentication token found');
         }
-        const response = await axios.get('http://localhost:5000/api/advocate/profile', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/advocate/profile', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         setProfile(response.data.advocate);
         if (response.data.advocate.profilePicture) {
           setProfilePicture(
-            `http://localhost:5000/api/advocate/profile-picture/${response.data.advocate.profilePicture}`
+            `https://ecourt-yr51.onrender.com/api/advocate/profile-picture/${response.data.advocate.profilePicture}`
           );
         }
         setLoading(false);
@@ -338,7 +338,7 @@ const AdvocateDashboard = () => {
     setCasesLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/cases/advocate', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/advocate', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       setCases(response.data.cases || []);
@@ -368,7 +368,7 @@ const AdvocateDashboard = () => {
       const formData = new FormData();
       formData.append('profilePicture', file);
       const response = await axios.post(
-        'http://localhost:5000/api/advocate/profile-picture',
+        'https://ecourt-yr51.onrender.com/api/advocate/profile-picture',
         formData,
         {
           headers: {
@@ -378,7 +378,7 @@ const AdvocateDashboard = () => {
         }
       );
       setProfilePicture(
-        `http://localhost:5000/api/advocate/profile-picture/${
+        `https://ecourt-yr51.onrender.com/api/advocate/profile-picture/${
           response.data.profilePicture.filename
         }?${new Date().getTime()}`
       );
@@ -396,7 +396,7 @@ const AdvocateDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/case/${searchCaseNum}/hearings/advocate`,
+        `https://ecourt-yr51.onrender.com/api/case/${searchCaseNum}/hearings/advocate`,
         {
           headers: { 'Authorization': `Bearer ${token}` },
         }
@@ -415,7 +415,7 @@ const AdvocateDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const caseResponse = await axios.get(
-        `http://localhost:5000/api/case/${caseNum}/documents/advocate`,
+        `https://ecourt-yr51.onrender.com/api/case/${caseNum}/documents/advocate`,
         {
           headers: { 'Authorization': `Bearer ${token}` },
         }
@@ -450,7 +450,7 @@ const AdvocateDashboard = () => {
       formData.append('document_type', documentType);
       formData.append('description', documentDescription);
       await axios.post(
-        `http://localhost:5000/api/case/${selectedCaseForDocuments.case_num}/document/advocate`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCaseForDocuments.case_num}/document/advocate`,
         formData,
         {
           headers: {
@@ -476,7 +476,7 @@ const AdvocateDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/document/${documentId}/download/advocate`,
+        `https://ecourt-yr51.onrender.com/api/document/${documentId}/download/advocate`,
         {
           headers: { 'Authorization': `Bearer ${token}` },
           responseType: 'blob',
@@ -497,7 +497,7 @@ const AdvocateDashboard = () => {
   const downloadAttachment = async (filename, originalname) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/files/${filename}`, {
+      const response = await axios.get(`https://ecourt-yr51.onrender.com/api/files/${filename}`, {
         headers: { 'Authorization': `Bearer ${token}` },
         responseType: 'blob',
       });
@@ -517,7 +517,7 @@ const AdvocateDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/advocate/logout',
+        'https://ecourt-yr51.onrender.com/api/advocate/logout',
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -535,7 +535,7 @@ const AdvocateDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/advocate/logout-all',
+        'https://ecourt-yr51.onrender.com/api/advocate/logout-all',
         { password: logoutPassword },
         {
           headers: { 'Authorization': `Bearer ${token}` },

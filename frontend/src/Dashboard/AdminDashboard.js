@@ -71,7 +71,7 @@ const AdminDashboard = () => {
         throw new Error('No authentication token found');
       }
       
-      const response = await axios.get('http://localhost:5000/api/courtadmin/profile', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/courtadmin/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -90,7 +90,7 @@ const AdminDashboard = () => {
   const fetchAdvocates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/courtadmin/dashboard/advocates', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/courtadmin/dashboard/advocates', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setAdvocates(response.data);
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5000/api/courtadmin/advocate/cop-document/${advocateId}`,
+        `https://ecourt-yr51.onrender.com/api/courtadmin/advocate/cop-document/${advocateId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` },
           responseType: 'blob'
@@ -174,7 +174,7 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `http://localhost:5000/api/courtadmin/verify-advocate/${selectedAdvocate.advocate_id}`,
+        `https://ecourt-yr51.onrender.com/api/courtadmin/verify-advocate/${selectedAdvocate.advocate_id}`,
         {
           verificationDeclaration,
           notes: verificationNotes,
@@ -197,7 +197,7 @@ const AdminDashboard = () => {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/courtadmin/logout', {}, {
+      await axios.post('https://ecourt-yr51.onrender.com/api/courtadmin/logout', {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       localStorage.removeItem('token');
@@ -210,7 +210,7 @@ const AdminDashboard = () => {
   const handleLogoutAll = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/courtadmin/logout-all',
+      await axios.post('https://ecourt-yr51.onrender.com/api/courtadmin/logout-all',
         { password: logoutPassword },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

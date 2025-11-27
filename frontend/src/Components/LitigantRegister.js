@@ -63,7 +63,7 @@ const LitigantRegistration = () => {
       };
 
       const response = await axios.post(
-        'http://localhost:5000/api/litigant/register',
+        'https://ecourt-yr51.onrender.com/api/litigant/register',
         registrationData
       );
 
@@ -77,7 +77,7 @@ const LitigantRegistration = () => {
   const handleEmailVerification = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/litigant/verify-email', {
+      await axios.post('https://ecourt-yr51.onrender.com/api/litigant/verify-email', {
         party_id: partyId,
         otp: emailOTP
       });

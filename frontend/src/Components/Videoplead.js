@@ -100,7 +100,7 @@ const VideoRecorder = ({ caseNum, token }) => {
       formData.append('description', description);
       
       const response = await axios.post(
-        `http://localhost:5000/api/case/${caseNum}/video-pleading`,
+        `https://ecourt-yr51.onrender.com/api/case/${caseNum}/video-pleading`,
         formData,
         {
           headers: {

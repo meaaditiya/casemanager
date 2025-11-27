@@ -16,7 +16,7 @@ const NoticeBoard = () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/notices', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/notices', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotices(response.data.notices);
@@ -55,7 +55,7 @@ const NoticeBoard = () => {
       
       // Make an authenticated request for the attachment
       const response = await axios({
-        url: `http://localhost:5000/api/notices/${noticeId}/attachment`,
+        url: `https://ecourt-yr51.onrender.com/api/notices/${noticeId}/attachment`,
         method: 'GET',
         headers: { 
           Authorization: `Bearer ${token}`

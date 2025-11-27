@@ -16,7 +16,7 @@ const NoticePanel = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/admin/notices', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/admin/notices', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotices(response.data.notices);
@@ -47,7 +47,7 @@ const NoticePanel = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/notices/${noticeId}`, {
+      await axios.delete(`https://ecourt-yr51.onrender.com/api/notices/${noticeId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchNotices();
@@ -62,7 +62,7 @@ const NoticePanel = () => {
       
       if (selectedNotice) {
         // Update existing notice
-        await axios.put(`http://localhost:5000/api/notices/${selectedNotice.notice_id}`, formData, {
+        await axios.put(`https://ecourt-yr51.onrender.com/api/notices/${selectedNotice.notice_id}`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'
@@ -70,7 +70,7 @@ const NoticePanel = () => {
         });
       } else {
         // Create new notice
-        await axios.post('http://localhost:5000/api/notices', formData, {
+        await axios.post('https://ecourt-yr51.onrender.com/api/notices', formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data'

@@ -34,7 +34,7 @@ const AdminMeetingPanel = () => {
 
       console.log('Using token:', token.substring(0, 10) + '...');
 
-      const response = await axios.get('http://localhost:5000/api/cases/admin', {
+      const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/admin', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const AdminMeetingPanel = () => {
       }
 
       const response = await axios.get(
-        `http://localhost:5000/api/case/${caseNum}/video-meeting`,
+        `https://ecourt-yr51.onrender.com/api/case/${caseNum}/video-meeting`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -172,7 +172,7 @@ const AdminMeetingPanel = () => {
         throw new Error('Authentication token not found.');
       }
 
-      const endpoint = `http://localhost:5000/api/case/${selectedCase}/video-meeting`;
+      const endpoint = `https://ecourt-yr51.onrender.com/api/case/${selectedCase}/video-meeting`;
       const method = existingMeeting ? 'put' : 'post';
 
       const response = await axios[method](endpoint, meetingData, {
@@ -207,7 +207,7 @@ const AdminMeetingPanel = () => {
       }
 
       const response = await axios.put(
-        `http://localhost:5000/api/case/${selectedCase}/video-meeting`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase}/video-meeting`,
         { ...meetingData, isActive: false },
         { headers: { Authorization: `Bearer ${token}` } }
       );

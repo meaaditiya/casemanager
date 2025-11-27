@@ -41,7 +41,7 @@ const LitigantMeetingPanel = () => {
       }
       
       const userResponse = await axios.get(
-        'http://localhost:5000/api/litigant/profile',
+        'https://ecourt-yr51.onrender.com/api/litigant/profile',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -68,7 +68,7 @@ const LitigantMeetingPanel = () => {
       }
       
       const casesResponse = await axios.get(
-        'http://localhost:5000/api/cases/litigant',
+        'https://ecourt-yr51.onrender.com/api/cases/litigant',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -110,7 +110,7 @@ const LitigantMeetingPanel = () => {
       
       try {
         await axios.get(
-          `http://localhost:5000/api/case/${caseNum}/video-meeting`, 
+          `https://ecourt-yr51.onrender.com/api/case/${caseNum}/video-meeting`, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
         
@@ -198,7 +198,7 @@ const LitigantMeetingPanel = () => {
       setMessage({ text: '', type: '' });
       
       const response = await axios.post(
-        `http://localhost:5000/api/case/${selectedCase}/video-meeting/request-access`, 
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase}/video-meeting/request-access`, 
         { email: userInfo.contact.email }
       );
       
@@ -233,7 +233,7 @@ const LitigantMeetingPanel = () => {
       setMessage({ text: '', type: '' });
       
       const response = await axios.post(
-        `http://localhost:5000/api/case/${selectedCase}/video-meeting/verify-otp`, 
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase}/video-meeting/verify-otp`, 
         { email: userInfo.contact.email, otp: otp }
       );
       

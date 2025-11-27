@@ -72,7 +72,7 @@ const AdminCaseManagement = () => {
           
           console.log('Using token:', token.substring(0, 10) + '...');
           
-          const response = await axios.get('http://localhost:5000/api/cases/admin', {
+          const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/admin', {
             headers: { 
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -218,7 +218,7 @@ const AdminCaseManagement = () => {
   const handleCaseApproval = async (approve) => {
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/approve`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/approve`,
         { case_approved: approve },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
@@ -245,7 +245,7 @@ const AdminCaseManagement = () => {
     e.preventDefault();
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/status`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/status`,
         statusForm,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
@@ -333,7 +333,7 @@ const AdminCaseManagement = () => {
       }
       
       const response = await axios.post(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/hearing`,
         formData,
         { 
           headers: { 
@@ -411,7 +411,7 @@ const AdminCaseManagement = () => {
       // Make the request
       const response = await axios({
         method: 'POST',
-        url: `http://localhost:5000/api/case/${selectedCase.case_num}/document`,
+        url: `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/document`,
         data: formData,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -483,7 +483,7 @@ const handleDocumentDownload = async (documentId) => {
     // Download request with proper headers and response type
     const response = await axios({
       method: 'GET',
-      url: `http://localhost:5000/api/document/${documentId}/download`,
+      url: `https://ecourt-yr51.onrender.com/api/document/${documentId}/download`,
       responseType: 'blob', // Critical for binary file handling
       headers: {
         'Authorization': `Bearer ${token}`
@@ -538,7 +538,7 @@ const handleDocumentDownload = async (documentId) => {
     
     try {
       const response = await axios.patch(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/office-details`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/office-details`,
         officeUseForm,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
       );
@@ -584,7 +584,7 @@ const handleDocumentDownload = async (documentId) => {
       }
       
       const response = await axios.patch(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/hearing/${hearingId}`,
         formData,
         { 
           headers: { 
@@ -636,7 +636,7 @@ const handleDocumentDownload = async (documentId) => {
       }
       
       const response = await axios.post(
-        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}/attachments`,
+        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/hearing/${hearingId}/attachments`,
         formData,
         { 
           headers: { 

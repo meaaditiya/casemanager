@@ -33,7 +33,7 @@ const AdvocateCaseSearch = () => {
       }
       
       const response = await axios.get(
-        'http://localhost:5000/api/advocate/profile',
+        'https://ecourt-yr51.onrender.com/api/advocate/profile',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -53,7 +53,7 @@ const AdvocateCaseSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5000/cases/district',
+        'https://ecourt-yr51.onrender.com/cases/district',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -70,7 +70,7 @@ const AdvocateCaseSearch = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5000/advocate/pending-requests',
+        'https://ecourt-yr51.onrender.com/advocate/pending-requests',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -85,7 +85,7 @@ const AdvocateCaseSearch = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5000/advocate/sent-requests',
+        'https://ecourt-yr51.onrender.com/advocate/sent-requests',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -107,7 +107,7 @@ const AdvocateCaseSearch = () => {
         : selectedCase.respondent_details.party_id;
       
       await axios.post(
-        `http://localhost:5000/cases/${caseId}/advocate-join-request`,
+        `https://ecourt-yr51.onrender.com/cases/${caseId}/advocate-join-request`,
         {
           partyType,
           litigantId
@@ -135,7 +135,7 @@ const AdvocateCaseSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/cases/${caseId}/advocate-requests/${requestId}`,
+        `https://ecourt-yr51.onrender.com/cases/${caseId}/advocate-requests/${requestId}`,
         { status: 'approved' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -160,7 +160,7 @@ const AdvocateCaseSearch = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/cases/${caseId}/advocate-requests/${requestId}`,
+        `https://ecourt-yr51.onrender.com/cases/${caseId}/advocate-requests/${requestId}`,
         { status: 'rejected' },
         { headers: { Authorization: `Bearer ${token}` } }
       );

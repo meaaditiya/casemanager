@@ -28,7 +28,7 @@ const UserCalendarPanel = () => {
     const fetchTodayTiming = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/calendar/today', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/calendar/today', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -52,7 +52,7 @@ const UserCalendarPanel = () => {
         const year = selectedDate.getFullYear();
         const month = selectedDate.getMonth() + 1;
         
-        const response = await axios.get(`http://localhost:5000/api/calendar/${year}/${month}`, {
+        const response = await axios.get(`https://ecourt-yr51.onrender.com/api/calendar/${year}/${month}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

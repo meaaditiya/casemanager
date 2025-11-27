@@ -28,7 +28,7 @@ const CourtAdminManagement = () => {
   });
 
   // API endpoint and headers
-  const API_URL = 'http://localhost:5000';
+  const API_URL = 'https://ecourt-yr51.onrender.com';
   const getHeaders = () => {
     const token = localStorage.getItem('token');
     return {
@@ -47,7 +47,7 @@ const CourtAdminManagement = () => {
           return;
         }
         
-        const response = await axios.get('http://localhost:5000/api/clerk/profile', {
+        const response = await axios.get('https://ecourt-yr51.onrender.com/api/clerk/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
