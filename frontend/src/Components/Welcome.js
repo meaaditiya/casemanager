@@ -169,7 +169,7 @@ const CaseManagement = () => {
 
             <div className="portal-card admin">
               <Settings size={48} className="portal-icon" />
-              <h3>Court Clerk Portal</h3>
+              <h3>Court-Room Clerk</h3>
               <p>Manage cases, schedules, and administrative tasks efficiently.</p>
               <div className="portal-stats">
                 <div className="stat">

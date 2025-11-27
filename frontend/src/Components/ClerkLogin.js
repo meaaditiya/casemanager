@@ -59,7 +59,7 @@ const ClerkLogin = () => {
         <div className="secure-authentication2">
           Secure Authentication
         </div>
-        <h2 className="clerk-title">Clerk Login</h2>
+        <h2 className="clerk-title">Admin Login</h2>
 
         {error && (
           <div className="clerk-error-box">

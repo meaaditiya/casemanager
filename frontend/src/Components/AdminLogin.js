@@ -202,7 +202,7 @@ const AdminLogin = () => {
   
   const renderLoginForm = () => (
     <div className={`view-transition ${animating ? 'fade-out' : 'fade-in'}`}>
-      <h2 className="litigant-title">Court Admin Login</h2>
+      <h2 className="litigant-title">Court-Clerk</h2>
       {error && <div className="litigant-error-box">{error}</div>}
       {message && <div className="litigant-success-box">{message}</div>}
       <form onSubmit={handleLoginSubmit}>
