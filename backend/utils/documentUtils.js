@@ -2,7 +2,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 const pdfParse = require("pdf-parse");
 const path = require('path');
-const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+const pdfjsLib = require("pdfjs-dist/build/pdf.js");
+
 
 const AES_KEY =
   process.env.FILE_ENCRYPTION_KEY ||
