@@ -154,50 +154,47 @@ const NyaySaathi = () => {
 
   // ==================== LLAMA API WITH STREAMING ====================
   const callLlamaStreamingAPI = async (prompt, onToken) => {
-    try {
-      const response = await fetch("http://localhost:11434/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "llama3:8b",
-          prompt: prompt,
-          stream: true
-        })
-      });
+  try {
+    const response = await fetch("https://ecourt-yr51.onrender.com/api/llama/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to connect to Llama API');
-      }
+    if (!response.ok) {
+      throw new Error("Failed to connect to backend API");
+    }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let fullText = "";
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n").filter(Boolean);
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n").filter(Boolean);
 
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            if (data.response) {
-              fullText += data.response;
-              onToken(fullText);
-            }
-          } catch (e) {
-            continue;
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          if (data.response) {
+            fullText += data.response;
+            onToken(fullText);
           }
+        } catch {
+          continue;
         }
       }
-
-      return fullText;
-    } catch (error) {
-      throw new Error(`API Error: ${error.message}`);
     }
-  };
+
+    return fullText;
+  } catch (error) {
+    throw new Error(`API Error: ${error.message}`);
+  }
+};
+
 
   // ==================== LEGAL ADVICE HANDLER ====================
   const handleLegalAdvice = async (userInput) => {

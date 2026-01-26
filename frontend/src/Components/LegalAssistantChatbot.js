@@ -143,15 +143,12 @@ const toggleSpeech = () => {
     setMessages(prev => prev.filter(msg => msg.type !== 'thinking'));
     setIsProcessing(false);
   };
+
 const callLlamaStreamingAPI = async (prompt, onToken) => {
-  const response = await fetch("http://localhost:11434/api/generate", {
+  const response = await fetch("https://ecourt-yr51.onrender.com/api/llama/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "llama3:8b",
-      prompt: prompt,
-      stream: true
-    })
+    body: JSON.stringify({ prompt })
   });
 
   const reader = response.body.getReader();
@@ -166,17 +163,20 @@ const callLlamaStreamingAPI = async (prompt, onToken) => {
     const lines = chunk.split("\n").filter(Boolean);
 
     for (const line of lines) {
-      const data = JSON.parse(line);
-      if (data.response) {
-        fullText += data.response;
-        onToken(fullText);
+      try {
+        const data = JSON.parse(line);
+        if (data.response) {
+          fullText += data.response;
+          onToken(fullText);
+        }
+      } catch {
+        continue;
       }
     }
   }
 
   return fullText;
 };
-
 
   const determineIntent = async (userInput) => {
     const lowerInput = userInput.toLowerCase();

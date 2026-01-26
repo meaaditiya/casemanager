@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const crypto = require('crypto');
-
+const fetch = require('node-fetch');
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
 const path = require('path');
@@ -7679,6 +7679,33 @@ app.get('/api/blockchain/case/:caseNum/verify', authenticateToken, async (req, r
   }
 });
 
+app.post("/api/llama/stream", async (req, res) => {
+  const { prompt } = req.body;
+
+  try {
+    const ollamaRes = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3:8b",
+        prompt,
+        stream: true
+      })
+    });
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Transfer-Encoding", "chunked");
+
+    // ✅ Node-style stream handling
+    for await (const chunk of ollamaRes.body) {
+      res.write(chunk);
+    }
+
+    res.end();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
  PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
