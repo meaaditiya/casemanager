@@ -24,12 +24,13 @@ const Clerk = require ('./models/Clerk');
 const BlacklistedToken = require('./models/Blaclisttoken');
 const clerkRoutes = require('./routes/clerkRoutes');
 const Gemini = require('./routes/Gemini');
+const blockchainRoutes = require('./routes/blockchainRoutes');
 const CourtAdmin = require('./models/CourtAdmin');
 const { getBestCourtForCase } = require("./utils/adminAssignment");
 const { generateCaseEmbeddings } = require("./services/courtEmbeddingService");
 const { generateSpecialityEmbeddings } = require("./services/courtEmbeddingService");
-
-
+const { initializeBlockchain } = require('./initBlockchain');
+const { initializeScheduler } = require('./blockchain/jobs/scheduler');
 const {
   sha256File,
   encryptFile,
@@ -40,7 +41,17 @@ const {
   deterministicChecks
 } = require('./utils/documentUtils');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-
+const blockchain = require('./blockchain/services/blockchain');
+const blockchainService = require('./blockchain/services/blockchainService');
+const {
+  logCaseFilingMiddleware,
+  logStatusUpdateMiddleware,
+  logHearingMiddleware,
+  logDocumentMiddleware,
+  logApprovalMiddleware,
+  logAdvocateVerificationMiddleware,
+  logVideoMeetingMiddleware
+} = require('./blockchain/middleware/blockchainMiddleware');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(cors({
@@ -50,13 +61,24 @@ app.use(cors({
 app.use(express.json());
 app.use('/api/clerk', clerkRoutes);
 app.use("/api", Gemini);
+app.use('/api/blockchain', blockchainRoutes);
+
+blockchain.initialize().then(() => {
+  initializeScheduler();  // NEW
+  console.log('Blockchain and maintenance jobs initialized');
+});
 
 
-// MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/daily_schedule')
-    .then(() => console.log('Connection to Database Successful , MongoDB connected!'))
+    .then(async () => {
+        console.log('Connection to Database Successful , MongoDB connected!');
+        
+        // Initialize enhanced blockchain system
+        await initializeBlockchain();
+        
+        console.log('Server initialization complete');
+    })
     .catch(err => console.error('MongoDB connection error:', err));
-
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -405,8 +427,28 @@ app.post('/api/advocate/verify-email', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+const authenticateToken = async (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication required' });
+    }
 
-app.post('/api/advocate/verify/:advocate_id', async (req, res) => {
+    try {
+        const isBlacklisted = await BlacklistedToken.findOne({ token });
+        if (isBlacklisted) {
+            return res.status(401).json({ message: 'Token has been invalidated' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Invalid token' });
+    }
+};
+
+app.post('/api/advocate/verify/:advocate_id', authenticateToken, logAdvocateVerificationMiddleware, async (req, res) => {
     try {
         const { verified, notes } = req.body;
         const advocate = await Advocate.findOne({ advocate_id: req.params.advocate_id });
@@ -483,26 +525,6 @@ app.post('/api/advocate/login', async (req, res) => {
 });
 
 // Token 
-const authenticateToken = async (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-        return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    try {
-        const isBlacklisted = await BlacklistedToken.findOne({ token });
-        if (isBlacklisted) {
-            return res.status(401).json({ message: 'Token has been invalidated' });
-        }
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(401).json({ message: 'Invalid token' });
-    }
-};
 
 app.post('/api/advocate/logout', authenticateToken, async (req, res) => {
     try {
@@ -1492,7 +1514,7 @@ app.get('/api/clerk/advocate/cop-document/:advocate_id', authenticateToken, asyn
         res.status(500).json({ message: error.message });
     }
 });
-app.post('/api/clerk/verify-advocate/:advocate_id', authenticateToken, async (req, res) => {
+app.post('/api/clerk/verify-advocate/:advocate_id', authenticateToken, logAdvocateVerificationMiddleware, async (req, res) => {
     try {
         if (req.user.user_type !== 'clerk') {
             return res.status(403).json({ message: 'Access denied' });
@@ -1712,7 +1734,7 @@ const sendCaseFilingNotification = async (recipient, caseDetails, userType) => {
 // Now let's modify both routes to include email notifications
 
 // Modified litigant route with email notification
-app.post('/api/filecase/litigant', authenticateToken, async (req, res) => {
+app.post('/api/filecase/litigant', authenticateToken, logCaseFilingMiddleware, async (req, res) => {
   let retryCount = 0;
   const maxRetries = 3;
 
@@ -1867,7 +1889,7 @@ const officeDetails = {
   }
 });
 
-app.post('/api/filecase/advocate', authenticateToken, async (req, res) => {
+app.post('/api/filecase/advocate', authenticateToken, logCaseFilingMiddleware, async (req, res) => {
   let retryCount = 0;
   const maxRetries = 3;
   
@@ -2068,7 +2090,7 @@ app.get('/api/cases/admin', authenticateToken, async (req, res) => {
 
   
   // Approve or reject a case
-  app.patch('/api/case/:caseNum/approve', authenticateToken, async (req, res) => {
+  app.patch('/api/case/:caseNum/approve', authenticateToken, logApprovalMiddleware, async (req, res) => {
     try {
       // Verify if the user is a clerk/admin
       if (req.user.user_type !== 'clerk') {
@@ -2113,7 +2135,7 @@ app.get('/api/cases/admin', authenticateToken, async (req, res) => {
   });
   
   // Update case status
-  app.patch('/api/case/:caseNum/status', authenticateToken, async (req, res) => {
+  app.patch('/api/case/:caseNum/status', authenticateToken, logStatusUpdateMiddleware, async (req, res) => {
     try {
       // Verify if the user is a clerk/admin
       if (req.user.user_type !== 'clerk') {
@@ -2296,7 +2318,7 @@ app.get('/api/cases/admin', authenticateToken, async (req, res) => {
     }
   });
   
-  app.post('/api/case/:caseNum/hearing', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+  app.post('/api/case/:caseNum/hearing', authenticateToken, logHearingMiddleware, upload.array('attachments', 5), async (req, res) => {
     try {
       // Verify if the user is a clerk/admin
       if (req.user.user_type !== 'clerk') {
@@ -2387,7 +2409,7 @@ app.get('/api/cases/admin', authenticateToken, async (req, res) => {
   });
   // Update hearing details
  // Update hearing details
-app.patch('/api/case/:caseNum/hearing/:hearingId', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+app.patch('/api/case/:caseNum/hearing/:hearingId', authenticateToken, logHearingMiddleware, upload.array('attachments', 5), async (req, res) => {
   try {
     // Verify if the user is a clerk/admin
     if (req.user.user_type !== 'clerk') {
@@ -2717,7 +2739,7 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
 
 
 
-app.post('/api/case/:caseNum/document', authenticateToken, upload3.single('file'), async (req, res) => {
+app.post('/api/case/:caseNum/document', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
   try {
     const { caseNum } = req.params;
     const { document_type, description } = req.body;
@@ -3872,7 +3894,7 @@ app.post('/api/notices/:notice_id/attachment', async (req, res) => {
 
 
 
-  app.post('/api/case/:caseNum/video-meeting', authenticateToken, async (req, res) => {
+  app.post('/api/case/:caseNum/video-meeting', authenticateToken, logVideoMeetingMiddleware, async (req, res) => {
     try {
       // Verify if user is admin/clerk
       if (req.user.user_type !== 'clerk') {
@@ -5147,7 +5169,7 @@ app.get('/api/case/:caseNum/documents/advocate', authenticateToken, async (req, 
 });
 
 // Document upload route for advocates
-app.post('/api/case/:caseNum/document/advocate', authenticateToken, upload3.single('file'), async (req, res) => {
+app.post('/api/case/:caseNum/document/advocate', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
   try {
     const { caseNum } = req.params;
     const { document_type, description } = req.body;
@@ -6596,7 +6618,7 @@ app.get('/api/cases/courtadmin', authenticateToken, async (req, res) => {
 });
 
 // 2. Update case status (similar to clerk route)
-app.patch('/api/case/:caseNum/status/courtadmin', authenticateToken, async (req, res) => {
+app.patch('/api/case/:caseNum/status/courtadmin', authenticateToken, logStatusUpdateMiddleware, async (req, res) => {
   try {
     // Verify if the user is an admin
     if (!req.user.admin_id) {
@@ -6738,7 +6760,7 @@ app.get('/api/case/:caseNum/hearings/courtadmin', authenticateToken, async (req,
 });
 
 // 4. Add hearing to a case
-app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingMiddleware, upload.array('attachments', 5), async (req, res) => {
   try {
     // Verify if the user is an admin
     if (!req.user.admin_id) {
@@ -6843,7 +6865,7 @@ app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, upload.arra
 });
 
 // 5. Update hearing details
-app.patch('/api/case/:caseNum/hearing/:hearingId/courtadmin', authenticateToken, upload.array('attachments', 5), async (req, res) => {
+app.patch('/api/case/:caseNum/hearing/:hearingId/courtadmin', authenticateToken, logHearingMiddleware, upload.array('attachments', 5), async (req, res) => {
   try {
     // Verify if the user is an admin
     if (!req.user.admin_id) {
@@ -7041,7 +7063,7 @@ app.post('/api/case/:caseNum/hearing/:hearingId/attachments/courtadmin', authent
 });
 
 // 7. Upload case document
-app.post('/api/case/:caseNum/document/courtadmin', authenticateToken, upload3.single('file'), async (req, res) => {
+app.post('/api/case/:caseNum/document/courtadmin', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
   try {
     // Verify if the user is an admin
     if (!req.user.admin_id) {
@@ -7275,7 +7297,7 @@ app.get('/api/case/:caseNum/courtadmin', authenticateToken, async (req, res) => 
 
 // Admin Routes for Video Meeting Management
 
-app.post('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, async (req, res) => {
+app.post('/api/courtadmin/case/:caseNum/video-meeting', authenticateToken, logVideoMeetingMiddleware, async (req, res) => {
   try {
     // Verify if user is admin
     if (req.user.user_type !== 'admin') {
@@ -7618,7 +7640,44 @@ app.get("/ping", (req, res) => {
 
 
 
+app.get('/api/blockchain/stats', authenticateToken, async (req, res) => {
+  try {
+    const stats = await blockchainService.getBlockchainStats();
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
+app.get('/api/blockchain/verify', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'clerk' && req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    const result = await blockchainService.verifyBlockchainIntegrity();
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/blockchain/case/:caseNum/history', authenticateToken, async (req, res) => {
+  try {
+    const history = await blockchainService.getCaseHistory(req.params.caseNum);
+    res.json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get('/api/blockchain/case/:caseNum/verify', authenticateToken, async (req, res) => {
+  try {
+    const result = await blockchainService.verifyCaseHistory(req.params.caseNum);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 
  PORT = process.env.PORT || 5000;

@@ -143,22 +143,40 @@ const toggleSpeech = () => {
     setMessages(prev => prev.filter(msg => msg.type !== 'thinking'));
     setIsProcessing(false);
   };
+const callLlamaStreamingAPI = async (prompt, onToken) => {
+  const response = await fetch("http://localhost:11434/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama3:8b",
+      prompt: prompt,
+      stream: true
+    })
+  });
 
-  const callGeminiAPI = async (prompt) => {
-    try {
-      const response = await fetch("https://ecourt-yr51.onrender.com/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
-      });
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
 
-      const data = await response.json();
-      return data.text || "No response";
-    } catch (error) {
-      console.error("Gemini API Error:", error);
-      return "Error contacting AI service.";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    const lines = chunk.split("\n").filter(Boolean);
+
+    for (const line of lines) {
+      const data = JSON.parse(line);
+      if (data.response) {
+        fullText += data.response;
+        onToken(fullText);
+      }
     }
-  };
+  }
+
+  return fullText;
+};
+
 
   const determineIntent = async (userInput) => {
     const lowerInput = userInput.toLowerCase();
@@ -188,7 +206,7 @@ User input: "${userInput}"
 Respond with ONLY the category name, nothing else.`;
 
     try {
-      const response = await callGeminiAPI(prompt);
+      const response = await callLlamaAPI(prompt);
       const intent = response.trim().toLowerCase().replace(/[^a-z_]/g, '');
       
       const validIntents = ['create_case', 'find_hearing', 'find_documents', 'check_calendar', 'find_meeting'];
@@ -712,20 +730,34 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
     }
   };
 
-  const handleGeneralQuery = async (userInput) => {
-    const prompt = `You are Nova, a helpful legal assistant AI. Answer this question briefly and professionally.
-
+ const handleGeneralQuery = async (userInput) => {
+  const prompt = `You are Nova, a helpful legal assistant AI. Answer this question briefly and professionally. Any question quoted in user question which is not related to the legal help provider or services provider simply return "sorry i cant help you with this, ask me only legal advice or case details" , you have to return this quoted response only and not reject the query also warn every time that I'm only an assistent and not a lawyer.
+       
 User question: "${userInput}"
 
 Keep your response concise (2-3 sentences max) and helpful. If it's a legal question, provide general guidance but remind them to consult a lawyer for specific advice.`;
 
-    try {
-      const response = await callGeminiAPI(prompt);
-      addMessage('bot', response);
-    } catch (error) {
-      addMessage('bot', `I'm having trouble processing that right now. Please try again or rephrase your question.`);
-    }
-  };
+  try {
+    let botIndex;
+
+    setMessages(prev => {
+      botIndex = prev.length;
+      return [...prev, { type: 'bot', content: '' }];
+    });
+
+    await callLlamaStreamingAPI(prompt, (text) => {
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[botIndex] = { type: 'bot', content: text };
+        return updated;
+      });
+    });
+
+  } catch (error) {
+    addMessage('bot', 'I’m having trouble right now. Please try again.');
+  }
+};
+
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);

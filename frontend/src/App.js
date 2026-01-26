@@ -30,7 +30,7 @@ import Advocatefilecase from './Components/Advocatefilecase';
 import Advocatemeeting from './Components/Advocatemeeting';
 import LegalAssistantChatbot from './Components/LegalAssistantChatbot';
 import AdminLogin from './Components/AdminLogin';
-
+import NyaaySaathi from './Components/nyaaysaathi';
 // Navigation Header Component
 const NavigationHeader = () => {
   const navigate = useNavigate();
@@ -226,7 +226,7 @@ function AppRoutes() {
         <Route path="/admin" element={<Admin/>} />
         <Route path="/adminlogin" element={<AdminLogin/>} />
         <Route path="/admindash" element={<AdminDashboard/>} />
-
+        <Route path="/nyaaysaathi" element={<NyaaySaathi/>} />
         {/* Redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

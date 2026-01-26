@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../ComponentsCSS/admincase.css';
-
+import AuditTrailReportGenerator from './AuditTrailReportGenerator';
+import JudicialLoadingOverlay from './CourtAdminCaseHandleLoading';
 const CourtAdminCase = () => {
   const [cases, setCases] = useState([]);
   const [filteredCases, setFilteredCases] = useState([]);
@@ -14,6 +15,31 @@ const CourtAdminCase = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [totalCases, setTotalCases] = useState(0);
 
+  const [auditTrail, setAuditTrail] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [tamperingReport, setTamperingReport] = useState(null);
+  const [tamperingLoading, setTamperingLoading] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showTamperingModal, setShowTamperingModal] = useState(false);
+
+  const [fullScanResult, setFullScanResult] = useState(null);
+  const [fullScanLoading, setFullScanLoading] = useState(false);
+  const [showFullScanModal, setShowFullScanModal] = useState(false);
+
+  const [securityAlerts, setSecurityAlerts] = useState(null);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
+// Add these new state variables
+const [blockchainStats, setBlockchainStats] = useState(null);
+const [statsLoading, setStatsLoading] = useState(false);
+const [verificationDetails, setVerificationDetails] = useState(null);
+const [showVerificationModal, setShowVerificationModal] = useState(false);
+const [loadingOverlay, setLoadingOverlay] = useState({
+  visible: false,
+  type: null,
+  progress: 0,
+  message: 'Processing your request'
+});
   const [newHearing, setNewHearing] = useState({
     hearing_date: '',
     hearing_type: 'Initial',
@@ -44,7 +70,6 @@ const CourtAdminCase = () => {
 
   const hearingTypes = ['Initial', 'Intermediate', 'Final', 'Adjournment'];
 
-  // Fetch all cases assigned to court admin
   useEffect(() => {
     const fetchCases = async () => {
       try {
@@ -89,7 +114,6 @@ const CourtAdminCase = () => {
     fetchCases();
   }, []);
 
-  // Filter cases based on search term and status
   useEffect(() => {
     let result = [...cases];
 
@@ -97,10 +121,10 @@ const CourtAdminCase = () => {
       result = result.filter(
         (caseItem) =>
           caseItem.case_num.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (caseItem.petitioner_name &&
-            caseItem.petitioner_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (caseItem.respondent_name &&
-            caseItem.respondent_name.toLowerCase().includes(searchTerm.toLowerCase()))
+          (caseItem.plaintiff_details?.name &&
+            caseItem.plaintiff_details.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (caseItem.respondent_details?.name &&
+            caseItem.respondent_details.name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -110,8 +134,35 @@ const CourtAdminCase = () => {
 
     setFilteredCases(result);
   }, [searchTerm, statusFilter, cases]);
+const showLoadingOverlay = (type, initialMessage = '') => {
+  const messages = {
+    audit_trail: 'Fetching audit trail from blockchain...',
+    tampering_investigation: 'Comparing blockchain records with database...',
+    full_system_scan: 'Running comprehensive system verification...',
+    security_alerts: 'Loading security alert database...',
+    blockchain_stats: 'Calculating blockchain integrity metrics...',
+    generating_report: 'Processing case data and generating report...',
+    case_manipulation: 'Analyzing case changes and modifications...',
+    verification_details: 'Fetching detailed block verification data...'
+  };
 
-  // Handle case selection
+  setLoadingOverlay({
+    visible: true,
+    type: type,
+    progress: 0,
+    message: initialMessage || messages[type] || 'Processing your request'
+  });
+};
+
+const hideLoadingOverlay = () => {
+  setLoadingOverlay({
+    visible: false,
+    type: null,
+    progress: 0,
+    message: 'Processing your request'
+  });
+};
+
   const handleCaseSelect = (caseData) => {
     setSelectedCase(caseData);
     setActiveTab('overview');
@@ -131,8 +182,165 @@ const CourtAdminCase = () => {
       description: '',
       file: null,
     });
+    setAuditTrail(null);
+    setTamperingReport(null);
   };
+const fetchAuditTrail = async (caseNum) => {
+  try {
+    showLoadingOverlay('audit_trail');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseNum}/audit-trail`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
+    console.log('Audit Trail Response:', response.data);
+    setAuditTrail(response.data);
+    setShowAuditModal(true);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error fetching audit trail:', err);
+    setError(err.response?.data?.message || 'Failed to fetch audit trail');
+    hideLoadingOverlay();
+  }
+};
+const investigateTampering = async (caseNum) => {
+  try {
+    showLoadingOverlay('tampering_investigation');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseNum}/verify`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    setTamperingReport(response.data);
+    setShowTamperingModal(true);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error investigating tampering:', err);
+    if (err.response) {
+      setError(`Error ${err.response.status}: ${err.response.data?.message || 'Failed to investigate tampering'}`);
+    } else if (err.request) {
+      setError('No response from server. Please check your connection.');
+    } else {
+      setError(err.message || 'Failed to investigate tampering');
+    }
+    hideLoadingOverlay();
+  }
+};
+const viewDetailedVerification = async (entry) => {
+  try {
+    showLoadingOverlay('verification_details');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      `https://ecourt-yr51.onrender.com/api/blockchain/block/${entry.block_index}/verify`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    setVerificationDetails({
+      entry,
+      details: response.data
+    });
+    setShowVerificationModal(true);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error fetching verification details:', err);
+    setError(err.response?.data?.message || 'Failed to fetch verification details');
+    hideLoadingOverlay();
+  }
+};
+
+const closeVerificationModal = () => {
+  setShowVerificationModal(false);
+  setVerificationDetails(null);
+};
+
+  const performFullScan = async () => {
+  try {
+    showLoadingOverlay('full_system_scan');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.post(
+      'https://ecourt-yr51.onrender.com/api/blockchain/verify/full-scan',
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    setFullScanResult(response.data);
+    setShowFullScanModal(true);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error performing full scan:', err);
+    setError(err.response?.data?.message || 'Failed to perform full scan');
+    hideLoadingOverlay();
+  }
+};
+
+ const fetchSecurityAlerts = async () => {
+  try {
+    showLoadingOverlay('security_alerts');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      'https://ecourt-yr51.onrender.com/api/blockchain/alerts',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    setSecurityAlerts(response.data);
+    setShowAlertsModal(true);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error fetching security alerts:', err);
+    setError(err.response?.data?.message || 'Failed to fetch security alerts');
+    hideLoadingOverlay();
+  }
+};
+
+const fetchBlockchainStats = async () => {
+  try {
+    showLoadingOverlay('blockchain_stats');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      'https://ecourt-yr51.onrender.com/api/blockchain/stats',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    
+    setBlockchainStats(response.data);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error fetching blockchain stats:', err);
+    setError(err.response?.data?.message || 'Failed to fetch blockchain stats');
+    hideLoadingOverlay();
+  }
+};
   const handleAddHearing = async (e) => {
     e.preventDefault();
 
@@ -413,6 +621,21 @@ const CourtAdminCase = () => {
     }
   };
 
+  const getSeverityClass = (severity) => {
+    switch (severity) {
+      case 'CRITICAL':
+        return 'severity-critical';
+      case 'HIGH':
+        return 'severity-high';
+      case 'MEDIUM':
+        return 'severity-medium';
+      case 'LOW':
+        return 'severity-low';
+      default:
+        return '';
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -421,6 +644,38 @@ const CourtAdminCase = () => {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const closeAuditModal = () => {
+    setShowAuditModal(false);
+    setAuditTrail(null);
+  };
+
+  const closeTamperingModal = () => {
+    setShowTamperingModal(false);
+    setTamperingReport(null);
+  };
+
+  const closeFullScanModal = () => {
+    setShowFullScanModal(false);
+    setFullScanResult(null);
+  };
+
+  const closeAlertsModal = () => {
+    setShowAlertsModal(false);
+    setSecurityAlerts(null);
   };
 
   if (loading && !selectedCase) {
@@ -455,6 +710,62 @@ const CourtAdminCase = () => {
           </div>
         </div>
       </div>
+
+      <div className="blockchain-verification-panel">
+  <h2 className="blockchain-panel-title">Blockchain Verification Center</h2>
+  <div className="blockchain-actions-grid">
+    <button
+      className="blockchain-action-btn blockchain-action-btn--scan"
+      onClick={performFullScan}
+      disabled={fullScanLoading}
+    >
+      {fullScanLoading ? 'Scanning...' : 'Run Full System Scan'}
+    </button>
+    
+    <button
+      className="blockchain-action-btn blockchain-action-btn--alerts"
+      onClick={fetchSecurityAlerts}
+      disabled={alertsLoading}
+    >
+      {alertsLoading ? 'Loading...' : 'View Security Alerts'}
+    </button>
+
+    <button
+      className="blockchain-action-btn blockchain-action-btn--stats"
+      onClick={fetchBlockchainStats}
+      disabled={statsLoading}
+    >
+      {statsLoading ? 'Loading...' : 'Blockchain Statistics'}
+    </button>
+  </div>
+
+  {blockchainStats && (
+    <div className="blockchain-stats-summary">
+      <h3>Current Blockchain Status</h3>
+      <div className="stats-grid">
+        <div className="stat-item">
+          <span className="stat-label">Total Blocks:</span>
+          <span className="stat-value">{blockchainStats.totalBlocks}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">Chain Valid:</span>
+          <span className={`stat-value ${blockchainStats.verification?.chainValid ? 'text-success' : 'text-danger'}`}>
+            {blockchainStats.verification?.chainValid ? '✅ Yes' : '❌ No'}
+          </span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">Integrity Score:</span>
+          <span className="stat-value">{blockchainStats.verification?.integrityScore}%</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">IPFS Anchored:</span>
+          <span className="stat-value">{blockchainStats.security?.ipfsAnchoredBlocks}/{blockchainStats.totalBlocks}</span>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
+
 
       <div className="judicial-mgmt__content">
         <div className="judicial-mgmt__sidebar">
@@ -504,11 +815,11 @@ const CourtAdminCase = () => {
                   <div className="judicial-mgmt__case-item-content">
                     <p className="judicial-mgmt__case-parties">
                       <span className="judicial-mgmt__petitioner">
-                        {caseItem.plaintiff_details.name || 'Unknown Petitioner'}
+                        {caseItem.plaintiff_details?.name || 'Unknown Petitioner'}
                       </span>
                       <span className="judicial-mgmt__vs">vs</span>
                       <span className="judicial-mgmt__respondent">
-                        {caseItem.respondent_details.name || 'Unknown Respondent'}
+                        {caseItem.respondent_details?.name || 'Unknown Respondent'}
                       </span>
                     </p>
                     <p className="judicial-mgmt__case-filed">Filed: {formatDate(caseItem.created_at)}</p>
@@ -531,8 +842,8 @@ const CourtAdminCase = () => {
                     </span>
                   </h2>
                   <h3 className="judicial-mgmt__case-subtitle">
-                    {selectedCase.plaintiff_details.name  || 'Unknown Petitioner'} vs{' '}
-                    {selectedCase.respondent_details.name || 'Unknown Respondent'}
+                    {selectedCase.plaintiff_details?.name || 'Unknown Petitioner'} vs{' '}
+                    {selectedCase.respondent_details?.name || 'Unknown Respondent'}
                   </h3>
                 </div>
 
@@ -566,6 +877,12 @@ const CourtAdminCase = () => {
                     onClick={() => setActiveTab('status')}
                   >
                     Update Status
+                  </button>
+                  <button
+                    className={`judicial-mgmt__tab ${activeTab === 'blockchain' ? 'judicial-mgmt__tab--active' : ''}`}
+                    onClick={() => setActiveTab('blockchain')}
+                  >
+                    Blockchain Verification
                   </button>
                 </div>
               </div>
@@ -607,13 +924,13 @@ const CourtAdminCase = () => {
                           <div className="judicial-mgmt__info-row">
                             <span className="judicial-mgmt__info-label">Name:</span>
                             <span className="judicial-mgmt__info-value">
-                              {selectedCase.plaintiff_details.name || 'N/A'}
+                              {selectedCase.plaintiff_details?.name || 'N/A'}
                             </span>
                           </div>
                           <div className="judicial-mgmt__info-row">
                             <span className="judicial-mgmt__info-label">Contact:</span>
                             <span className="judicial-mgmt__info-value">
-                              {selectedCase.plaintiff_details.mobile|| 'N/A'}
+                              {selectedCase.plaintiff_details?.mobile || 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -622,13 +939,13 @@ const CourtAdminCase = () => {
                           <div className="judicial-mgmt__info-row">
                             <span className="judicial-mgmt__info-label">Name:</span>
                             <span className="judicial-mgmt__info-value">
-                              {selectedCase.respondent_details.name || 'N/A'}
+                              {selectedCase.respondent_details?.name || 'N/A'}
                             </span>
                           </div>
                           <div className="judicial-mgmt__info-row">
                             <span className="judicial-mgmt__info-label">Contact:</span>
                             <span className="judicial-mgmt__info-value">
-                              {selectedCase.respondent_details.mobile|| 'N/A'}
+                              {selectedCase.respondent_details?.mobile || 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -636,7 +953,7 @@ const CourtAdminCase = () => {
 
                       <div className="judicial-mgmt__overview-card judicial-mgmt__overview-card--full">
                         <h3 className="judicial-mgmt__card-title">Status History</h3>
-                        {selectedCase.status_history && selectedCase.status_history.length > 0 ? (
+                        {selectedCase.status_history && selectedCase.status_history.length> 0 ? (
                           <div className="judicial-mgmt__status-timeline">
                             {selectedCase.status_history.map((history, index) => (
                               <div key={index} className="judicial-mgmt__timeline-item">
@@ -784,11 +1101,10 @@ const CourtAdminCase = () => {
                           <label className="judicial-mgmt__form-label">Attachments (Max 5 files)</label>
                           <input
                             type="file"
-                            id="judicial-mgmt-hearing-attachments"
+                            id="courtadmin-hearing-attachments"
                             className="judicial-mgmt__form-file"
                             multiple
                             max="5"
-                            onChange={(e) => console.log(e.target.files)}
                           />
                           <p className="judicial-mgmt__form-help">
                             You can attach up to 5 files related to this hearing
@@ -990,6 +1306,51 @@ const CourtAdminCase = () => {
                     </div>
                   </div>
                 )}
+
+                {activeTab === 'blockchain' && (
+                  <div className="judicial-mgmt__blockchain-tab">
+                    <h3 className="judicial-mgmt__section-title">Blockchain Verification & Audit</h3>
+                    
+                    <div className="blockchain-case-actions">
+                      <button
+                        className="blockchain-btn blockchain-btn--audit"
+                        onClick={() => fetchAuditTrail(selectedCase.case_num)}
+                        disabled={auditLoading}
+                      >
+                        {auditLoading ? 'Loading...' : 'View Complete Audit Trail'}
+                      </button>
+                      
+                      <button
+                        className="blockchain-btn blockchain-btn--verify"
+                        onClick={() => investigateTampering(selectedCase.case_num)}
+                        disabled={tamperingLoading}
+                      >
+                        {tamperingLoading ? 'Investigating...' : 'Investigate Tampering'}
+                      </button>
+                     <AuditTrailReportGenerator 
+  caseData={selectedCase}
+  onClose={() => {}}
+  showLoadingOverlay={showLoadingOverlay}
+  hideLoadingOverlay={hideLoadingOverlay}
+/>
+                    </div>
+
+                    <div className="blockchain-info">
+                      <h4>About Blockchain Verification</h4>
+                      <p>
+                        Every action on this case is recorded in an immutable blockchain ledger. 
+                        Use the audit trail to view all historical changes and the tampering investigation 
+                        to verify data integrity.
+                      </p>
+                      <ul>
+                        <li>Audit Trail shows complete case history</li>
+                        <li>Each entry is cryptographically secured</li>
+                        <li>Tampering detection compares blockchain vs database</li>
+                        <li>Full transparency and accountability</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -1004,6 +1365,418 @@ const CourtAdminCase = () => {
         </div>
       </div>
 
+      {showAuditModal && auditTrail && (
+        <div className="blockchain-modal-overlay" onClick={closeAuditModal}>
+          <div className="blockchain-modal blockchain-modal--large" onClick={(e) => e.stopPropagation()}>
+            <div className="blockchain-modal-header">
+              <h2>Audit Trail - Case {auditTrail.case_num}</h2>
+              <button className="blockchain-modal-close" onClick={closeAuditModal}>×</button>
+            </div>
+
+            <div className="blockchain-modal-content">
+              <div className={`verification-status ${auditTrail.blockchain_verified ? 'verified' : 'failed'}`}>
+                {auditTrail.blockchain_verified 
+                  ? 'Blockchain Verified - All entries authentic'
+                  : `Verification Failed: ${auditTrail.blockchain_error}`}
+              </div>
+
+              <div className="current-case-data">
+                <h3>Current Case Data</h3>
+                <div className="data-grid">
+                  <div className="data-item">
+                    <strong>Status:</strong>
+                    <span>{auditTrail.current_case_data?.status}</span>
+                  </div>
+                  <div className="data-item">
+                    <strong>Plaintiff:</strong>
+                    <span>{auditTrail.current_case_data?.plaintiff}</span>
+                  </div>
+                  <div className="data-item">
+                    <strong>Respondent:</strong>
+                    <span>{auditTrail.current_case_data?.respondent}</span>
+                  </div>
+                  <div className="data-item">
+                    <strong>Approved:</strong>
+                    <span>{auditTrail.current_case_data?.case_approved ? 'Yes' : 'No'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="audit-timeline">
+  <h3>Complete History ({auditTrail.total_entries} entries)</h3>
+  
+  {auditTrail.verification_summary && (
+    <div className="verification-summary-box">
+      <h4>Verification Summary</h4>
+      <div className="summary-stats">
+        <span>Total Blocks: {auditTrail.verification_summary.total_blocks}</span>
+        <span className="text-success">Verified: {auditTrail.verification_summary.verified_blocks}</span>
+        <span className="text-danger">Failed: {auditTrail.verification_summary.failed_blocks}</span>
+        <span className="text-warning">Critical: {auditTrail.verification_summary.critical_issues}</span>
+      </div>
+    </div>
+  )}
+
+  {auditTrail.audit_trail?.map((entry, index) => (
+    <div key={index} className="audit-entry">
+      <div className="audit-marker">{entry.sequence}</div>
+      <div className="audit-content">
+        <div className="audit-header">
+          <span className="audit-action">{entry.action}</span>
+          <span className="audit-timestamp">{formatDateTime(entry.timestamp)}</span>
+        </div>
+
+        {entry.verification && (
+          <div className={`verification-badge ${entry.verification.overall ? 'verified' : 'failed'}`}>
+            {entry.verification.overall ? '✅ Verified' : '⚠️ Verification Failed'}
+          </div>
+        )}
+
+        {entry.verification?.issues && entry.verification.issues.length > 0 && (
+          <div className="verification-issues">
+            <h5>Issues Detected:</h5>
+            <ul>
+              {entry.verification.issues.map((issue, idx) => (
+                <li key={idx} className={getSeverityClass(issue.severity)}>
+                  <strong>{issue.field || issue.layer}:</strong> {issue.error || issue.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="audit-details">
+          {Object.entries(entry.details || {}).map(([key, value]) => (
+            <div key={key} className="detail-row">
+              <span className="detail-key">{key}:</span>
+              <span className="detail-value">{value?.toString() || 'N/A'}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="audit-meta">
+          <small>
+            By: {entry.performed_by} ({entry.user_type}) | 
+            Block: #{entry.block_index} | 
+            Hash: {entry.blockchain_hash?.substring(0, 12)}...
+          </small>
+        </div>
+
+        {entry.ipfs_anchor && (
+          <div className="blockchain-proof">
+            <a 
+              href={entry.ipfs_anchor.url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ipfs-link"
+            >
+              📎 View IPFS Proof
+            </a>
+          </div>
+        )}
+
+        <button
+          className="view-details-btn"
+          onClick={() => viewDetailedVerification(entry)}
+        >
+          View Full Verification
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTamperingModal && tamperingReport && (
+        <div className="blockchain-modal-overlay" onClick={closeTamperingModal}>
+          <div className="blockchain-modal blockchain-modal--large" onClick={(e) => e.stopPropagation()}>
+            <div className="blockchain-modal-header">
+              <h2>Tampering Investigation - Case {selectedCase.case_num}</h2>
+              <button className="blockchain-modal-close" onClick={closeTamperingModal}>×</button>
+            </div>
+
+            <div className="blockchain-modal-content">
+          {tamperingReport.verification_status === 'VERIFIED' || 
+ (tamperingReport.discrepancies && tamperingReport.discrepancies.length === 0) ? (
+  <div className="alert alert-success">
+    ✅ No discrepancies found between blockchain and database.
+    The case data is intact and verified.
+    <div className="integrity-score">
+      Integrity Score: {tamperingReport.blockchain_integrity?.integrity_score || '100'}%
+    </div>
+  </div>
+) : (
+  <>
+    <div className="alert alert-danger">
+      ⚠️ {tamperingReport.discrepancy_count || tamperingReport.discrepancies?.length || 0} Discrepancy(ies) Detected
+      <div className="verification-status-badge">
+        Status: {tamperingReport.verification_status}
+      </div>
+    </div>
+
+    {tamperingReport.blockchain_integrity?.tampering_patterns && 
+     tamperingReport.blockchain_integrity.tampering_patterns.length > 0 && (
+      <div className="tampering-patterns-summary">
+        <h3>Tampering Patterns Identified</h3>
+        {tamperingReport.blockchain_integrity.tampering_patterns.map((pattern, idx) => (
+          <div key={idx} className="pattern-summary">
+            <strong>Block #{pattern.blockIndex}:</strong>
+            <ul>
+              {pattern.patterns.map((p, i) => (
+                <li key={i} className={getSeverityClass(p.riskLevel)}>
+                  {p.type}: {p.description}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <div className="comparison-table-container">
+      <table className="comparison-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Blockchain (Original)</th>
+            <th>Database (Current)</th>
+            <th>Severity</th>
+            <th>Block Index</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tamperingReport.discrepancies?.map((discrepancy, index) => (
+            <tr key={index} className={getSeverityClass(discrepancy.severity)}>
+              <td><strong>{discrepancy.field}</strong></td>
+              <td className="blockchain-value">{discrepancy.blockchain_value?.toString() || 'N/A'}</td>
+              <td className="database-value">{discrepancy.database_value?.toString() || 'N/A'}</td>
+              <td>
+                <span className={`severity-badge ${getSeverityClass(discrepancy.severity)}`}>
+                  {discrepancy.severity}
+                </span>
+              </td>
+              <td>#{discrepancy.block_index || 'N/A'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {tamperingReport.blockchain_integrity && (
+      <div className="blockchain-integrity-details">
+        <h3>Blockchain Integrity Analysis</h3>
+        <div className="integrity-grid">
+          <div className="integrity-item">
+            <strong>Total Blocks:</strong>
+            <span>{tamperingReport.blockchain_integrity.total_blocks}</span>
+          </div>
+          <div className="integrity-item">
+            <strong>Verified Blocks:</strong>
+            <span className="text-success">{tamperingReport.blockchain_integrity.verification_summary?.allLayersValid}</span>
+          </div>
+          <div className="integrity-item">
+            <strong>Failed Blocks:</strong>
+            <span className="text-danger">{tamperingReport.blockchain_integrity.verification_summary?.invalid}</span>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <div className="recommended-actions">
+      <h3>Recommended Actions:</h3>
+      <ul>
+        <li> Lock case for editing to prevent further modifications</li>
+        <li>Notify senior administrator about the discrepancies</li>
+        <li>Create detailed incident report with screenshots</li>
+        <li>Consider restoring data from blockchain records</li>
+        <li> Review access logs for unauthorized changes</li>
+        <li> If CRITICAL severity, escalate to system security team immediately</li>
+      </ul>
+    </div>
+  </>
+)}
+              {tamperingReport.blockchain_history && (
+                <div className="blockchain-history-section">
+                  <h3>Blockchain History Summary</h3>
+                  <p>Total blockchain entries: {tamperingReport.blockchain_history.length}</p>
+                  <p>Last verified: {formatDateTime(new Date())}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFullScanModal && fullScanResult && (
+        <div className="blockchain-modal-overlay" onClick={closeFullScanModal}>
+          <div className="blockchain-modal blockchain-modal--large" onClick={(e) => e.stopPropagation()}>
+            <div className="blockchain-modal-header">
+              <h2>Full Blockchain System Scan</h2>
+              <button className="blockchain-modal-close" onClick={closeFullScanModal}>×</button>
+            </div>
+
+            <div className="blockchain-modal-content">
+              <div className={`scan-result-badge scan-result-${fullScanResult.scan_result?.toLowerCase()}`}>
+                Scan Result: {fullScanResult.scan_result}
+              </div>
+
+              <div className="scan-summary">
+                <h3>Scan Summary</h3>
+                <div className="scan-stats-grid">
+                  <div className="scan-stat">
+                    <span className="scan-stat-value">{fullScanResult.scan_summary?.total_cases_scanned}</span>
+                    <span className="scan-stat-label">Cases Scanned</span>
+                  </div>
+                  <div className="scan-stat">
+                    <span className="scan-stat-value">{fullScanResult.scan_summary?.valid_cases}</span>
+                    <span className="scan-stat-label">Valid Cases</span>
+                  </div>
+                  <div className="scan-stat">
+                    <span className="scan-stat-value scan-stat-value--critical">
+                      {fullScanResult.scan_summary?.cases_with_critical_issues}
+                    </span>
+                    <span className="scan-stat-label">Critical Issues</span>
+                  </div>
+                  <div className="scan-stat">
+                    <span className="scan-stat-value scan-stat-value--high">
+                      {fullScanResult.scan_summary?.cases_with_high_issues}
+                    </span>
+                    <span className="scan-stat-label">High Issues</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="blockchain-integrity-summary">
+                <h3>Blockchain Integrity</h3>
+                <div className="integrity-grid">
+                  <div className="integrity-item">
+                    <strong>Chain Valid:</strong>
+                    <span className={fullScanResult.blockchain_integrity?.chain_valid ? 'text-success' : 'text-danger'}>
+                      {fullScanResult.blockchain_integrity?.chain_valid ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  <div className="integrity-item">
+                    <strong>Integrity Score:</strong>
+                    <span>{fullScanResult.blockchain_integrity?.integrity_score}%</span>
+                  </div>
+                  <div className="integrity-item">
+                    <strong>Total Blocks:</strong>
+                    <span>{fullScanResult.blockchain_integrity?.total_blocks}</span>
+                  </div>
+                  <div className="integrity-item">
+                    <strong>Verified Blocks:</strong>
+                    <span>{fullScanResult.blockchain_integrity?.verified_blocks}</span>
+                  </div>
+                </div>
+              </div>
+
+              {fullScanResult.issues && fullScanResult.issues.length > 0 && (
+                <div className="issues-section">
+                  <h3>Issues Found ({fullScanResult.issues.length})</h3>
+                  <div className="issues-list">
+                    {fullScanResult.issues.map((issue, index) => (
+                      <div key={index} className={`issue-card ${getSeverityClass(issue.severity)}`}>
+                        <div className="issue-header">
+                          <span className="issue-case">{issue.case_num}</span>
+                          <span className={`severity-badge ${getSeverityClass(issue.severity)}`}>
+                            {issue.severity}
+                          </span>
+                        </div>
+                        <div className="issue-body">
+                          <p className="issue-type">{issue.issue_type}</p>
+                          <p className="issue-description">{issue.description}</p>
+                          {issue.plaintiff && <p className="issue-plaintiff">Plaintiff: {issue.plaintiff}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="scan-recommendation">
+                <h3>Recommendation</h3>
+                <p>{fullScanResult.recommendation}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAlertsModal && securityAlerts && (
+        <div className="blockchain-modal-overlay" onClick={closeAlertsModal}>
+          <div className="blockchain-modal blockchain-modal--large" onClick={(e) => e.stopPropagation()}>
+            <div className="blockchain-modal-header">
+              <h2>Security Alerts</h2>
+              <button className="blockchain-modal-close" onClick={closeAlertsModal}>×</button>
+            </div>
+
+            <div className="blockchain-modal-content">
+              <div className="alerts-summary">
+                <h3>Alerts Summary</h3>
+                <div className="alerts-stats-grid">
+                  <div className="alert-stat">
+                    <span className="alert-stat-value">{securityAlerts.total_alerts}</span>
+                    <span className="alert-stat-label">Total Alerts</span>
+                  </div>
+                  <div className="alert-stat">
+                    <span className="alert-stat-value alert-stat-value--critical">
+                      {securityAlerts.critical_alerts}
+                    </span>
+                    <span className="alert-stat-label">Critical</span>
+                  </div>
+                  <div className="alert-stat">
+                    <span className="alert-stat-value alert-stat-value--high">
+                      {securityAlerts.high_alerts}
+                    </span>
+                    <span className="alert-stat-label">High</span>
+                  </div>
+                  <div className="alert-stat">
+                    <span className="alert-stat-value alert-stat-value--medium">
+                      {securityAlerts.medium_alerts}
+                    </span>
+                    <span className="alert-stat-label">Medium</span>
+                  </div>
+                </div>
+              </div>
+
+              {securityAlerts.alerts && securityAlerts.alerts.length > 0 ? (
+                <div className="alerts-list">
+                  <h3>Active Alerts</h3>
+                  {securityAlerts.alerts.map((alert, index) => (
+                    <div key={index} className={`alert-card ${getSeverityClass(alert.severity)}`}>
+                      <div className="alert-header">
+                        <span className={`severity-badge ${getSeverityClass(alert.severity)}`}>
+                          {alert.severity}
+                        </span>
+                        <span className="alert-timestamp">{formatDateTime(alert.timestamp)}</span>
+                      </div>
+                      <div className="alert-body">
+                        <h4 className="alert-title">{alert.title}</h4>
+                        <p className="alert-message">{alert.message}</p>
+                        {alert.case_num && (
+                          <p className="alert-case">Case: {alert.case_num}</p>
+                        )}
+                        <p className="alert-action">
+                          <strong>Action Required:</strong> {alert.action_required}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="alert alert-success">
+                  No security alerts at this time. All systems are operating normally.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="judicial-mgmt__error-toast">
           <p className="judicial-mgmt__error-message">{error}</p>
@@ -1012,8 +1785,113 @@ const CourtAdminCase = () => {
           </button>
         </div>
       )}
+      {showVerificationModal && verificationDetails && (
+  <div className="blockchain-modal-overlay" onClick={closeVerificationModal}>
+    <div className="blockchain-modal blockchain-modal--large" onClick={(e) => e.stopPropagation()}>
+      <div className="blockchain-modal-header">
+        <h2>Detailed Verification - Block #{verificationDetails.entry.block_index}</h2>
+        <button className="blockchain-modal-close" onClick={closeVerificationModal}>×</button>
+      </div>
+
+      <div className="blockchain-modal-content">
+        <div className="verification-overview">
+          <h3>Block Information</h3>
+          <div className="info-grid">
+            <div className="info-item">
+              <strong>Action:</strong>
+              <span>{verificationDetails.entry.action}</span>
+            </div>
+            <div className="info-item">
+              <strong>Timestamp:</strong>
+              <span>{formatDateTime(verificationDetails.entry.timestamp)}</span>
+            </div>
+            <div className="info-item">
+              <strong>Block Hash:</strong>
+              <span className="hash-display">{verificationDetails.entry.blockchain_hash}</span>
+            </div>
+            <div className="info-item">
+              <strong>Previous Hash:</strong>
+              <span className="hash-display">{verificationDetails.entry.previous_hash}</span>
+            </div>
+          </div>
+        </div>
+
+        {verificationDetails.details.layers && (
+          <div className="verification-layers">
+            <h3>Multi-Layer Verification Results</h3>
+            
+            <div className="layer-results">
+              {Object.entries(verificationDetails.details.layers).map(([layerName, layerResult]) => (
+                <div key={layerName} className={`layer-card ${layerResult.valid ? 'valid' : 'invalid'}`}>
+                  <div className="layer-header">
+                    <h4>{layerName.replace(/([A-Z])/g, ' $1').toUpperCase()}</h4>
+                    <span className={`layer-status ${layerResult.valid ? 'success' : 'failed'}`}>
+                      {layerResult.valid ? '✅ VALID' : '❌ FAILED'}
+                    </span>
+                  </div>
+                  
+                  {!layerResult.valid && (
+                    <div className="layer-error">
+                      <strong>Error:</strong> {layerResult.error}
+                      {layerResult.severity && (
+                        <span className={`severity-badge ${getSeverityClass(layerResult.severity)}`}>
+                          {layerResult.severity}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {layerResult.details && (
+                    <div className="layer-details">
+                      <pre>{JSON.stringify(layerResult.details, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {verificationDetails.details.tamperingPatterns && 
+         verificationDetails.details.tamperingPatterns.detected && 
+         verificationDetails.details.tamperingPatterns.detected.length > 0 && (
+          <div className="tampering-patterns">
+            <h3>⚠️ Tampering Patterns Detected</h3>
+            {verificationDetails.details.tamperingPatterns.detected.map((pattern, idx) => (
+              <div key={idx} className={`pattern-card ${getSeverityClass(pattern.riskLevel)}`}>
+                <h4>{pattern.type}</h4>
+                <p>{pattern.description}</p>
+                <div className="pattern-indicators">
+                  <strong>Indicators:</strong>
+                  <ul>
+                    {pattern.indicators?.map((indicator, i) => (
+                      <li key={i}>{indicator}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="verification-actions">
+          <button className="btn-primary" onClick={closeVerificationModal}>
+            Close
+          </button>
+        </div>
+      </div>
     </div>
-  );  
+  </div>
+)}
+{/* Loading Overlay */}
+<JudicialLoadingOverlay
+  isVisible={loadingOverlay.visible}
+  loadingType={loadingOverlay.type}
+  progress={loadingOverlay.progress}
+  message={loadingOverlay.message}
+/>
+    </div>
+  );
 };
 
 export default CourtAdminCase;
