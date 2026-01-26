@@ -13,26 +13,44 @@ class CryptoService {
 
   /**
    * Initialize RSA keys for signing
-   * Call this during application startup
+   * ✅ FIXED: Now supports both file-based and environment variable keys
    */
   initialize() {
     try {
-      const privateKeyPath = process.env.RSA_PRIVATE_KEY_PATH || './blockchain/keys/private.pem';
-      const publicKeyPath = process.env.RSA_PUBLIC_KEY_PATH || './blockchain/keys/public.pem';
+      let privateKeyContent, publicKeyContent;
 
-      // Check if key files exist
-      if (!fs.existsSync(privateKeyPath) || !fs.existsSync(publicKeyPath)) {
-        console.warn('⚠️  RSA keys not found. Run: node blockchain/utils/generateKeys.js');
-        return false;
+      // ✅ PRIORITY 1: Try environment variables (for production)
+      if (process.env.RSA_PRIVATE_KEY_BASE64 && process.env.RSA_PUBLIC_KEY_BASE64) {
+        console.log('🔐 Loading RSA keys from environment variables...');
+        
+        privateKeyContent = Buffer.from(process.env.RSA_PRIVATE_KEY_BASE64, 'base64').toString('utf8');
+        publicKeyContent = Buffer.from(process.env.RSA_PUBLIC_KEY_BASE64, 'base64').toString('utf8');
+        
+      } 
+      // PRIORITY 2: Try file paths (for local development)
+      else {
+        console.log('🔐 Loading RSA keys from files...');
+        
+        const privateKeyPath = process.env.RSA_PRIVATE_KEY_PATH || './blockchain/keys/private.pem';
+        const publicKeyPath = process.env.RSA_PUBLIC_KEY_PATH || './blockchain/keys/public.pem';
+
+        // Check if key files exist
+        if (!fs.existsSync(privateKeyPath) || !fs.existsSync(publicKeyPath)) {
+          console.error('❌ RSA keys not found!');
+          console.log('   For local development: Run node blockchain/utils/generateKeys.js');
+          console.log('   For production: Set RSA_PRIVATE_KEY_BASE64 and RSA_PUBLIC_KEY_BASE64 env vars');
+          return false;
+        }
+
+        privateKeyContent = fs.readFileSync(privateKeyPath, 'utf8');
+        publicKeyContent = fs.readFileSync(publicKeyPath, 'utf8');
       }
 
       // Load private key
-      const privateKeyContent = fs.readFileSync(privateKeyPath, 'utf8');
       this.privateKey = new NodeRSA(privateKeyContent);
       this.privateKey.setOptions({ signingScheme: 'pkcs1-sha256' });
 
       // Load public key
-      const publicKeyContent = fs.readFileSync(publicKeyPath, 'utf8');
       this.publicKey = new NodeRSA(publicKeyContent);
       this.publicKey.setOptions({ signingScheme: 'pkcs1-sha256' });
 
@@ -49,6 +67,7 @@ class CryptoService {
 
     } catch (error) {
       console.error('❌ Failed to load RSA keys:', error.message);
+      console.error('   Stack:', error.stack);
       return false;
     }
   }
@@ -63,7 +82,7 @@ class CryptoService {
   }
 
   /**
-   * 🆕 Calculate hash with merkle root
+   * Calculate hash with merkle root
    * More secure - includes transaction integrity proof
    */
   calculateHashWithMerkle(index, previousHash, timestamp, data, nonce, secret, merkleRoot) {
@@ -73,7 +92,7 @@ class CryptoService {
   }
 
   /**
-   * 🆕 Create merkle root from transaction data
+   * Create merkle root from transaction data
    * Ensures data integrity at transaction level
    */
   createMerkleRoot(data) {
@@ -129,7 +148,7 @@ class CryptoService {
   }
 
   /**
-   * 🆕 Sign block with RSA private key
+   * Sign block with RSA private key
    * Creates tamper-proof signature independent of BLOCKCHAIN_SECRET
    */
   signBlock(block) {
@@ -160,7 +179,7 @@ class CryptoService {
   }
 
   /**
-   * 🆕 Verify block signature with RSA public key
+   * Verify block signature with RSA public key
    * Detects if block was tampered with after signing
    */
   verifySignature(block, signature) {
@@ -216,7 +235,7 @@ class CryptoService {
   }
 
   /**
-   * 🆕 Verify public key fingerprint matches
+   * Verify public key fingerprint matches
    */
   verifyPublicKeyFingerprint(fingerprint) {
     return this.publicKeyFingerprint === fingerprint;
