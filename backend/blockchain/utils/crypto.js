@@ -23,8 +23,18 @@ class CryptoService {
       if (process.env.RSA_PRIVATE_KEY_BASE64 && process.env.RSA_PUBLIC_KEY_BASE64) {
         console.log('🔐 Loading RSA keys from environment variables...');
         
-        privateKeyContent = Buffer.from(process.env.RSA_PRIVATE_KEY_BASE64, 'base64').toString('utf8');
-        publicKeyContent = Buffer.from(process.env.RSA_PUBLIC_KEY_BASE64, 'base64').toString('utf8');
+        try {
+          privateKeyContent = Buffer.from(process.env.RSA_PRIVATE_KEY_BASE64, 'base64').toString('utf8');
+          publicKeyContent = Buffer.from(process.env.RSA_PUBLIC_KEY_BASE64, 'base64').toString('utf8');
+          
+          // Validate that we got valid PEM format
+          if (!privateKeyContent.includes('BEGIN') || !publicKeyContent.includes('BEGIN')) {
+            throw new Error('Invalid key format - base64 decoding failed');
+          }
+        } catch (decodeError) {
+          console.error('❌ Failed to decode base64 keys:', decodeError.message);
+          throw new Error('Base64 key decoding failed. Check your environment variables.');
+        }
         
       } 
       // PRIORITY 2: Try file paths (for local development)
