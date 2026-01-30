@@ -30,7 +30,7 @@ const CourtAdminManagement = () => {
     type: ''
   });
 
-  const API_URL = 'https://ecourt-yr51.onrender.com';
+  const API_URL = 'http://localhost:5000';
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -49,7 +49,7 @@ const CourtAdminManagement = () => {
           return;
         }
 
-        const response = await axios.get('https://ecourt-yr51.onrender.com/api/clerk/profile', {
+        const response = await axios.get('http://localhost:5000/api/clerk/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

@@ -1,0 +1,8 @@
+@echo off
+echo Starting backend...
+cd /d "C:\Users\veert\OneDrive\Desktop\cvita\backend"
+start cmd /k node app.js
+
+echo Starting frontend...
+cd /d "C:\Users\veert\OneDrive\Desktop\cvita\frontend"
+start cmd /k npm run start

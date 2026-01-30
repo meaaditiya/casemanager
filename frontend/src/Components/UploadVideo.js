@@ -21,7 +21,7 @@ const UploadVideoPleading = () => {
         setToken(storedToken);
         
         const response = await axios.get(
-            'https://ecourt-yr51.onrender.com/api/cases/litigant',
+            'http://localhost:5000/api/cases/litigant',
             { headers: { Authorization: `Bearer ${storedToken}` } }
         );
         

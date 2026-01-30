@@ -54,7 +54,7 @@ const AuditTrailReportGenerator = ({ caseData, onClose, showLoadingOverlay, hide
   
       // Fetch audit trail
       const auditResponse = await axios.get(
-        `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseData.case_num}/audit-trail`,
+        `http://localhost:5000/api/blockchain/case/${caseData.case_num}/audit-trail`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -62,7 +62,7 @@ const AuditTrailReportGenerator = ({ caseData, onClose, showLoadingOverlay, hide
 
       // Fetch verification report
       const verificationResponse = await axios.get(
-        `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseData.case_num}/verify`,
+        `http://localhost:5000/api/blockchain/case/${caseData.case_num}/verify`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

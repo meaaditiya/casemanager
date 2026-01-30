@@ -145,7 +145,7 @@ const toggleSpeech = () => {
   };
 
 const callLlamaStreamingAPI = async (prompt, onToken) => {
-  const response = await fetch("https://ecourt-yr51.onrender.com/api/llama/stream", {
+  const response = await fetch("http://localhost:5000/api/llama/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt })

@@ -80,7 +80,7 @@ const [loadingOverlay, setLoadingOverlay] = useState({
           throw new Error('Authentication token not found. Please login again.');
         }
 
-        const response = await axios.get('https://ecourt-yr51.onrender.com/api/cases/courtadmin', {
+        const response = await axios.get('http://localhost:5000/api/cases/courtadmin', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ const fetchAuditTrail = async (caseNum) => {
     const token = localStorage.getItem('token');
     
     const response = await axios.get(
-      `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseNum}/audit-trail`,
+      `http://localhost:5000/api/blockchain/case/${caseNum}/audit-trail`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -215,7 +215,7 @@ const investigateTampering = async (caseNum) => {
     const token = localStorage.getItem('token');
     
     const response = await axios.get(
-      `https://ecourt-yr51.onrender.com/api/blockchain/case/${caseNum}/verify`,
+      `http://localhost:5000/api/blockchain/case/${caseNum}/verify`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -244,7 +244,7 @@ const viewDetailedVerification = async (entry) => {
     const token = localStorage.getItem('token');
     
     const response = await axios.get(
-      `https://ecourt-yr51.onrender.com/api/blockchain/block/${entry.block_index}/verify`,
+      `http://localhost:5000/api/blockchain/block/${entry.block_index}/verify`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -276,7 +276,7 @@ const closeVerificationModal = () => {
     const token = localStorage.getItem('token');
     
     const response = await axios.post(
-      'https://ecourt-yr51.onrender.com/api/blockchain/verify/full-scan',
+      'http://localhost:5000/api/blockchain/verify/full-scan',
       {},
       {
         headers: {
@@ -301,7 +301,7 @@ const closeVerificationModal = () => {
     const token = localStorage.getItem('token');
     
     const response = await axios.get(
-      'https://ecourt-yr51.onrender.com/api/blockchain/alerts',
+      'http://localhost:5000/api/blockchain/alerts',
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -325,7 +325,7 @@ const fetchBlockchainStats = async () => {
     const token = localStorage.getItem('token');
     
     const response = await axios.get(
-      'https://ecourt-yr51.onrender.com/api/blockchain/stats',
+      'http://localhost:5000/api/blockchain/stats',
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -362,7 +362,7 @@ const fetchBlockchainStats = async () => {
       }
 
       const response = await axios.post(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/hearing/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/courtadmin`,
         formData,
         {
           headers: {
@@ -423,7 +423,7 @@ const fetchBlockchainStats = async () => {
       }
 
       const response = await axios.post(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/document/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/document/courtadmin`,
         formData,
         {
           headers: {
@@ -472,7 +472,7 @@ const fetchBlockchainStats = async () => {
 
     try {
       await axios.patch(
-        `https://ecourt-yr51.onrender.com/api/case/${selectedCase.case_num}/status/courtadmin`,
+        `http://localhost:5000/api/case/${selectedCase.case_num}/status/courtadmin`,
         statusUpdate,
         {
           headers: {
@@ -520,7 +520,7 @@ const fetchBlockchainStats = async () => {
       const token = localStorage.getItem('token');
       const response = await axios({
         method: 'GET',
-        url: `https://ecourt-yr51.onrender.com/api/files/${filename}`,
+        url: `http://localhost:5000/api/files/${filename}`,
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -559,7 +559,7 @@ const fetchBlockchainStats = async () => {
       const token = localStorage.getItem('token');
       const response = await axios({
         method: 'GET',
-        url: `https://ecourt-yr51.onrender.com/api/documents/${documentId}/download/courtadmin`,
+        url: `http://localhost:5000/api/documents/${documentId}/download/courtadmin`,
         responseType: 'blob',
         headers: {
           Authorization: `Bearer ${token}`,
