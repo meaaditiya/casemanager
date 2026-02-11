@@ -119,7 +119,63 @@ const logAdvocateVerification = async (advocateId, verified, userId) => {
     'clerk'
   );
 };
+// Add after line 87 in blockchainService.js
 
+// Line 124-143 - Replace the entire logDocumentRequested function:
+
+const logDocumentRequested = async (caseNum, documentData, requestedFrom, requestedFromType, userId, userType) => {
+  // ✅ Use documentData AS-IS from middleware (already has all fields)
+  const blockData = documentData;
+
+  return await blockchain.mineBlock(
+    blockData,
+    'document_requested',
+    caseNum,
+    userId,
+    userType
+  );
+};
+const logDocumentVerified = async (caseNum, documentData, userId, userType) => {
+  const blockData = {
+    action: 'document_verified',
+    case_num: caseNum,
+    document_id: documentData.document_id,
+    document_type: documentData.document_type,
+    file_name: documentData.file_name,
+    verified_by: documentData.verified_by_name,
+    signature_hash: documentData.digital_signature?.signature_hash,
+    verified_at: new Date()
+  };
+
+  return await blockchain.mineBlock(
+    blockData,
+    'document_verified',
+    caseNum,
+    userId,
+    userType
+  );
+};
+
+const logDocumentRejected = async (caseNum, documentData, rejectionReason, userId, userType) => {
+  const blockData = {
+    action: 'document_rejected',
+    case_num: caseNum,
+    document_id: documentData.document_id,
+    document_type: documentData.document_type,
+    file_name: documentData.file_name,
+    rejection_reason: rejectionReason,
+    rejected_by: documentData.verified_by_name,
+    rejected_at: new Date()
+  };
+
+  return await blockchain.mineBlock(
+    blockData,
+    'document_rejected',
+    caseNum,
+    userId,
+    userType
+  );
+};
 const logVideoMeetingScheduled = async (caseNum, meetingData, userId, userType) => {
   const blockData = {
     action: 'video_meeting_scheduled',
@@ -318,12 +374,16 @@ const getTamperedBlocks = async () => {
     message: `${tamperedBlocks.length} tampered block(s) detected`
   };
 };
-/**
- * NEW: Verify database-blockchain synchronization
- * Call this periodically (e.g., daily cron job)
- */
+// FIXED: The frontend code that calls the tampering investigation
+// This needs to be corrected in your React/frontend component
+
+// BACKEND FIX - Update blockchainService.js
+// Replace the verifyDatabaseBlockchainSync function completely:
+
 const verifyDatabaseBlockchainSync = async (caseNum) => {
+  const LegalCase = require('../models/LegalCase');
   const case_ = await LegalCase.findOne({ case_num: caseNum });
+  
   if (!case_) {
     return { valid: false, error: 'Case not found in database' };
   }
@@ -335,109 +395,158 @@ const verifyDatabaseBlockchainSync = async (caseNum) => {
 
   const discrepancies = [];
 
-  // Find filing block
+  // ✅ FIX 1: Only compare IMMUTABLE fields from filing block
   const filingBlock = blocks.find(b => b.dataType === 'case_filing');
   if (filingBlock) {
-    // Compare plaintiff
+    // Plaintiff (should NEVER change)
     if (filingBlock.data.plaintiff !== case_.plaintiff_details.name) {
       discrepancies.push({
         field: 'plaintiff_name',
-        blockchain: filingBlock.data.plaintiff,
-        database: case_.plaintiff_details.name,
-        severity: 'CRITICAL'
+        blockchain_value: filingBlock.data.plaintiff,
+        database_value: case_.plaintiff_details.name,
+        severity: 'CRITICAL',
+        block_index: filingBlock.index,
+        reason: 'Plaintiff name is immutable'
       });
     }
 
-    // Compare respondent
+    // Respondent (should NEVER change)
     if (filingBlock.data.respondent !== case_.respondent_details.name) {
       discrepancies.push({
         field: 'respondent_name',
-        blockchain: filingBlock.data.respondent,
-        database: case_.respondent_details.name,
-        severity: 'CRITICAL'
+        blockchain_value: filingBlock.data.respondent,
+        database_value: case_.respondent_details.name,
+        severity: 'CRITICAL',
+        block_index: filingBlock.index,
+        reason: 'Respondent name is immutable'
       });
     }
 
-    // Compare case type
+    // Case type (should NEVER change)
     if (filingBlock.data.case_type !== case_.case_type) {
       discrepancies.push({
         field: 'case_type',
-        blockchain: filingBlock.data.case_type,
-        database: case_.case_type,
-        severity: 'HIGH'
+        blockchain_value: filingBlock.data.case_type,
+        database_value: case_.case_type,
+        severity: 'HIGH',
+        block_index: filingBlock.index,
+        reason: 'Case type is immutable'
       });
     }
   }
 
-  // Find latest approval block
+  // ✅ FIX 2: Get LATEST status from status update blocks
+  const statusBlocks = blocks
+    .filter(b => b.dataType === 'case_status_update')
+    .sort((a, b) => b.index - a.index); // Sort by block index (most recent first)
+  
+  let expectedStatus = 'Filed'; // Default from filing
+  
+  if (statusBlocks.length > 0) {
+    // Get the most recent status from blockchain
+    expectedStatus = statusBlocks[0].data.new_status;
+    
+    // Compare with database
+    if (expectedStatus !== case_.status) {
+      discrepancies.push({
+        field: 'status',
+        blockchain_value: expectedStatus,
+        database_value: case_.status,
+        severity: 'CRITICAL',
+        block_index: statusBlocks[0].index,
+        blockchain_timestamp: statusBlocks[0].timestamp,
+        reason: 'Current status does not match latest blockchain entry'
+      });
+    }
+  } else if (filingBlock) {
+    // No status updates, should be "Filed"
+    if (case_.status !== 'Filed') {
+      discrepancies.push({
+        field: 'status',
+        blockchain_value: 'Filed',
+        database_value: case_.status,
+        severity: 'CRITICAL',
+        block_index: filingBlock.index,
+        reason: 'Status changed without blockchain record'
+      });
+    }
+  }
+
+  // ✅ FIX 3: Get LATEST approval status
   const approvalBlocks = blocks
     .filter(b => b.dataType === 'case_approval')
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    .sort((a, b) => b.index - a.index);
   
   if (approvalBlocks.length > 0) {
     const latestApproval = approvalBlocks[0];
     if (latestApproval.data.approved !== case_.case_approved) {
       discrepancies.push({
         field: 'case_approved',
-        blockchain: latestApproval.data.approved,
-        database: case_.case_approved,
+        blockchain_value: latestApproval.data.approved,
+        database_value: case_.case_approved,
+        severity: 'CRITICAL',
+        block_index: latestApproval.index,
         blockchain_timestamp: latestApproval.timestamp,
-        severity: 'CRITICAL'
+        reason: 'Approval status does not match latest blockchain entry'
       });
     }
   }
 
-  // Find latest status update
-  const statusBlocks = blocks
-    .filter(b => b.dataType === 'case_status_update')
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
-  if (statusBlocks.length > 0) {
-    const latestStatus = statusBlocks[0];
-    if (latestStatus.data.new_status !== case_.status) {
-      discrepancies.push({
-        field: 'status',
-        blockchain: latestStatus.data.new_status,
-        database: case_.status,
-        blockchain_timestamp: latestStatus.timestamp,
-        severity: 'HIGH'
-      });
-    }
-  }
-
-  // Verify document count
+  // Document count verification
   const documentBlocks = blocks.filter(b => b.dataType === 'document_upload');
-  if (documentBlocks.length !== (case_.documents?.length || 0)) {
+  const currentDocCount = case_.documents?.length || 0;
+  
+  if (documentBlocks.length > currentDocCount) {
     discrepancies.push({
       field: 'document_count',
-      blockchain: documentBlocks.length,
-      database: case_.documents?.length || 0,
+      blockchain_value: documentBlocks.length,
+      database_value: currentDocCount,
       severity: 'HIGH',
-      message: 'Document count mismatch - possible deletion or addition without blockchain entry'
+      block_index: 'N/A',
+      message: `${documentBlocks.length - currentDocCount} document(s) deleted without blockchain record`
     });
   }
 
-  // Verify hearing count
+  // Hearing count verification
   const hearingBlocks = blocks.filter(b => b.dataType === 'hearing_added');
-  if (hearingBlocks.length !== (case_.hearings?.length || 0)) {
+  const currentHearingCount = case_.hearings?.length || 0;
+  
+  if (hearingBlocks.length > currentHearingCount) {
     discrepancies.push({
       field: 'hearing_count',
-      blockchain: hearingBlocks.length,
-      database: case_.hearings?.length || 0,
+      blockchain_value: hearingBlocks.length,
+      database_value: currentHearingCount,
       severity: 'MEDIUM',
-      message: 'Hearing count mismatch'
+      block_index: 'N/A',
+      message: `${hearingBlocks.length - currentHearingCount} hearing(s) deleted without blockchain record`
     });
   }
+
+  // ✅ Determine overall status
+  const criticalDiscrepancies = discrepancies.filter(d => d.severity === 'CRITICAL');
+  const status = criticalDiscrepancies.length > 0 
+    ? 'CRITICAL_DATABASE_TAMPERING'
+    : discrepancies.length > 0 
+      ? 'MINOR_DISCREPANCIES'
+      : 'VERIFIED';
 
   return {
     valid: discrepancies.length === 0,
+    status,
     case_num: caseNum,
     total_blockchain_entries: blocks.length,
     discrepancies,
     last_blockchain_update: blocks[blocks.length - 1]?.timestamp,
-    database_last_modified: case_.updatedAt
+    database_last_modified: case_.updatedAt,
+    blockchain_state: {
+      latest_status: expectedStatus,
+      latest_approval: approvalBlocks.length > 0 ? approvalBlocks[0].data.approved : null,
+      total_status_updates: statusBlocks.length,
+      total_approvals: approvalBlocks.length
+    }
   };
-}
+};
+// REPLACE the existing module.exports (around line 500+) with:
 module.exports = {
   logCaseFiling,
   logCaseStatusUpdate,
@@ -446,6 +555,9 @@ module.exports = {
   logCaseApproval,
   logAdvocateVerification,
   logVideoMeetingScheduled,
+  logDocumentRequested,      
+  logDocumentVerified,       
+  logDocumentRejected,       
   getCaseHistory,
   verifyBlockchainIntegrity,
   verifyCaseHistory,

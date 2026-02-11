@@ -333,11 +333,13 @@ router.get('/case/:caseNum/audit-trail', authenticateToken, isAdminOrClerk, asyn
  * Now properly checks blockchain integrity AND compares with database
  * If audit trail shows tampering, this will catch it
  */
+// REAL FIX - The problem is in the response structure
+// Replace lines 336-628 in blockchainRoutes.js
+
 router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (req, res) => {
   try {
     const { caseNum } = req.params;
     
-    // Get current case from database
     const legalCase = await LegalCase.findOne({ case_num: caseNum });
     if (!legalCase) {
       return res.status(404).json({ 
@@ -346,7 +348,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
       });
     }
     
-    // ✅ FIX 1: Get blockchain verification FIRST (checks integrity)
     const verification = await blockchainService.verifyCaseHistory(caseNum);
     
     if (!verification.history || verification.history.length === 0) {
@@ -355,10 +356,7 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
         case_num: caseNum,
         verification_status: 'NO_BLOCKCHAIN_RECORDS',
         message: 'No blockchain records found for comparison',
-        blockchain_integrity: {
-          valid: false,
-          reason: 'No blockchain history'
-        },
+        blockchain_integrity: { valid: false, reason: 'No blockchain history' },
         discrepancies: [],
         current_case_data: {
           plaintiff: legalCase.plaintiff_details.name,
@@ -370,7 +368,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
       });
     }
     
-    // ✅ FIX 2: Check if ANY block in the history failed verification
     const blockchainTampered = verification.history.some(h => 
       h.verification && !h.verification.overall
     );
@@ -379,7 +376,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
       h.verification && h.verification.criticalFailures > 0
     );
     
-    // ✅ FIX 3: If blockchain itself is tampered, report it IMMEDIATELY
     if (blockchainTampered) {
       const tamperedBlocks = verification.history
         .filter(h => h.verification && !h.verification.overall)
@@ -397,8 +393,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
         success: true,
         case_num: caseNum,
         verification_status: criticalTampering ? 'CRITICAL_BLOCKCHAIN_TAMPERING' : 'BLOCKCHAIN_TAMPERING',
-        
-        // Main alert
         alert: {
           severity: criticalTampering ? 'CRITICAL' : 'HIGH',
           message: criticalTampering 
@@ -406,8 +400,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
             : '⚠️ WARNING: Blockchain integrity issues detected',
           action_required: 'IMMEDIATE INVESTIGATION REQUIRED'
         },
-        
-        // Blockchain integrity issues
         blockchain_integrity: {
           valid: false,
           tampering_detected: true,
@@ -416,11 +408,7 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
           verification_summary: verification.verificationSummary,
           tampering_patterns: verification.tamperingPatterns || []
         },
-        
-        // Show which blocks are compromised
         tampered_blocks: tamperedBlocks,
-        
-        // Current database values (may not be trustworthy)
         current_case_data: {
           plaintiff: legalCase.plaintiff_details.name,
           respondent: legalCase.respondent_details.name,
@@ -429,8 +417,6 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
           status: legalCase.status,
           warning: 'Database data may not be trustworthy - blockchain compromised'
         },
-        
-        // Don't compare if blockchain is tampered - comparison is meaningless
         discrepancies: [{
           severity: 'CRITICAL',
           message: 'Cannot perform database comparison - blockchain integrity compromised',
@@ -439,128 +425,107 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
       });
     }
     
-    // ✅ FIX 4: Only if blockchain is valid, proceed with database comparison
+    // ✅ THE REAL FIX: Build a proper blockchain state snapshot
     const discrepancies = [];
     
-    // Find original filing entry
-    const originalFiling = verification.history.find(
-      h => h.dataType === 'case_filing'
-    );
+    // Get original filing
+    const originalFiling = verification.history.find(h => h.dataType === 'case_filing');
     
-    // Find latest approval entry
-    const approvalEntries = verification.history
-      .filter(h => h.dataType === 'case_approval')
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const latestApproval = approvalEntries[0];
-    
-    // Find latest status update entry
+    // Get LATEST status
     const statusUpdates = verification.history
       .filter(h => h.dataType === 'case_status_update')
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    const latestStatus = statusUpdates[0];
+      .sort((a, b) => b.index - a.index); // Sort by block index descending
+    const latestStatusBlock = statusUpdates[0];
     
-    // Compare plaintiff name
-    if (originalFiling?.data?.plaintiff) {
-      if (originalFiling.data.plaintiff !== legalCase.plaintiff_details.name) {
-        discrepancies.push({
-          field: 'Plaintiff Name',
-          blockchain_value: originalFiling.data.plaintiff,
-          database_value: legalCase.plaintiff_details.name,
-          severity: 'CRITICAL',
-          blockchain_verified: originalFiling.verification?.overall || false,
-          block_index: originalFiling.index,
-          message: 'Plaintiff name in database does not match blockchain record'
-        });
-      }
-    }
+    // Get LATEST approval
+    const approvalEntries = verification.history
+      .filter(h => h.dataType === 'case_approval')
+      .sort((a, b) => b.index - a.index);
+    const latestApprovalBlock = approvalEntries[0];
     
-    // Compare respondent name
-    if (originalFiling?.data?.respondent) {
-      if (originalFiling.data.respondent !== legalCase.respondent_details.name) {
-        discrepancies.push({
-          field: 'Respondent Name',
-          blockchain_value: originalFiling.data.respondent,
-          database_value: legalCase.respondent_details.name,
-          severity: 'CRITICAL',
-          blockchain_verified: originalFiling.verification?.overall || false,
-          block_index: originalFiling.index,
-          message: 'Respondent name in database does not match blockchain record'
-        });
-      }
-    }
+    // ✅ Build the EXPECTED blockchain state (what database SHOULD have)
+    const expectedBlockchainState = {
+      plaintiff: originalFiling?.data?.plaintiff || 'Unknown',
+      respondent: originalFiling?.data?.respondent || 'Unknown',
+      case_type: originalFiling?.data?.case_type || 'Unknown',
+      status: latestStatusBlock?.data?.new_status || 'Filed', // ✅ LATEST status, not filing status
+      case_approved: latestApprovalBlock?.data?.approved || false
+    };
     
-    // Compare approval status
-    if (latestApproval?.data?.approved !== undefined) {
-      if (latestApproval.data.approved !== legalCase.case_approved) {
-        discrepancies.push({
-          field: 'Case Approval Status',
-          blockchain_value: latestApproval.data.approved,
-          database_value: legalCase.case_approved,
-          severity: 'CRITICAL',
-          blockchain_verified: latestApproval.verification?.overall || false,
-          block_index: latestApproval.index,
-          last_blockchain_update: latestApproval.timestamp,
-          message: 'Approval status in database does not match blockchain record'
-        });
-      }
-    }
-    
-    // Compare case type
-    if (originalFiling?.data?.case_type) {
-      if (originalFiling.data.case_type !== legalCase.case_type) {
-        discrepancies.push({
-          field: 'Case Type',
-          blockchain_value: originalFiling.data.case_type,
-          database_value: legalCase.case_type,
-          severity: 'HIGH',
-          blockchain_verified: originalFiling.verification?.overall || false,
-          block_index: originalFiling.index,
-          message: 'Case type in database does not match blockchain record'
-        });
-      }
-    }
-    
-    // Compare case status
-    if (latestStatus?.data?.new_status) {
-      if (latestStatus.data.new_status !== legalCase.status) {
-        discrepancies.push({
-          field: 'Case Status',
-          blockchain_value: latestStatus.data.new_status,
-          database_value: legalCase.status,
-          severity: 'HIGH',
-          blockchain_verified: latestStatus.verification?.overall || false,
-          block_index: latestStatus.index,
-          last_blockchain_update: latestStatus.timestamp,
-          message: 'Case status in database does not match blockchain record'
-        });
-      }
-    } else if (originalFiling && legalCase.status !== 'Filed' && legalCase.status !== 'Pending') {
-      // Status changed without blockchain record
+    // ✅ Compare with database
+    // Plaintiff (immutable)
+    if (expectedBlockchainState.plaintiff !== legalCase.plaintiff_details.name) {
       discrepancies.push({
-        field: 'Case Status',
-        blockchain_value: 'Filed',
-        database_value: legalCase.status,
+        field: 'Plaintiff Name',
+        blockchain_value: expectedBlockchainState.plaintiff,
+        database_value: legalCase.plaintiff_details.name,
         severity: 'CRITICAL',
-        note: 'Status changed in database without blockchain record',
-        blockchain_verified: false,
-        message: 'Case status was modified without creating blockchain entry'
+        block_index: originalFiling?.index || 'N/A',
+        message: 'Plaintiff name is immutable'
       });
     }
     
-    // Determine overall status
+    // Respondent (immutable)
+    if (expectedBlockchainState.respondent !== legalCase.respondent_details.name) {
+      discrepancies.push({
+        field: 'Respondent Name',
+        blockchain_value: expectedBlockchainState.respondent,
+        database_value: legalCase.respondent_details.name,
+        severity: 'CRITICAL',
+        block_index: originalFiling?.index || 'N/A',
+        message: 'Respondent name is immutable'
+      });
+    }
+    
+    // Case type (immutable)
+    if (expectedBlockchainState.case_type !== legalCase.case_type) {
+      discrepancies.push({
+        field: 'Case Type',
+        blockchain_value: expectedBlockchainState.case_type,
+        database_value: legalCase.case_type,
+        severity: 'HIGH',
+        block_index: originalFiling?.index || 'N/A',
+        message: 'Case type is immutable'
+      });
+    }
+    
+    // ✅ Status (mutable - compare with LATEST)
+    if (expectedBlockchainState.status !== legalCase.status) {
+      discrepancies.push({
+        field: 'Case Status',
+        blockchain_value: expectedBlockchainState.status, // ✅ This will be "Hearing in Progress"
+        database_value: legalCase.status,
+        severity: 'CRITICAL',
+        block_index: latestStatusBlock?.index || 'N/A',
+        message: 'Current status does not match latest blockchain record'
+      });
+    }
+    
+    // ✅ Approval (mutable - compare with LATEST)
+    if (latestApprovalBlock && expectedBlockchainState.case_approved !== legalCase.case_approved) {
+      discrepancies.push({
+        field: 'Case Approval Status',
+        blockchain_value: expectedBlockchainState.case_approved,
+        database_value: legalCase.case_approved,
+        severity: 'CRITICAL',
+        block_index: latestApprovalBlock?.index || 'N/A',
+        message: 'Approval status does not match latest blockchain record'
+      });
+    }
+    
+    // Determine status
     let verificationStatus = 'VERIFIED';
     if (discrepancies.length > 0) {
       const hasCritical = discrepancies.some(d => d.severity === 'CRITICAL');
       verificationStatus = hasCritical ? 'CRITICAL_DATABASE_TAMPERING' : 'DISCREPANCY_DETECTED';
     }
     
-    // ✅ FIX 5: Return comprehensive response
+    // ✅ Return with correct blockchain state
     res.json({
       success: true,
       case_num: caseNum,
       verification_status: verificationStatus,
       
-      // Alert if issues found
       alert: discrepancies.length > 0 ? {
         severity: discrepancies.some(d => d.severity === 'CRITICAL') ? 'CRITICAL' : 'HIGH',
         message: discrepancies.some(d => d.severity === 'CRITICAL')
@@ -569,11 +534,9 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
         action_required: 'Investigate discrepancies immediately'
       } : null,
       
-      // Discrepancies found
       discrepancies: discrepancies,
       discrepancy_count: discrepancies.length,
       
-      // Blockchain integrity (should be valid if we got here)
       blockchain_integrity: {
         valid: verification.valid,
         total_blocks: verification.totalBlocks,
@@ -591,30 +554,30 @@ router.get('/case/:caseNum/verify', authenticateToken, isAdminOrClerk, async (re
         status: legalCase.status
       },
       
-      // Original blockchain values
-      original_blockchain_data: originalFiling ? {
+      // ✅ Expected blockchain state (what database SHOULD have)
+      expected_blockchain_state: expectedBlockchainState,
+      
+      // Block details for reference
+      original_filing_block: originalFiling ? {
+        block_index: originalFiling.index,
+        timestamp: originalFiling.timestamp,
         plaintiff: originalFiling.data.plaintiff,
         respondent: originalFiling.data.respondent,
-        case_type: originalFiling.data.case_type,
-        court: originalFiling.data.court,
-        district: originalFiling.data.district,
-        filed_at: originalFiling.timestamp,
-        verification: originalFiling.verification
+        case_type: originalFiling.data.case_type
       } : null,
       
-      // Latest blockchain status
-      latest_blockchain_status: latestStatus ? {
-        status: latestStatus.data.new_status,
-        updated_at: latestStatus.timestamp,
-        remarks: latestStatus.data.remarks,
-        verification: latestStatus.verification
+      latest_status_block: latestStatusBlock ? {
+        block_index: latestStatusBlock.index,
+        timestamp: latestStatusBlock.timestamp,
+        old_status: latestStatusBlock.data.old_status,
+        new_status: latestStatusBlock.data.new_status,
+        remarks: latestStatusBlock.data.remarks
       } : null,
       
-      // Latest blockchain approval
-      latest_blockchain_approval: latestApproval ? {
-        approved: latestApproval.data.approved,
-        approved_at: latestApproval.timestamp,
-        verification: latestApproval.verification
+      latest_approval_block: latestApprovalBlock ? {
+        block_index: latestApprovalBlock.index,
+        timestamp: latestApprovalBlock.timestamp,
+        approved: latestApprovalBlock.data.approved
       } : null
     });
     

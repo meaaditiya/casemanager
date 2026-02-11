@@ -28,7 +28,7 @@ import AdminCaseHandle from '../Components/Admincasehandle';
 import AdminAccountHandle from '../Components/Adminaccounthandle';
 import AdminCreation from '../Components/AdminCreation';
 import CourtAdminCaseHandle from '../Components/CourtAdminCaseHandle'
-
+import CourtAdminLiveDashboard from '../Components/CourtAdminLiveDashboard';
 // Import CSS file
 import '../ComponentsCSS/AdminDashboard.css';
 
@@ -333,6 +333,8 @@ const AdminDashboard = () => {
         return <UserCalendar />;
       case 'usernoticeboard':
         return <NoticeBoard />;
+      case 'notifications':
+        return <CourtAdminLiveDashboard/>;
       default:
         return <div>Select an option from the sidebar</div>;
     }

@@ -33,11 +33,21 @@ const blockSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  dataType: {
-    type: String,
-    required: true,
-    enum: ['case_filing', 'case_status_update', 'hearing_added', 'document_upload', 'case_approval', 'advocate_verification', 'video_meeting_scheduled']
-  },
+// In Block.js, line 39, REPLACE the dataType enum with:
+dataType: {
+  type: String,
+  required: true,
+  enum: [
+    'case_filing', 
+    'case_status_update', 
+    'hearing_added', 
+    'document_upload', 
+    'case_approval', 
+    'advocate_verification', 
+    'video_meeting_scheduled',
+    'document_requested',  
+  ]
+},
   entityId: {
     type: String,
     required: true

@@ -7,11 +7,40 @@ const mongoose = require('mongoose');
       enum: ['District & Sessions Court', 'Other']
     },
     case_type: { 
-      type: String, 
-      required: true,
-      enum: ['Civil', 'Criminal']
-    },
-    
+  type: String, 
+  required: true,
+  enum: [
+    'Civil', 
+    'Criminal',
+    'CIV SUITS',
+    'EXE PET',
+    'MISC. CIV APPLN',
+    'MRG PET',
+    'MACP',
+    'MISC CIV CASES',
+    'CIVIL APPEAL',
+    'ARBITN',
+    'MISC. CIV APPEAL',
+    'LAND REFRNC',
+    'MAGISTRIAL CASES',
+    'MISC. EXE.',
+    'LABUR MAIN',
+    'COMMERCIAL SUIT',
+    'MISC. CRIM APLN',
+    'INDUS MAIN',
+    'CIVIL REV.',
+    'OTHER TRIBNL',
+    'INDUS MISC',
+    'LABUR MISC',
+    'ELCTN PET',
+    'CO-OP MAIN',
+    'COMMERCIAL APPEAL',
+    'CO-OP APEAL MAIN',
+    'CO-OP MISC.',
+    'SESSIONS CASES',
+    'CRIM APPEAL'
+  ]
+},
     // Add district field
     district: {
       type: String,
@@ -98,6 +127,41 @@ const mongoose = require('mongoose');
         enum: ['Initial', 'Intermediate', 'Final', 'Adjournment']
       },
       remarks: { type: String },
+      remarks_plain_text: {
+    type: String
+  },
+  digital_signature: {
+    is_signed: { type: Boolean, default: false },
+    signed_by: { type: String }, // admin_id or clerk_id
+    signed_by_name: { type: String },
+    signed_by_role: { type: String }, // 'admin' or 'clerk'
+    signature_timestamp: { type: Date },
+    signature_hash: { type: String }, // Hash of the hearing content for verification
+  },
+  listing_time_start: Date,
+  listing_time_end: Date,
+  estimated_duration: {
+    type: Number,
+    default: 60
+  },
+  actual_start_time: Date,
+  actual_end_time: Date,
+  hearing_status: {
+    type: String,
+    enum: ['scheduled', 'in_progress', 'completed', 'dismissed', 'adjourned'],
+    default: 'scheduled'
+  },
+  court_no: String,
+  listing_order: Number,
+  is_listed_for_today: {
+    type: Boolean,
+    default: false
+  },
+  created_by: { type: String },
+  created_by_type: { type: String }, // 'admin' or 'clerk'
+  updated_by: { type: String },
+  updated_by_type: { type: String },
+  updated_at: { type: Date },
       next_hearing_date: { type: Date },
       attachments: [{
         filename: { type: String, required: true },
@@ -108,6 +172,7 @@ const mongoose = require('mongoose');
         uploaded_at: { type: Date, default: Date.now }
       }]
     }], 
+
     // Case Status
     status: {
       type: String,
@@ -177,17 +242,51 @@ combined_case_embedding: {
   default: []
 },
 
-    documents: [{
-      document_id: { type: String, required: true },
+  // In LegalCase.js - Replace the documents section
+
+documents: [{
+ document_id: { type: String, required: true },
   document_type: { type: String, required: true },
   description: { type: String, default: '' },
-  file_name: { type: String, required: true },
-  file_path: { type: String, required: true },  // Store relative path
+  file_name: { type: String, required: false }, // CHANGED: removed required
+  file_path: { type: String, required: false }, // CHANGED: removed required
   mime_type: { type: String, default: 'application/octet-stream' },
   size: { type: Number },
-  uploaded_date: { type: Date, default: Date.now },
-  uploaded_by: { type: String, required: false }
-    }],
+  
+  // Request tracking
+  requested_by_admin: { type: String }, // admin_id who requested
+  requested_from: { type: String }, // party_id or advocate_id
+  requested_from_type: { type: String, enum: ['litigant', 'advocate'] },
+  request_date: { type: Date },
+  submission_deadline: { type: Date },
+  request_description: { type: String },
+  
+  // Upload tracking
+  uploaded_by: { type: String },
+  uploaded_by_type: { type: String, enum: ['litigant', 'advocate', 'admin', 'clerk'] },
+  uploaded_date: { type: Date },
+  
+  // Verification tracking
+  verification_status: { 
+    type: String, 
+    enum: ['pending_upload', 'uploaded_pending_review', 'verified', 'rejected'],
+    default: 'pending_upload'
+  },
+  verified_by: { type: String }, // admin_id
+  verified_by_name: { type: String },
+  verification_date: { type: Date },
+  verification_notes: { type: String },
+  rejection_reason: { type: String },
+  
+  // Digital signature
+  digital_signature: {
+    is_signed: { type: Boolean, default: false },
+    signed_by: { type: String }, // admin_id
+    signed_by_name: { type: String },
+    signature_timestamp: { type: Date },
+    signature_hash: { type: String }
+  }
+}],
     videoMeeting: {
       meetingLink: { type: String },
       startDateTime: { type: Date },
@@ -249,4 +348,8 @@ advocate_requests: [{
     this.last_updated = Date.now();
     next();
   });
+  LegalCaseSchema.index({ case_num: 1 });
+LegalCaseSchema.index({ district: 1 });
+LegalCaseSchema.index({ 'plaintiff_details.party_id': 1 });
+LegalCaseSchema.index({ 'respondent_details.party_id': 1 });
   module.exports= mongoose.model('LegalCase', LegalCaseSchema);

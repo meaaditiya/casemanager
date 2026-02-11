@@ -63,6 +63,7 @@ const LitigantSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
-
+LitigantSchema.index({ party_id: 1 });
+LitigantSchema.index({ 'contact.email': 1 });
 // Indexes
 module.exports= mongoose.model('Litigant' ,LitigantSchema );

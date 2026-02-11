@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Volume2, VolumeX, FileText, Calendar, Gavel, Users, Search } from 'lucide-react';
+import { Send, Loader2, Volume2, VolumeX, FileText, Calendar, Gavel, Users, Search, Square, Copy, Check } from 'lucide-react';
 import '../ComponentsCSS/nyaaysaathi.css';
 
 const NyaySaathi = () => {
@@ -14,8 +14,11 @@ const NyaySaathi = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(true);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [abortController, setAbortController] = useState(null);
   
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,6 +80,16 @@ const NyaySaathi = () => {
     if (isSpeaking) stopSpeech();
   };
 
+  const copyToClipboard = async (text, index) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const addMessage = (type, content) => {
     setMessages(prev => [...prev, { type, content, timestamp: new Date() }]);
     if (type === 'bot' && speechEnabled) {
@@ -84,50 +97,33 @@ const NyaySaathi = () => {
     }
   };
 
-  const addThinkingMessage = () => {
-    setMessages(prev => [...prev, { type: 'thinking' }]);
-    setIsProcessing(true);
-  };
-
-  const removeThinkingMessage = () => {
-    setMessages(prev => prev.filter(msg => msg.type !== 'thinking'));
-    setIsProcessing(false);
+  const stopGeneration = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setIsProcessing(false);
+    }
   };
 
   // ==================== LEGAL QUESTION VALIDATION ====================
   const isLegalQuestion = (query) => {
     const legalKeywords = [
-      // Legal concepts
       'case', 'court', 'judge', 'advocate', 'lawyer', 'legal', 'law', 'petition', 'appeal',
       'trial', 'evidence', 'witness', 'bail', 'arrest', 'complaint', 'fir', 'charge',
       'sentence', 'judgment', 'verdict', 'hearing', 'testimony', 'prosecution', 'defense',
-      
-      // Indian legal codes
       'ipc', 'crpc', 'cpc', 'constitution', 'section', 'article', 'act', 'code',
       'indian penal code', 'criminal procedure', 'civil procedure', 'bharatiya',
-      
-      // Legal procedures
       'file', 'filing', 'sue', 'lawsuit', 'litigation', 'dispute', 'claim', 'rights',
       'duty', 'obligation', 'contract', 'agreement', 'violation', 'offense', 'crime',
-      
-      // Court-related
       'supreme court', 'high court', 'district court', 'magistrate', 'sessions court',
       'tribunal', 'jurisdiction', 'bench', 'counsel',
-      
-      // Legal remedies
       'compensation', 'damages', 'injunction', 'writ', 'habeas corpus', 'mandamus',
       'certiorari', 'prohibition', 'quo warranto',
-      
-      // Common legal queries
       'divorce', 'property', 'inheritance', 'will', 'custody', 'maintenance', 'alimony',
       'cheque bounce', 'defamation', 'harassment', 'domestic violence', 'dowry',
       'consumer', 'tenant', 'landlord', 'employment', 'labour', 'accident',
-      
-      // Legal documents
       'affidavit', 'deed', 'power of attorney', 'notice', 'summons', 'warrant',
       'plaint', 'written statement', 'vakalatnama',
-      
-      // Rights and laws
       'fundamental rights', 'legal rights', 'constitutional rights', 'human rights',
       'right to', 'privacy', 'freedom', 'equality', 'justice'
     ];
@@ -141,60 +137,58 @@ const NyaySaathi = () => {
     ];
 
     const lowerQuery = query.toLowerCase();
-    
-    // Check for non-legal keywords first
     const hasNonLegal = nonLegalKeywords.some(k => lowerQuery.includes(k));
     if (hasNonLegal) return false;
-    
-    // Check for legal keywords
     const hasLegal = legalKeywords.some(k => lowerQuery.includes(k));
-    
     return hasLegal;
   };
 
   // ==================== LLAMA API WITH STREAMING ====================
-  const callLlamaStreamingAPI = async (prompt, onToken) => {
-  try {
-    const response = await fetch("http://localhost:5000/api/llama/stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
-    });
+  const callLlamaStreamingAPI = async (prompt, onToken, controller) => {
+    try {
+      const response = await fetch("http://localhost:5000/api/llama/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to connect to backend API");
-    }
+      if (!response.ok) {
+        throw new Error("Failed to connect to backend API");
+      }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let fullText = "";
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let fullText = "";
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split("\n").filter(Boolean);
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n").filter(Boolean);
 
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
-          if (data.response) {
-            fullText += data.response;
-            onToken(fullText);
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.response) {
+              fullText += data.response;
+              onToken(fullText);
+            }
+          } catch {
+            continue;
           }
-        } catch {
-          continue;
         }
       }
+
+      return fullText;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Generation stopped by user');
+      }
+      throw new Error(`API Error: ${error.message}`);
     }
-
-    return fullText;
-  } catch (error) {
-    throw new Error(`API Error: ${error.message}`);
-  }
-};
-
+  };
 
   // ==================== LEGAL ADVICE HANDLER ====================
   const handleLegalAdvice = async (userInput) => {
@@ -225,12 +219,15 @@ First, determine if this is a legal question. If NO, use the rejection response 
 
 YOUR DETAILED RESPONSE:`;
 
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       let botMessageIndex;
       
       setMessages(prev => {
         botMessageIndex = prev.length;
-        return [...prev, { type: 'bot', content: '', timestamp: new Date() }];
+        return [...prev, { type: 'bot', content: '', timestamp: new Date(), isGenerating: true }];
       });
 
       await callLlamaStreamingAPI(legalPrompt, (streamedText) => {
@@ -239,10 +236,20 @@ YOUR DETAILED RESPONSE:`;
           updated[botMessageIndex] = { 
             type: 'bot', 
             content: streamedText,
-            timestamp: updated[botMessageIndex].timestamp 
+            timestamp: updated[botMessageIndex].timestamp,
+            isGenerating: true
           };
           return updated;
         });
+        scrollToBottom();
+      }, controller);
+
+      setMessages(prev => {
+        const updated = [...prev];
+        if (updated[botMessageIndex]) {
+          updated[botMessageIndex].isGenerating = false;
+        }
+        return updated;
       });
 
       if (speechEnabled) {
@@ -251,7 +258,11 @@ YOUR DETAILED RESPONSE:`;
       }
 
     } catch (error) {
-      addMessage('bot', `❌ I apologize, but I'm having trouble connecting to my knowledge base right now. Please try again in a moment.\n\nError: ${error.message}`);
+      if (error.message !== 'Generation stopped by user') {
+        addMessage('bot', `❌ I apologize, but I'm having trouble connecting to my knowledge base right now. Please try again in a moment.\n\nError: ${error.message}`);
+      }
+    } finally {
+      setAbortController(null);
     }
   };
 
@@ -270,15 +281,13 @@ YOUR DETAILED RESPONSE:`;
       return;
     }
 
-    addThinkingMessage();
-
     setTimeout(async () => {
       try {
-        removeThinkingMessage();
         await handleLegalAdvice(userInput);
       } catch (error) {
-        removeThinkingMessage();
-        addMessage('bot', `⚠️ Error: ${error.message}\n\nPlease try again or rephrase your question.`);
+        if (error.message !== 'Generation stopped by user') {
+          addMessage('bot', `⚠️ Error: ${error.message}\n\nPlease try again or rephrase your question.`);
+        }
       } finally {
         setIsProcessing(false);
       }
@@ -306,35 +315,48 @@ YOUR DETAILED RESPONSE:`;
           <button 
             onClick={toggleSpeech} 
             className={`speech-toggle ${speechEnabled ? 'active' : ''}`}
+            title={speechEnabled ? 'Disable voice' : 'Enable voice'}
           >
             {speechEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
           </button>
-          {isSpeaking && <span className="speaking-indicator">Speaking...</span>}
         </div>
       </div>
 
       <div className="nyaysaathi-main">
-        <div className="messages-area">
+        <div className="messages-area" ref={messagesContainerRef}>
           {messages.map((msg, i) => (
             <div key={i} className={`message-wrapper ${msg.type}`}>
-              {msg.type === 'thinking' ? (
-                <div className="thinking-indicator">
-                  <Loader2 className="spinner" />
-                  <span>Analyzing legal query...</span>
+              <div className={`message-bubble ${msg.type}`}>
+                {msg.type === 'bot' && <div className="bot-avatar">⚖️</div>}
+                <div className="message-content">
+                  <div className="message-text">{msg.content}</div>
+                  {msg.type === 'bot' && msg.content && (
+                    <div className="message-actions">
+                      <button 
+                        onClick={() => copyToClipboard(msg.content, i)}
+                        className="action-btn"
+                        title="Copy to clipboard"
+                      >
+                        {copiedIndex === i ? <Check size={16} /> : <Copy size={16} />}
+                      </button>
+                      {msg.isGenerating && (
+                        <button 
+                          onClick={stopGeneration}
+                          className="action-btn stop-btn"
+                          title="Stop generating"
+                        >
+                          <Square size={16} fill="currentColor" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {msg.timestamp && (
+                    <div className="message-time">
+                      {msg.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className={`message-bubble ${msg.type}`}>
-                  {msg.type === 'bot' && <div className="bot-avatar">⚖️</div>}
-                  <div className="message-content">
-                    <div className="message-text">{msg.content}</div>
-                    {msg.timestamp && (
-                      <div className="message-time">
-                        {msg.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           ))}
           <div ref={messagesEndRef} />
@@ -361,21 +383,26 @@ YOUR DETAILED RESPONSE:`;
           </div>
           
           <div className="input-form">
-            <input
-              type="text"
+            <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask about Indian laws, legal procedures, rights, court processes..."
               disabled={isProcessing}
               className="message-input"
+              rows="1"
             />
             <button 
-              onClick={handleSubmit}
-              disabled={isProcessing || !inputValue.trim()} 
-              className="send-button"
+              onClick={isProcessing ? stopGeneration : handleSubmit}
+              disabled={!isProcessing && !inputValue.trim()} 
+              className={`send-button ${isProcessing ? 'stop-mode' : ''}`}
+              title={isProcessing ? 'Stop generating' : 'Send message'}
             >
-              {isProcessing ? <Loader2 className="spinner" /> : <Send size={20} />}
+              {isProcessing ? (
+                <Square size={18} fill="currentColor" />
+              ) : (
+                <Send size={20} />
+              )}
             </button>
           </div>
         </div>

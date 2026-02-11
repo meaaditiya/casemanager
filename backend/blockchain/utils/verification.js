@@ -281,39 +281,38 @@ const verifyBlockComplete = async (block, previousBlock, secret, difficulty) => 
     layers: {}
   };
 
-  // Layer 1: Hash Chain
+  // ⚡ Layers 1-3: CPU-bound, run synchronously (fast)
   const hashChainResult = verifyBlock(block, previousBlock, secret, difficulty);
   results.layers.hashChain = hashChainResult;
   if (!hashChainResult.valid) results.overall = false;
 
-  // Layer 2: Merkle Root
   const merkleResult = verifyMerkleRoot(block);
   results.layers.merkleTree = merkleResult;
   if (!merkleResult.valid && merkleResult.severity === 'CRITICAL') {
     results.overall = false;
   }
 
-  // Layer 3: Digital Signature
   const signatureResult = verifyDigitalSignature(block);
   results.layers.digitalSignature = signatureResult;
   if (!signatureResult.valid && signatureResult.severity === 'CRITICAL') {
     results.overall = false;
   }
 
-  // Layer 4: IPFS Anchor
-  const ipfsResult = await verifyIPFSAnchor(block);
+  // ⚡ Layers 4-5: I/O-bound, run in PARALLEL (MUCH FASTER)
+  const [ipfsResult, auditResult] = await Promise.all([
+    verifyIPFSAnchor(block),
+    verifyAuditCheckpoint(block)
+  ]);
+
   results.layers.ipfsAnchor = ipfsResult;
   if (!ipfsResult.valid && ipfsResult.severity === 'CRITICAL') {
     results.overall = false;
   }
 
-  // 🆕 Layer 5: AUDIT CHECKPOINT (ULTIMATE DEFENSE)
-  const auditResult = await verifyAuditCheckpoint(block);
   results.layers.auditCheckpoint = auditResult;
   if (!auditResult.valid && auditResult.severity === 'CRITICAL') {
     results.overall = false;
   }
-
   // Count failures
   results.failedLayers = Object.values(results.layers).filter(l => !l.valid).length;
   results.criticalFailures = Object.values(results.layers)
@@ -397,8 +396,10 @@ const verifyChain = async (secret, difficulty) => {
 /**
  * 🆕 VERIFY ENTITY HISTORY WITH ALL 5 LAYERS
  */
+
 const verifyEntityHistory = async (entityId) => {
-  const blocks = await Block.find({ entityId }).sort({ index: 1 });
+  // ⚡ Use .lean() for 30-50% faster queries
+  const blocks = await Block.find({ entityId }).sort({ index: 1 }).lean();
 
   if (blocks.length === 0) {
     return { 
@@ -420,8 +421,12 @@ const verifyEntityHistory = async (entityId) => {
     }
   };
 
-  const allBlocks = await Block.find().sort({ index: 1 });
-
+  // ⚡ Only fetch blocks we need (not entire chain)
+  const minIndex = Math.min(...blocks.map(b => b.index));
+  const maxIndex = Math.max(...blocks.map(b => b.index));
+  const allBlocks = await Block.find({ 
+    index: { $gte: minIndex - 1, $lte: maxIndex } 
+  }).sort({ index: 1 }).lean();
   for (const block of blocks) {
     const previousBlock = allBlocks.find(b => b.index === block.index - 1);
     

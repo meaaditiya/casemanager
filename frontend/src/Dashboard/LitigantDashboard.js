@@ -15,6 +15,7 @@ import LitigantCaseAssign from '../Components/litigantcaseassign';
 import UploadVideoPlead from '../Components/UploadVideo';
 import LegalAssistantChatbot from '../Components/LegalAssistantChatbot';
 import NyaaySaathi from '../Components/nyaaysaathi';
+import LitigantLiveDashboard from '../Components/Litigantlivedashboard';
 const LitigantDashboard = () => {
   // Profile and Auth State
   const [profile, setProfile] = useState(null);
@@ -36,13 +37,14 @@ const LitigantDashboard = () => {
   const [selectedCase, setSelectedCase] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [viewMode, setViewMode] = useState('details');
-
-  // Hearings State
-  const [searchCaseNum, setSearchCaseNum] = useState('');
+const [searchCaseNum, setSearchCaseNum] = useState('');
   const [searchedHearings, setSearchedHearings] = useState(null);
   const [hearingsLoading, setHearingsLoading] = useState(false);
   const [hearingsError, setHearingsError] = useState(null);
   const [allHearings, setAllHearings] = useState([]);
+  const [selectedHearing, setSelectedHearing] = useState(null);
+  const [isHearingDetailsOpen, setIsHearingDetailsOpen] = useState(false);
+
 
   // Documents State
   const [documents, setDocuments] = useState([]);
@@ -57,6 +59,11 @@ const LitigantDashboard = () => {
   // Form State
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
+// Add these to your existing state declarations (around line 50-70)
+const [documentRequests, setDocumentRequests] = useState([]);
+const [requestsLoading, setRequestsLoading] = useState(false);
+const [selectedDocumentRequest, setSelectedDocumentRequest] = useState(null);
+const [uploadingRequestedDoc, setUploadingRequestedDoc] = useState(false);
 
   const navigate = useNavigate();
 
@@ -173,7 +180,8 @@ const LitigantDashboard = () => {
   }, [activeSection]);
 
   // Fetch hearings
-  useEffect(() => {
+  
+useEffect(() => {
     const fetchAllHearings = async () => {
       setHearingsLoading(true);
       try {
@@ -208,8 +216,74 @@ const LitigantDashboard = () => {
       fetchAllHearings();
     }
   }, [activeSection, cases]);
+// Add this useEffect after your existing useEffects (around line 180)
+useEffect(() => {
+  const fetchDocumentRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/my-document-requests', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDocumentRequests(response.data.requests || []);
+    } catch (error) {
+      console.error('Error fetching document requests:', error);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
 
-  const handleHearingSearch = async (e) => {
+  if (activeSection === 'documents') {
+    fetchDocumentRequests();
+  }
+}, [activeSection]);
+// Add this function after handleDocumentUpload (around line 340)
+const handleRequestedDocumentUpload = async (e, documentId, caseNum) => {
+  e.preventDefault();
+  setUploadingRequestedDoc(true);
+  setDocumentError('');
+  setDocumentSuccess('');
+
+  if (!documentFile) {
+    setDocumentError('Please select a file to upload');
+    setUploadingRequestedDoc(false);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', documentFile);
+
+    await axios.post(
+      `http://localhost:5000/api/case/${caseNum}/upload-requested-document/${documentId}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    setDocumentSuccess('Requested document uploaded successfully. Pending admin verification.');
+    setDocumentFile(null);
+    setSelectedDocumentRequest(null);
+    document.getElementById('requested-doc-file-input').value = '';
+    
+    // Refresh document requests
+    const response = await axios.get('http://localhost:5000/api/my-document-requests', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setDocumentRequests(response.data.requests || []);
+    
+  } catch (error) {
+    setDocumentError(error.response?.data?.message || 'Failed to upload requested document');
+  } finally {
+    setUploadingRequestedDoc(false);
+  }
+};
+const handleHearingSearch = async (e) => {
     e.preventDefault();
     setHearingsLoading(true);
     setHearingsError(null);
@@ -225,6 +299,125 @@ const LitigantDashboard = () => {
     } finally {
       setHearingsLoading(false);
     }
+  };
+  const printHearingOrder = () => {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    const orderContent = document.querySelector('.hearing-order-sheet');
+    if (!orderContent) {
+      alert('Order content not found');
+      printWindow.close();
+      return;
+    }
+    const printDocument = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Order Sheet</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Times New Roman', Times, serif; 
+              padding: 20px; 
+              background: white;
+            }
+            .hearing-order-sheet {
+              max-width: 800px; 
+              margin: 0 auto; 
+              padding: 40px; 
+              background-color: #fff;
+              color: #000;
+            }
+            .order-header {
+              text-align: center;
+              margin-bottom: 20px;
+            }
+            .order-header h1 {
+              font-size: 24px;
+              font-weight: bold;
+              text-decoration: underline;
+              margin-bottom: 10px;
+            }
+            .order-meta {
+              margin-bottom: 20px;
+            }
+            .order-meta table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .order-meta td {
+              padding: 8px 0;
+              vertical-align: top;
+            }
+            .order-meta .label {
+              font-weight: bold;
+              width: 200px;
+            }
+            .order-content {
+              margin: 30px 0;
+              text-align: justify;
+              line-height: 1.8;
+              font-size: 14px;
+            }
+            .order-content p {
+              margin-bottom: 12px;
+            }
+            .order-signature {
+              margin-top: 60px;
+              text-align: right;
+            }
+            .signature-box {
+              display: inline-block;
+              min-width: 250px;
+              text-align: center;
+            }
+            .signature-line {
+              border-top: 1px solid #000;
+              margin-bottom: 5px;
+              padding-top: 40px;
+            }
+            .signature-details {
+              font-size: 12px;
+              margin-top: 10px;
+              text-align: left;
+              padding-left: 10px;
+            }
+            .digital-signature-box {
+              margin-top: 40px;
+              border: 1px solid #000;
+              padding: 15px;
+              background: #f9f9f9;
+            }
+            .digital-signature-box h4 {
+              font-size: 14px;
+              margin-bottom: 10px;
+              text-decoration: underline;
+            }
+            .digital-signature-box p {
+              font-size: 12px;
+              margin-bottom: 5px;
+            }
+            @media print {
+              body { padding: 0; }
+              .hearing-order-sheet { border: none; box-shadow: none; }
+              @page { size: A4; margin: 1cm; }
+            }
+          </style>
+        </head>
+        <body>
+          ${orderContent.outerHTML}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.open();
+    printWindow.document.write(printDocument);
+    printWindow.document.close();
   };
 
   const handleLogout = async () => {
@@ -269,16 +462,17 @@ const LitigantDashboard = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleTopLevelChange = (field, value) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
-      if (field === 'case_type' && value === 'Civil') {
-        delete newData.police_station_details;
-      }
-      return newData;
-    });
-  };
-
+const handleTopLevelChange = (field, value) => {
+  setFormData((prev) => {
+    const newData = { ...prev, [field]: value };
+    // Only show police station details for Criminal and criminal-related cases
+    const criminalTypes = ['Criminal', 'MAGISTRIAL CASES', 'MISC. CRIM APLN', 'SESSIONS CASES', 'CRIM APPEAL'];
+    if (field === 'case_type' && !criminalTypes.includes(value)) {
+      delete newData.police_station_details;
+    }
+    return newData;
+  });
+};
   const handleNestedChange = (section, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -289,16 +483,18 @@ const LitigantDashboard = () => {
     }));
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    try {
-      const token = localStorage.getItem('token');
-      const dataToSubmit = { ...formData };
-      if (formData.case_type === 'Civil') {
-        delete dataToSubmit.police_station_details;
-      }
+ const handleFormSubmit = async (e) => {
+  e.preventDefault();
+  setFormError('');
+  setFormSuccess('');
+  try {
+    const token = localStorage.getItem('token');
+    const dataToSubmit = { ...formData };
+    // Only include police station details for criminal-related cases
+    const criminalTypes = ['Criminal', 'MAGISTRIAL CASES', 'MISC. CRIM APLN', 'SESSIONS CASES', 'CRIM APPEAL'];
+    if (!criminalTypes.includes(formData.case_type)) {
+      delete dataToSubmit.police_station_details;
+    }
       const response = await axios.post(
         'http://localhost:5000/api/filecase/litigant',
         dataToSubmit,
@@ -800,17 +996,44 @@ const LitigantDashboard = () => {
                 <option value="Other">Other</option>
               </select>
             </div>
-            <div className="litigantdash-form-group-item">
-              <label>Case Type</label>
-              <select
-                value={formData.case_type}
-                onChange={(e) => handleTopLevelChange('case_type', e.target.value)}
-                required
-              >
-                <option value="Civil">Civil</option>
-                <option value="Criminal">Criminal</option>
-              </select>
-            </div>
+           <div className="litigantdash-form-group-item">
+  <label>Case Type</label>
+  <select
+    value={formData.case_type}
+    onChange={(e) => handleTopLevelChange('case_type', e.target.value)}
+    required
+  >
+    <option value="Civil">Civil</option>
+    <option value="Criminal">Criminal</option>
+    <option value="CIV SUITS">CIV SUITS</option>
+    <option value="EXE PET">EXE PET</option>
+    <option value="MISC. CIV APPLN">MISC. CIV APPLN</option>
+    <option value="MRG PET">MRG PET</option>
+    <option value="MACP">MACP</option>
+    <option value="MISC CIV CASES">MISC CIV CASES</option>
+    <option value="CIVIL APPEAL">CIVIL APPEAL</option>
+    <option value="ARBITN">ARBITN</option>
+    <option value="MISC. CIV APPEAL">MISC. CIV APPEAL</option>
+    <option value="LAND REFRNC">LAND REFRNC</option>
+    <option value="MAGISTRIAL CASES">MAGISTRIAL CASES</option>
+    <option value="MISC. EXE.">MISC. EXE.</option>
+    <option value="LABUR MAIN">LABUR MAIN</option>
+    <option value="COMMERCIAL SUIT">COMMERCIAL SUIT</option>
+    <option value="MISC. CRIM APLN">MISC. CRIM APLN</option>
+    <option value="INDUS MAIN">INDUS MAIN</option>
+    <option value="CIVIL REV.">CIVIL REV.</option>
+    <option value="OTHER TRIBNL">OTHER TRIBNL</option>
+    <option value="INDUS MISC">INDUS MISC</option>
+    <option value="LABUR MISC">LABUR MISC</option>
+    <option value="ELCTN PET">ELCTN PET</option>
+    <option value="CO-OP MAIN">CO-OP MAIN</option>
+    <option value="COMMERCIAL APPEAL">COMMERCIAL APPEAL</option>
+    <option value="CO-OP APEAL MAIN">CO-OP APEAL MAIN</option>
+    <option value="CO-OP MISC.">CO-OP MISC.</option>
+    <option value="SESSIONS CASES">SESSIONS CASES</option>
+    <option value="CRIM APPEAL">CRIM APPEAL</option>
+  </select>
+</div>
           </div>
         </div>
         <div className="litigantdash-form-section-block">
@@ -1160,9 +1383,9 @@ const LitigantDashboard = () => {
             </div>
           </div>
         </div>
-        {formData.case_type === 'Criminal' && (
-          <div className="litigantdash-form-section-block">
-            <h3>Police Station Details</h3>
+       {['Criminal', 'MAGISTRIAL CASES', 'MISC. CRIM APLN', 'SESSIONS CASES', 'CRIM APPEAL'].includes(formData.case_type) && (
+  <div className="litigantdash-form-section-block">
+    <h3>Police Station Details</h3>
             <div className="litigantdash-form-grid-layout">
               <div className="litigantdash-form-group-item">
                 <label>Police Station</label>
@@ -1288,7 +1511,7 @@ const LitigantDashboard = () => {
       </form>
     </div>
   );
-  const renderHearings = () => (
+ const renderHearings = () => (
     <div className="litigantdash-hearings-main-section">
       <h2>Search Case Hearings</h2>
       <form onSubmit={handleHearingSearch} className="litigantdash-hearing-search-form-container">
@@ -1330,7 +1553,11 @@ const LitigantDashboard = () => {
                       <span className="litigantdash-detail-label-text">Hearing Date:</span>
                       <span className="litigantdash-detail-value-text">
                         {hearing.hearing_date
-                          ? new Date(hearing.hearing_date).toLocaleDateString()
+                          ? new Date(hearing.hearing_date).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })
                           : 'Not specified'}
                       </span>
                     </div>
@@ -1342,172 +1569,473 @@ const LitigantDashboard = () => {
                       </span>
                     </div>
 
-                    {hearing.remarks && (
-                      <div className="litigantdash-detail-row-item">
-                        <span className="litigantdash-detail-label-text">Remarks:</span>
-                        <span className="litigantdash-detail-value-text">{hearing.remarks}</span>
-                      </div>
-                    )}
-
                     {hearing.next_hearing_date && (
                       <div className="litigantdash-detail-row-item">
                         <span className="litigantdash-detail-label-text">Next Hearing Date:</span>
                         <span className="litigantdash-detail-value-text">
-                          {new Date(hearing.next_hearing_date).toLocaleDateString()}
+                          {new Date(hearing.next_hearing_date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
                         </span>
                       </div>
                     )}
 
-                    {hearing.attachments && hearing.attachments.length > 0 && (
-                      <div className="litigantdash-attachments-section-container">
-                        <h4>Attachments</h4>
-                        <ul className="litigantdash-attachment-list-items">
-                          {hearing.attachments.map((attachment, i) => (
-                            <li key={i} className="litigantdash-attachment-item-box">
-                              <div className="litigantdash-attachment-info-details">
-                                <span className="litigantdash-attachment-name-text">
-                                  {attachment.originalname}
-                                </span>
-                                <span className="litigantdash-attachment-size-text">
-                                  {(attachment.size / 1024).toFixed(2)} KB
-                                </span>
-                              </div>
-
-                              <button
-                                onClick={() => downloadAttachment(attachment.filename, attachment.originalname)}
-                                className="litigantdash-download-attachment-button"
-                              >
-                                Download
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div className="litigantdash-case-card-actions" style={{marginTop: '16px'}}>
+                      <button
+                        className="litigantdash-view-details-button"
+                        onClick={() => {
+                          setSelectedHearing(hearing);
+                          setIsHearingDetailsOpen(true);
+                        }}
+                      >
+                        Check Details
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
-
             )}
           </div>
         )
       )}
-    </div>
-  );
-  const renderDocuments = () => (
-    <div className="litigantdash-documents-main-section">
-      <h2>Case Documents</h2>
-      <div className="litigantdash-case-selector-dropdown">
-        <select
-          onChange={(e) => {
-            const caseNum = e.target.value;
-            if (caseNum) {
-              fetchDocuments(caseNum);
-            } else {
-              setSelectedCaseForDocuments(null);
-              setDocuments([]);
+
+      {isHearingDetailsOpen && selectedHearing && (
+        <div
+          className="litigantdash-case-details-overlay-backdrop"
+          onClick={(e) => {
+            if (e.target.className === 'litigantdash-case-details-overlay-backdrop') {
+              setIsHearingDetailsOpen(false);
             }
           }}
-          value={selectedCaseForDocuments?.case_num || ''}
         >
-          <option value="">-- Select a Case --</option>
-          {cases.map((legalCase) => (
-            <option key={legalCase._id} value={legalCase.case_num}>
-              {legalCase.case_num} - {legalCase.case_type}
-            </option>
-          ))}
-        </select>
+          <div className="litigantdash-case-details-modal-wrapper">
+            <div className="litigantdash-modal-header-bar">
+              <h2>Hearing Order Details</h2>
+              <div className="litigantdash-header-right-actions">
+                <button className="litigantdash-print-receipt-button" onClick={printHearingOrder}>
+                  Print Order
+                </button>
+                <button className="litigantdash-close-modal-button" onClick={() => setIsHearingDetailsOpen(false)}>
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="litigantdash-modal-content-scrollable-area">
+              <div className="litigantdash-modal-content-panel">
+               <div className="hearing-order-sheet">
+  <div className="order-header">
+    <p style={{fontSize: '11px', marginBottom: '5px'}}>Schedule VII, Form No.127</p>
+    <p style={{fontSize: '11px', marginBottom: '15px'}}>High Court Criminal Form No (H) 106</p>
+    <h1>ORDER SHEET</h1>
+  </div>
+                {(() => {
+  // Fetch the actual case data for this case number
+  const currentCase = cases.find(c => c.case_num === searchCaseNum) || {};
+  const officeDetails = currentCase.for_office_use_only || {};
+  const plaintiffName = currentCase.plaintiff_details?.name || 'Petitioner';
+  const respondentName = currentCase.respondent_details?.name || 'Respondent';
+  const plaintiffAdvocate = currentCase.plaintiff_details?.advocate || '';
+  const respondentAdvocate = currentCase.respondent_details?.advocate || '';
+  const district = currentCase.district || '';
+  const court = currentCase.court || '';
+  
+  return (
+    <>
+      <div className="order-header">
+        <h2 style={{fontSize: '16px', fontWeight: 'bold', textAlign: 'center', marginBottom: '10px'}}>
+          OFFICE OF THE DISTRICT & SESSIONS JUDGE, {district.toUpperCase()}
+        </h2>
+        <p style={{fontSize: '14px', textAlign: 'right', marginBottom: '10px', fontWeight: 'bold'}}>
+          IN THE COURT OF: {officeDetails.court_allotted || court}
+        </p>
+        <h3 style={{fontSize: '14px', textAlign: 'center', marginBottom: '15px', fontWeight: 'bold'}}>
+          {plaintiffName} v. {respondentName}
+        </h3>
+        <p style={{fontSize: '13px', textAlign: 'left', marginBottom: '5px'}}>
+          <strong>Case No.:</strong> {searchCaseNum}
+        </p>
+        <p style={{fontSize: '13px', textAlign: 'left', marginBottom: '20px'}}>
+          <strong>Case Type:</strong> {currentCase.case_type || 'N/A'}
+        </p>
+        <h1 style={{fontSize: '18px', textAlign: 'center', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '20px'}}>
+          ORDER SHEET / PROCEEDINGS
+        </h1>
       </div>
-      {selectedCaseForDocuments && (
-        <div className="litigantdash-document-upload-form-container">
-          <h3>Upload New Document</h3>
-          <form onSubmit={handleDocumentUpload}>
-            <div className="litigantdash-form-group-item">
-              <label htmlFor="documentTypeSelect">Document Type *</label>
-              <select
-                id="documentTypeSelect"
-                value={documentType}
-                onChange={(e) => setDocumentType(e.target.value)}
-                required
-              >
-                <option value="">-- Select Document Type --</option>
-                <option value="Petition">Petition</option>
-                <option value="Affidavit">Affidavit</option>
-                <option value="Evidence">Evidence</option>
-                <option value="Court Order">Court Order</option>
-                <option value="Judgment">Judgment</option>
-                <option value="Application">Application</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div className="litigantdash-form-group-item">
-              <label htmlFor="documentDescriptionTextarea">Description</label>
-              <textarea
-                id="documentDescriptionTextarea"
-                value={documentDescription}
-                onChange={(e) => setDocumentDescription(e.target.value)}
-                placeholder="Enter document description"
-              />
-            </div>
-            <div className="litigantdash-form-group-item">
-              <label htmlFor="litigantdoc-upload-file-input">File *</label>
-              <input
-                type="file"
-                id="litigantdoc-upload-file-input"
-                onChange={handleFileChange}
-                required
-              />
-            </div>
-            {documentError && <div className="litigantdash-error-alert-message">{documentError}</div>}
-            {documentSuccess && <div className="litigantdash-success-alert-message">{documentSuccess}</div>}
-            <button type="submit" className="litigantdash-submit-form-button">
-              Upload Document
-            </button>
-          </form>
+
+      {(plaintiffAdvocate || respondentAdvocate) && (
+        <div style={{fontSize: '12px', marginBottom: '15px', padding: '10px', background: '#f5f5f5'}}>
+          {plaintiffAdvocate && <p><strong>Present for Petitioner:</strong> {plaintiffAdvocate}</p>}
+          {respondentAdvocate && <p><strong>Present for Respondent:</strong> {respondentAdvocate}</p>}
         </div>
       )}
-      {selectedCaseForDocuments && (
-        <div className="litigantdash-documents-list-container">
-          <h3>Case Documents</h3>
-          {documentsLoading ? (
-            <div className="litigantdash-loading-spinner">Loading documents...</div>
-          ) : documents.length === 0 ? (
-            <div className="litigantdash-no-documents-message">No documents found for this case.</div>
-          ) : (
-            <table className="litigantdash-documents-table-grid">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Filename</th>
-                  <th>Description</th>
-                  <th>Uploaded</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((document) => (
-                  <tr key={document.document_id}>
-                    <td>{document.document_type}</td>
-                    <td>{document.file_name}</td>
-                    <td>{document.description || 'N/A'}</td>
-                    <td>{new Date(document.uploaded_date).toLocaleDateString()}</td>
-                    <td>
-                      <button
-                        onClick={() => downloadDocument(document.document_id, document.file_name)}
-                        className="litigantdash-download-attachment-button"
-                      >
-                        Download
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    </>
+  );
+})()}
+<table style={{width: '100%', borderCollapse: 'collapse', marginTop: '20px', border: '1px solid #000'}}>
+  <thead>
+    <tr>
+      <th style={{border: '1px solid #000', padding: '8px', textAlign: 'center', width: '50px', fontWeight: 'bold'}}>S. No.</th>
+      <th style={{border: '1px solid #000', padding: '8px', textAlign: 'center', width: '120px', fontWeight: 'bold'}}>Date of Order</th>
+      <th style={{border: '1px solid #000', padding: '8px', textAlign: 'center', fontWeight: 'bold'}}>ORDER / PROCEEDINGS</th>
+      <th style={{border: '1px solid #000', padding: '8px', textAlign: 'center', width: '150px', fontWeight: 'bold'}}>Signature of Court</th>
+      <th style={{border: '1px solid #000', padding: '8px', textAlign: 'center', width: '120px', fontWeight: 'bold'}}>Office Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {searchedHearings && searchedHearings.map((hearing, idx) => (
+      <tr key={idx}>
+        <td style={{border: '1px solid #000', padding: '8px', verticalAlign: 'top', textAlign: 'center'}}>
+          {idx + 1}
+        </td>
+        <td style={{border: '1px solid #000', padding: '8px', verticalAlign: 'top', textAlign: 'center'}}>
+          {hearing.hearing_date
+            ? new Date(hearing.hearing_date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })
+            : ''}
+        </td>
+        <td style={{border: '1px solid #000', padding: '12px', verticalAlign: 'top'}}>
+          <div 
+            className="order-content" 
+            dangerouslySetInnerHTML={{ __html: hearing.remarks || hearing.remarks_plain_text || 'No order recorded' }}
+          />
+          {hearing.next_hearing_date && (
+            <p style={{marginTop: '15px', fontWeight: 'bold'}}>
+              Next Hearing: {new Date(hearing.next_hearing_date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })}
+            </p>
           )}
+        </td>
+        <td style={{border: '1px solid #000', padding: '8px', verticalAlign: 'top', textAlign: 'center'}}>
+          {hearing.digital_signature && hearing.digital_signature.is_signed ? (
+            <div style={{fontSize: '11px', textAlign: 'center'}}>
+              <div style={{fontWeight: 'bold', marginBottom: '5px'}}>
+                {hearing.digital_signature.signed_by_name}
+              </div>
+              <div style={{fontSize: '9px', fontStyle: 'italic'}}>
+                Digitally signed
+              </div>
+              <div style={{fontSize: '8px', marginTop: '3px'}}>
+                {hearing.digital_signature.signature_timestamp 
+                  ? new Date(hearing.digital_signature.signature_timestamp).toLocaleDateString('en-GB')
+                  : ''}
+              </div>
+            </div>
+          ) : (
+            <div style={{height: '60px'}}></div>
+          )}
+        </td>
+        <td style={{border: '1px solid #000', padding: '8px', verticalAlign: 'top', fontSize: '11px'}}>
+          {/* Office action space */}
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<div style={{marginTop: '40px', textAlign: 'right', paddingRight: '50px'}}>
+  <p style={{fontSize: '13px', marginBottom: '60px'}}>
+    <strong>By Order of Court</strong>
+  </p>
+  <div style={{borderTop: '1px solid #000', width: '250px', marginLeft: 'auto', paddingTop: '5px'}}>
+    <p style={{fontSize: '12px', textAlign: 'center', fontWeight: 'bold'}}>
+      {selectedHearing?.digital_signature?.signed_by_name || 'Presiding Judge'}
+    </p>
+    <p style={{fontSize: '11px', textAlign: 'center'}}>
+      {(() => {
+        const currentCase = cases.find(c => c.case_num === searchCaseNum) || {};
+        return currentCase.for_office_use_only?.court_allotted || currentCase.court || '';
+      })()}
+    </p>
+  </div>
+</div>
+              {searchedHearings && searchedHearings.some(h => h.digital_signature?.is_signed) && (
+  <div className="digital-signature-box">
+    <h4>DIGITAL SIGNATURE VERIFICATION</h4>
+    {searchedHearings.filter(h => h.digital_signature?.is_signed).map((hearing, idx) => (
+      <div key={idx} style={{marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #ddd'}}>
+        <p><strong>Order #{idx + 1}:</strong></p>
+        <p><strong>Digitally signed by:</strong> {hearing.digital_signature.signed_by_name}</p>
+        <p><strong>DN:</strong> cn={hearing.digital_signature.signed_by_name}, o=JUDICIAL, ou={hearing.digital_signature.signed_by_role?.toUpperCase()}, c=IN</p>
+        <p><strong>Date:</strong> {hearing.digital_signature.signature_timestamp 
+          ? new Date(hearing.digital_signature.signature_timestamp).toLocaleString('en-GB', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).replace(',', ' at')
+          : 'N/A'}</p>
+      </div>
+    ))}
+  </div>
+)}
+              
+                  {selectedHearing.attachments && selectedHearing.attachments.length > 0 && (
+                    <div style={{marginTop: '30px', padding: '15px', border: '1px solid #ddd', background: '#f9f9f9'}}>
+                      <h4 style={{marginBottom: '10px', fontSize: '14px'}}>Attachments</h4>
+                      <ul style={{listStyle: 'none', padding: 0}}>
+                        {selectedHearing.attachments.map((attachment, i) => (
+                          <li key={i} style={{marginBottom: '8px', fontSize: '12px'}}>
+                            <button
+                              onClick={() => downloadAttachment(attachment.filename, attachment.originalname)}
+                              style={{
+                                background: '#0f172a',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '6px 12px',
+                                cursor: 'pointer',
+                                fontSize: '11px'
+                              }}
+                            >
+                              Download: {attachment.originalname} ({(attachment.size / 1024).toFixed(2)} KB)
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div style={{marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end'}}>
+  <div style={{width: '200px', height: '100px', border: '1px dashed #999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#999'}}>
+    Court Seal
+  </div>
+  <div style={{fontSize: '11px', textAlign: 'right'}}>
+    <p><strong>Office/Registry Note:</strong></p>
+    <p style={{marginTop: '5px'}}>Copy to Registry for filing</p>
+    <p style={{marginTop: '30px'}}>__________________</p>
+    <p>Office Stamp & Date</p>
+  </div>
+</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
+  
+  
+ // Replace your entire renderDocuments function with this updated version
+const renderDocuments = () => (
+  <div className="litigantdash-documents-main-section">
+    <h2>Case Documents</h2>
+    
+    {/* Document Requests Section */}
+    <div className="litigantdash-document-requests-section">
+      <h3>Pending Document Requests from Court</h3>
+      {requestsLoading ? (
+        <div className="litigantdash-loading-spinner">Loading requests...</div>
+      ) : documentRequests.length === 0 ? (
+        <div className="litigantdash-no-requests-message">
+          No pending document requests from the court.
+        </div>
+      ) : (
+        <div className="litigantdash-requests-grid">
+          {documentRequests.map((request) => (
+            <div 
+              key={request.document_id} 
+              className={`litigantdash-request-card ${
+                request.verification_status === 'rejected' ? 'rejected' : 
+                request.verification_status === 'verified' ? 'verified' :
+                request.verification_status === 'uploaded_pending_review' ? 'pending-review' :
+                'pending-upload'
+              }`}
+            >
+              <div className="litigantdash-request-card-header">
+                <h4>{request.document_type}</h4>
+                <span className={`litigantdash-request-status-badge ${request.verification_status}`}>
+                  {request.verification_status.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+              
+              <div className="litigantdash-request-card-body">
+                <div className="litigantdash-request-detail-row">
+                  <span className="litigantdash-label">Case Number:</span>
+                  <span className="litigantdash-value">{request.case_num}</span>
+                </div>
+                <div className="litigantdash-request-detail-row">
+                  <span className="litigantdash-label">Case Type:</span>
+                  <span className="litigantdash-value">{request.case_type}</span>
+                </div>
+                {request.description && (
+                  <div className="litigantdash-request-detail-row">
+                    <span className="litigantdash-label">Description:</span>
+                    <span className="litigantdash-value">{request.description}</span>
+                  </div>
+                )}
+                <div className="litigantdash-request-detail-row">
+                  <span className="litigantdash-label">Requested On:</span>
+                  <span className="litigantdash-value">
+                    {new Date(request.request_date).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="litigantdash-request-detail-row">
+                  <span className="litigantdash-label">Deadline:</span>
+                  <span className="litigantdash-value litigantdash-deadline">
+                    {new Date(request.submission_deadline).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                {request.verification_status === 'rejected' && request.rejection_reason && (
+                  <div className="litigantdash-rejection-notice">
+                    <strong>Rejection Reason:</strong> {request.rejection_reason}
+                  </div>
+                )}
+                
+                {request.verification_status === 'verified' && (
+                  <div className="litigantdash-verified-notice">
+                    ✓ Document verified and signed by court on{' '}
+                    {new Date(request.verification_date).toLocaleDateString()}
+                  </div>
+                )}
+                
+                {(request.verification_status === 'pending_upload' || 
+                  request.verification_status === 'rejected') && (
+                  <div className="litigantdash-upload-action-section">
+                    {selectedDocumentRequest?.document_id === request.document_id ? (
+                      <form 
+                        onSubmit={(e) => handleRequestedDocumentUpload(e, request.document_id, request.case_num)}
+                        className="litigantdash-inline-upload-form"
+                      >
+                        <input
+                          type="file"
+                          id="requested-doc-file-input"
+                          onChange={handleFileChange}
+                          required
+                          className="litigantdash-file-input-field"
+                        />
+                        <div className="litigantdash-upload-buttons-group">
+                          <button 
+                            type="submit" 
+                            className="litigantdash-upload-submit-button"
+                            disabled={uploadingRequestedDoc}
+                          >
+                            {uploadingRequestedDoc ? 'Uploading...' : 'Upload'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDocumentRequest(null);
+                              setDocumentFile(null);
+                            }}
+                            className="litigantdash-upload-cancel-button"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedDocumentRequest(request)}
+                        className="litigantdash-upload-trigger-button"
+                      >
+                        {request.verification_status === 'rejected' ? 'Re-upload Document' : 'Upload Document'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* SEPARATOR */}
+    <hr style={{margin: '40px 0', border: 'none', borderTop: '2px solid #e5e7eb'}} />
+
+    {/* EXISTING DOCUMENTS SECTION - CASE SELECTOR */}
+    <h3 style={{marginBottom: '20px'}}>Upload & View Case Documents</h3>
+    <div className="litigantdash-case-selector-dropdown">
+      <label htmlFor="case-selector">Select Case:</label>
+      <select
+        id="case-selector"
+        onChange={(e) => {
+          const caseNum = e.target.value;
+          if (caseNum) {
+            fetchDocuments(caseNum);
+          } else {
+            setSelectedCaseForDocuments(null);
+            setDocuments([]);
+          }
+        }}
+        value={selectedCaseForDocuments?.case_num || ''}
+      >
+        <option value="">-- Select a Case --</option>
+        {cases.map((legalCase) => (
+          <option key={legalCase._id} value={legalCase.case_num}>
+            {legalCase.case_num} - {legalCase.case_type}
+          </option>
+        ))}
+      </select>
+    </div>
+
+
+
+    {/* DOCUMENTS LIST - Only shows when a case is selected */}
+    {selectedCaseForDocuments && (
+      <div className="litigantdash-documents-list-container">
+        <h4>Documents for Case: {selectedCaseForDocuments.case_num}</h4>
+        {documentsLoading ? (
+          <div className="litigantdash-loading-spinner">Loading documents...</div>
+        ) : documents.length === 0 ? (
+          <div className="litigantdash-no-documents-message">
+            No documents found for this case. Upload your first document above.
+          </div>
+        ) : (
+          <table className="litigantdash-documents-table">
+            <thead>
+              <tr>
+                <th>Document Type</th>
+                <th>File Name</th>
+                <th>Uploaded By</th>
+                <th>Upload Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((doc) => (
+                <tr key={doc.document_id}>
+                  <td>{doc.document_type}</td>
+                  <td>{doc.file_name}</td>
+                  <td>{doc.uploaded_by_name || 'N/A'}</td>
+                  <td>{new Date(doc.upload_date).toLocaleDateString()}</td>
+                  <td>
+                    <span className={`litigantdash-doc-status-badge ${doc.verification_status}`}>
+                      {doc.verification_status || 'Pending'}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => downloadDocument(doc.document_id, doc.file_name)}
+                      className="litigantdash-download-doc-button"
+                    >
+                      Download
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    )}
+    
+    {documentError && <div className="litigantdash-error-alert-message">{documentError}</div>}
+    {documentSuccess && <div className="litigantdash-success-alert-message">{documentSuccess}</div>}
+  </div>
+);
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
@@ -1530,6 +2058,8 @@ const LitigantDashboard = () => {
         return <LitigantCaseAssign />;
       case 'nyaaysaathi':
         return <NyaaySaathi />;
+      case 'courtschedule':
+        return <LitigantLiveDashboard />;
       default:
         return <div>Select an option from the sidebar</div>;
     }
@@ -1623,6 +2153,13 @@ const LitigantDashboard = () => {
             >
               <Book className="litigantdash-nav-icon-svg" />
               Nyaay-Saathi
+            </button>
+            <button
+              className={`litigantdash-nav-menu-button ${activeSection === 'courtschedule' ? 'litigantdash-nav-active' : ''}`}
+              onClick={() => handleNavigation('courtschedule')}
+            >
+              <Book className="litigantdash-nav-icon-svg" />
+              Court Schedule
             </button>
           </nav>
         </aside>

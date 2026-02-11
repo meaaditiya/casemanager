@@ -1460,7 +1460,7 @@ body {
 /* Verification Issues */
 .verification-issues {
   background: #fef3c7;
-  border-left: 3px solid #f59e0b;
+ 
   padding: 12px;
   margin: 12px 0;
   font-size: 11px;
@@ -1570,13 +1570,13 @@ body {
 .verification-status.verified {
   background: #d1fae5;
   color: #065f46;
-  border-left: 4px solid #10b981;
+ 
 }
 
 .verification-status.failed {
   background: #fee2e2;
   color: #991b1b;
-  border-left: 4px solid #ef4444;
+ 
 }
 
 /* Alerts */
@@ -1585,19 +1585,19 @@ body {
   margin-bottom: 20px;
   font-size: 12px;
   border-radius: 4px;
-  border-left: 4px solid;
+ 
 }
 
 .alert-success {
   background: #d1fae5;
   color: #065f46;
-  border-left-color: #10b981;
+  
 }
 
 .alert-danger {
   background: #fee2e2;
   color: #991b1b;
-  border-left-color: #ef4444;
+
 }
 
 .integrity-score {
@@ -1889,19 +1889,18 @@ body {
 
 .issue-card {
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #94a3b8;
+ 
   padding: 12px;
   background: #f8fafc;
   border-radius: 3px;
 }
 
 .issue-card.severity-critical {
-  border-left-color: #dc2626;
+ 
   background: #fef2f2;
 }
 
 .issue-card.severity-high {
-  border-left-color: #f59e0b;
   background: #fef3c7;
 }
 
@@ -1940,7 +1939,7 @@ body {
 
 .scan-recommendation {
   background: #f1f5f9;
-  border-left: 4px solid #0f172a;
+ 
   padding: 16px;
   margin-top: 20px;
   border-radius: 4px;
@@ -2028,7 +2027,7 @@ body {
 
 .alert-card {
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #94a3b8;
+  
   padding: 12px;
   background: #f8fafc;
   margin-bottom: 12px;
@@ -2036,12 +2035,12 @@ body {
 }
 
 .alert-card.severity-critical {
-  border-left-color: #dc2626;
+ 
   background: #fef2f2;
 }
 
 .alert-card.severity-high {
-  border-left-color: #f59e0b;
+  
   background: #fef3c7;
 }
 
@@ -2173,19 +2172,19 @@ body {
 
 .layer-card {
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #94a3b8;
+
   padding: 12px;
   background: #f8fafc;
   border-radius: 3px;
 }
 
 .layer-card.valid {
-  border-left-color: #10b981;
+
   background: #f0fdf4;
 }
 
 .layer-card.invalid {
-  border-left-color: #ef4444;
+ 
   background: #fef2f2;
 }
 
@@ -2222,7 +2221,7 @@ body {
 .layer-error {
   background: #fee2e2;
   padding: 8px;
-  border-left: 2px solid #ef4444;
+  
   margin-bottom: 10px;
   font-size: 11px;
   color: #991b1b;
@@ -2255,7 +2254,7 @@ body {
 
 .pattern-card {
   border: 1px solid #fcd34d;
-  border-left: 4px solid #f59e0b;
+
   padding: 12px;
   background: #fffbeb;
   margin-bottom: 10px;
@@ -2372,4 +2371,1117 @@ body {
   .blockchain-modal-close {
     align-self: flex-end;
   }
+}
+/* ========================================
+   TEXT EDITOR & FORMATTING STYLES
+   ======================================== */
+
+/* Text Editor Toolbar */
+.text-editor-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+.toolbar-btn {
+  padding: 6px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--secondary);
+}
+
+.toolbar-btn:active {
+  background: var(--bg-tertiary);
+  transform: translateY(1px);
+}
+
+.toolbar-btn strong {
+  font-weight: 700;
+}
+
+.toolbar-btn em {
+  font-style: italic;
+}
+
+.toolbar-btn u {
+  text-decoration: underline;
+}
+
+/* Toggle Editor Mode Button */
+.toggle-editor-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.toggle-editor-btn:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
+}
+
+/* Hearing Remarks Textarea with Rich Text Support */
+.hearing-remarks-textarea {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  border-radius: 0 !important;
+  margin-top: 0 !important;
+  min-height: 180px;
+  resize: vertical;
+}
+
+/* Formatting Help Text */
+.formatting-help {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.formatting-help small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ========================================
+   HEARING REMARKS DISPLAY
+   ======================================== */
+
+.judicial-mgmt__hearing-remarks {
+  margin: 12px 0;
+  padding: 14px;
+  background: var(--bg-secondary);
+
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+/* HTML Content Formatting */
+.judicial-mgmt__hearing-remarks strong,
+.judicial-mgmt__hearing-remarks b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.judicial-mgmt__hearing-remarks em,
+.judicial-mgmt__hearing-remarks i {
+  font-style: italic;
+}
+
+.judicial-mgmt__hearing-remarks u {
+  text-decoration: underline;
+}
+
+.judicial-mgmt__hearing-remarks p {
+  margin-bottom: 8px;
+}
+
+.judicial-mgmt__hearing-remarks p:last-child {
+  margin-bottom: 0;
+}
+
+/* Bullet Lists in Remarks */
+.judicial-mgmt__hearing-remarks ul {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.judicial-mgmt__hearing-remarks li {
+  margin-bottom: 4px;
+}
+
+/* ========================================
+   DIGITAL SIGNATURE STYLES
+   ======================================== */
+
+/* Signature Badge on Hearing Card */
+.digital-signature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--success);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.digital-signature-badge svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Signature Information Panel */
+.judicial-mgmt__hearing-signature-info {
+  margin-top: 16px;
+  padding: 14px;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+ 
+}
+
+.signature-details {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  align-items: baseline;
+}
+
+.signature-details:last-of-type {
+  margin-bottom: 10px;
+}
+
+.signature-label {
+  font-weight: 600;
+  color: var(--secondary);
+  min-width: 80px;
+}
+
+.signature-value {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Signature Action Buttons */
+.verify-signature-btn,
+.sign-hearing-btn {
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.verify-signature-btn {
+  background: #0891b2;
+  color: white;
+  border-color: #0891b2;
+}
+
+.verify-signature-btn:hover {
+  background: #0e7490;
+  border-color: #0e7490;
+}
+
+.sign-hearing-btn {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+.sign-hearing-btn:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+/* ========================================
+   CHECKBOX & FORM CONTROLS
+   ======================================== */
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.checkbox-label span {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.help-text {
+  display: block;
+  margin-top: 4px;
+  margin-left: 26px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* ========================================
+   ENHANCED HEARING CARD LAYOUT
+   ======================================== */
+
+.judicial-mgmt__hearing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.judicial-mgmt__hearing-card {
+  transition: box-shadow 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.judicial-mgmt__hearing-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: var(--secondary);
+}
+
+/* Signed Hearing Card Indicator */
+.judicial-mgmt__hearing-card:has(.digital-signature-badge) {
+ 
+}
+
+/* ========================================
+   SIGNATURE VERIFICATION MODAL STYLES
+   ======================================== */
+
+.signature-verification-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.signature-verification-content {
+  background: var(--bg-primary);
+  max-width: 500px;
+  width: 100%;
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+
+.signature-verification-content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.signature-verification-result {
+  padding: 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+
+}
+
+.signature-verification-result.valid {
+  background: #d1fae5;
+  color: #065f46;
+ 
+}
+
+.signature-verification-result.invalid {
+  background: #fee2e2;
+  color: #991b1b;
+ 
+}
+
+.signature-verification-details {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
+
+.signature-verification-details p {
+  margin-bottom: 6px;
+}
+
+/* ========================================
+   LOADING STATES FOR SIGNATURE OPERATIONS
+   ======================================== */
+
+.signature-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.signature-loading::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   FORM ENHANCEMENTS FOR SIGNATURE
+   ======================================== */
+
+.signature-form-section {
+  background: var(--bg-secondary);
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+ 
+}
+
+.signature-form-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.signature-info-box {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.signature-info-box strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #92400e;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  .text-editor-toolbar {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .toolbar-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .toggle-editor-btn {
+    margin-left: 0;
+    margin-top: 4px;
+    width: 100%;
+  }
+
+  .judicial-mgmt__hearing-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .digital-signature-badge {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+
+  .judicial-mgmt__hearing-signature-info {
+    padding: 12px;
+  }
+
+  .signature-details {
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .signature-label {
+    min-width: unset;
+  }
+
+  .verify-signature-btn,
+  .sign-hearing-btn {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .checkbox-label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .help-text {
+    margin-left: 0;
+  }
+}
+
+/* ========================================
+   PRINT STYLES FOR SIGNED HEARINGS
+   ======================================== */
+
+@media print {
+  .text-editor-toolbar,
+  .toggle-editor-btn,
+  .verify-signature-btn,
+  .sign-hearing-btn {
+    display: none;
+  }
+
+  .judicial-mgmt__hearing-signature-info {
+    border: 2px solid #000;
+    page-break-inside: avoid;
+  }
+
+  .digital-signature-badge {
+    background: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .judicial-mgmt__hearing-remarks {
+ 
+    page-break-inside: avoid;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+
+/* Focus States */
+.toolbar-btn:focus,
+.toggle-editor-btn:focus,
+.verify-signature-btn:focus,
+.sign-hearing-btn:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.checkbox-label input[type="checkbox"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Screen Reader Only Text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .digital-signature-badge {
+    border: 2px solid currentColor;
+  }
+
+  .judicial-mgmt__hearing-signature-info {
+    border-width: 2px;
+  }
+
+  .toolbar-btn {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-btn,
+  .verify-signature-btn,
+  .sign-hearing-btn,
+  .judicial-mgmt__hearing-card {
+    transition: none;
+  }
+
+  .signature-loading::after {
+    animation: none;
+  }
+}
+
+/* ========================================
+   ADDITIONAL UTILITY CLASSES
+   ======================================== */
+
+.signature-timestamp {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.signature-hash-preview {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 9px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 4px 6px;
+  border-radius: 2px;
+  word-break: break-all;
+  margin-top: 4px;
+}
+
+.signature-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.signature-status-indicator::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.signature-status-indicator.valid {
+  color: var(--success);
+}
+
+.signature-status-indicator.invalid {
+  color: var(--error);
+}
+
+.signature-status-indicator.pending {
+  color: var(--warning);
+}
+
+/* ========================================
+   ENHANCED HEARING ACTIONS SECTION
+   ======================================== */
+
+.judicial-mgmt__hearing-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.judicial-mgmt__hearing-actions button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Empty State for Unsigned Hearings */
+.unsigned-hearing-notice {
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border);
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.unsigned-hearing-notice::before {
+  content: '⚠️';
+  margin-right: 6px;
+}
+
+/* Signature Required Indicator */
+.signature-required-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #fcd34d;
+}
+
+/* Signature Complete Indicator */
+.signature-complete-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #86efac;
+}
+
+.signature-complete-badge::before {
+  content: '✓';
+  font-weight: 700;
+}
+/* ========================================
+   DOCUMENT MANAGEMENT STYLES
+   ======================================== */
+
+/* Documents Tab Header */
+.documents-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.request-document-btn {
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width:35%;
+}
+
+.request-document-btn:hover {
+  background: var(--secondary);
+}
+
+/* Document Requests Section */
+.document-requests-section {
+  margin-bottom: 32px;
+}
+
+.subsection-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Document Requests Table */
+.document-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+.document-requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.document-requests-table thead {
+  background: var(--bg-secondary);
+}
+
+.document-requests-table th {
+  padding: 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 9px;
+}
+
+.document-requests-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.document-requests-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Document Row Status Colors */
+.doc-row--pending_upload {
+  background: #fef3c7;
+}
+
+.doc-row--uploaded_pending_review {
+  background: #e0f2fe;
+}
+
+.doc-row--verified {
+  background: #d1fae5;
+}
+
+.doc-row--rejected {
+  background: #fee2e2;
+}
+
+/* Table Cells */
+.doc-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.doc-type-cell strong {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.doc-description {
+  font-size: 9px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.requested-from-cell {
+  display: flex;
+  align-items: center;
+}
+
+.party-badge {
+  padding: 2px 6px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 2px;
+}
+
+.party-badge--litigant {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.party-badge--advocate {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 2px;
+}
+
+.status-badge--pending_upload {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge--uploaded_pending_review {
+  background: #bae6fd;
+  color: #075985;
+}
+
+.status-badge--verified {
+  background: #86efac;
+  color: #065f46;
+}
+
+.status-badge--rejected {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.date-cell {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+/* Document Actions */
+.doc-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.doc-action-btn {
+  padding: 3px 8px;
+  font-size: 8px;
+  font-weight: 600;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.doc-action-btn--verify {
+  background: #0891b2;
+  color: white;
+  border-color: #0891b2;
+}
+
+.doc-action-btn--verify:hover {
+  background: #0e7490;
+}
+
+.doc-action-btn--download {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.doc-action-btn--download:hover {
+  background: var(--secondary);
+}
+
+.doc-action-btn--signature {
+  background: #f59e0b;
+  color: white;
+  border-color: #f59e0b;
+}
+
+.doc-action-btn--signature:hover {
+  background: #d97706;
+}
+
+.signature-indicator {
+  font-size: 8px;
+  color: var(--success);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Document Request Form */
+.document-request-form .form-group {
+  margin-bottom: 16px;
+}
+
+.document-request-form label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.document-request-form input,
+.document-request-form select,
+.document-request-form textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  font-family: inherit;
+}
+
+.document-request-form textarea {
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-secondary {
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--secondary);
+}
+
+/* Document Review Info */
+.document-review-info {
+  background: var(--bg-secondary);
+  padding: 14px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
+.document-review-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+}
+
+.document-review-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Verification Form */
+.verification-form .form-group {
+  margin-bottom: 16px;
+}
+
+.verification-form label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.verification-form select,
+.verification-form textarea {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  font-family: inherit;
+}
+
+.verification-form textarea {
+  resize: vertical;
+}
+
+.signature-notice {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 10px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.signature-notice strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #92400e;
+}
+
+.btn-success {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+.btn-success:hover {
+  background: #059669 !important;
+}
+
+.btn-danger {
+  background: var(--error) !important;
+  border-color: var(--error) !important;
+}
+
+.btn-danger:hover {
+  background: #dc2626 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .documents-tab-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .request-document-btn {
+    width: 100%;
+  }
+
+  .document-table-container {
+    overflow-x: scroll;
+  }
+
+  .document-requests-table {
+    min-width: 600px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-actions {
+    flex-direction: column;
+  }
+
+  .doc-action-btn {
+    width: 100%;
+  }
+}
+.document-actions-group {
+  display: flex;
+  gap: 10px;
 }

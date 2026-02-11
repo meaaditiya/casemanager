@@ -141,25 +141,33 @@ const AdvocateCaseFiling = ({ setActiveSection, advocateData }) => {
   };
 
   // Handle form submission
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    setLoading(true);
+  
+const handleFormSubmit = async (e) => {
+  e.preventDefault();
+  setFormError('');
+  setFormSuccess('');
+  setLoading(true);
 
-    try {
-      // Make API call to file the case
-      const response = await axios.post(
-        'http://localhost:5000/api/filecase/advocate',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+  try {
+    // Prepare data - remove police station details for non-criminal cases
+    const criminalTypes = ['Criminal', 'MAGISTRIAL CASES', 'MISC. CRIM APLN', 'SESSIONS CASES', 'CRIM APPEAL'];
+    const dataToSubmit = { ...formData };
+    
+    if (!criminalTypes.includes(formData.case_type)) {
+      delete dataToSubmit.police_station_details;
+    }
+
+    // Make API call to file the case
+    const response = await axios.post(
+      'http://localhost:5000/api/filecase/advocate',
+      dataToSubmit,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         }
-      );
-
+      }
+    );
       setFormSuccess(`Case filed successfully. Case Number: ${response.data.case_num}`);
       // Reset form after successful submission
       setTimeout(() => {
@@ -200,16 +208,43 @@ const AdvocateCaseFiling = ({ setActiveSection, advocateData }) => {
               </select>
             </div>
             <div className="form-group">
-              <label>Case Type</label>
-              <select
-                value={formData.case_type}
-                onChange={(e) => handleTopLevelChange('case_type', e.target.value)}
-                required
-              >
-                <option value="Civil">Civil</option>
-                <option value="Criminal">Criminal</option>
-              </select>
-            </div>
+  <label>Case Type</label>
+  <select
+    value={formData.case_type}
+    onChange={(e) => handleTopLevelChange('case_type', e.target.value)}
+    required
+  >
+    <option value="Civil">Civil</option>
+    <option value="Criminal">Criminal</option>
+    <option value="CIV SUITS">CIV SUITS</option>
+    <option value="EXE PET">EXE PET</option>
+    <option value="MISC. CIV APPLN">MISC. CIV APPLN</option>
+    <option value="MRG PET">MRG PET</option>
+    <option value="MACP">MACP</option>
+    <option value="MISC CIV CASES">MISC CIV CASES</option>
+    <option value="CIVIL APPEAL">CIVIL APPEAL</option>
+    <option value="ARBITN">ARBITN</option>
+    <option value="MISC. CIV APPEAL">MISC. CIV APPEAL</option>
+    <option value="LAND REFRNC">LAND REFRNC</option>
+    <option value="MAGISTRIAL CASES">MAGISTRIAL CASES</option>
+    <option value="MISC. EXE.">MISC. EXE.</option>
+    <option value="LABUR MAIN">LABUR MAIN</option>
+    <option value="COMMERCIAL SUIT">COMMERCIAL SUIT</option>
+    <option value="MISC. CRIM APLN">MISC. CRIM APLN</option>
+    <option value="INDUS MAIN">INDUS MAIN</option>
+    <option value="CIVIL REV.">CIVIL REV.</option>
+    <option value="OTHER TRIBNL">OTHER TRIBNL</option>
+    <option value="INDUS MISC">INDUS MISC</option>
+    <option value="LABUR MISC">LABUR MISC</option>
+    <option value="ELCTN PET">ELCTN PET</option>
+    <option value="CO-OP MAIN">CO-OP MAIN</option>
+    <option value="COMMERCIAL APPEAL">COMMERCIAL APPEAL</option>
+    <option value="CO-OP APEAL MAIN">CO-OP APEAL MAIN</option>
+    <option value="CO-OP MISC.">CO-OP MISC.</option>
+    <option value="SESSIONS CASES">SESSIONS CASES</option>
+    <option value="CRIM APPEAL">CRIM APPEAL</option>
+  </select>
+</div>
             <div className="form-group">
               <label>You are representing</label>
               <select
@@ -609,9 +644,9 @@ const AdvocateCaseFiling = ({ setActiveSection, advocateData }) => {
         </div>
 
         {/* Police Station Details (Only for Criminal Cases) */}
-        {formData.case_type === 'Criminal' && (
-          <div className="form-section">
-            <h3>Police Station Details</h3>
+       {['Criminal', 'MAGISTRIAL CASES', 'MISC. CRIM APLN', 'SESSIONS CASES', 'CRIM APPEAL'].includes(formData.case_type) && (
+  <div className="form-section">
+    <h3>Police Station Details</h3>
             <div className="form-grid">
               <div className="form-group">
                 <label>Police Station</label>

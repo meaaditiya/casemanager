@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef,useState, useEffect } from 'react';
 import axios from 'axios';
 import '../ComponentsCSS/Admincasehandle.css';
 
@@ -15,16 +15,17 @@ const AdminCaseManagement = () => {
   // Selected case and hearing states
   const [selectedCase, setSelectedCase] = useState(null);
   const [selectedTab, setSelectedTab] = useState('details');
-  
+  const [isRichTextMode, setIsRichTextMode] = useState(false);
+  const textareaRef = useRef(null);
   // Form states for adding/updating hearings
-  const [hearingForm, setHearingForm] = useState({
+ const [hearingForm, setHearingForm] = useState({
     hearing_date: '',
     hearing_type: 'Initial',
     remarks: '',
     next_hearing_date: '',
-    attachments: []
+    attachments: [],
+    sign_hearing: false // New field for digital signature
   });
-  
   // Case status update form
   const [statusForm, setStatusForm] = useState({
     status: '',
@@ -55,7 +56,15 @@ const AdminCaseManagement = () => {
     registration_done_by: '',
     allocation_done_by: ''
   });
-
+const [documentRequestForm, setDocumentRequestForm] = useState({
+  document_type: '',
+  description: '',
+  requested_from: '',
+  requested_from_type: '', // 'litigant' or 'advocate'
+  submission_deadline: ''
+});
+const [requestingDocument, setRequestingDocument] = useState(false);
+const [showRequestForm, setShowRequestForm] = useState(false);
   // Fetch all cases assigned to admin's district
   
   useEffect(() => {
@@ -213,7 +222,51 @@ const AdminCaseManagement = () => {
       });
     }
   };
+const handleDocumentRequest = async (e) => {
+  e.preventDefault();
+  
+  if (!documentRequestForm.document_type || !documentRequestForm.requested_from || 
+      !documentRequestForm.requested_from_type || !documentRequestForm.submission_deadline) {
+    alert('Please fill in all required fields');
+    return;
+  }
 
+  setRequestingDocument(true);
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `http://localhost:5000/api/courtadmin/case/${selectedCase.case_num}/request-document`,
+      {
+        document_type: documentRequestForm.document_type,
+        description: documentRequestForm.description,
+        requested_from: documentRequestForm.requested_from,
+        requested_from_type: documentRequestForm.requested_from_type,
+        submission_deadline: documentRequestForm.submission_deadline
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+
+    alert('Document request sent successfully');
+    
+    // Reset form
+    setDocumentRequestForm({
+      document_type: '',
+      description: '',
+      requested_from: '',
+      requested_from_type: '',
+      submission_deadline: ''
+    });
+    setShowRequestForm(false);
+
+  } catch (err) {
+    alert(`Error requesting document: ${err.response?.data?.message || err.message}`);
+    console.error('Error requesting document:', err);
+  } finally {
+    setRequestingDocument(false);
+  }
+};
   // Handle case approval
   const handleCaseApproval = async (approve) => {
     try {
@@ -239,7 +292,213 @@ const AdminCaseManagement = () => {
       console.error(`Error ${approve ? 'approving' : 'rejecting'} case:`, err);
     }
   };
+const insertFormatting = (before, after = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+    
+    setHearingForm({
+      ...hearingForm,
+      remarks: newText
+    });
+
+    // Set cursor position after inserted text
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + before.length + selectedText.length;
+    }, 0);
+  };
+
+  // Render rich text editor toolbar
+  const renderTextEditorToolbar = () => (
+    <div className="text-editor-toolbar">
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<strong>', '</strong>')}
+        title="Bold"
+      >
+        <strong>B</strong>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<em>', '</em>')}
+        title="Italic"
+      >
+        <em>I</em>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<u>', '</u>')}
+        title="Underline"
+      >
+        <u>U</u>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('\n• ', '')}
+        title="Bullet Point"
+      >
+        • List
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => {
+          const textarea = textareaRef.current;
+          const start = textarea.selectionStart;
+          const text = textarea.value;
+          const newText = text.substring(0, start) + '\n\n' + text.substring(start);
+          setHearingForm({ ...hearingForm, remarks: newText });
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + 2;
+          }, 0);
+        }}
+        title="New Paragraph"
+      >
+        ¶
+      </button>
+    </div>
+  );
+
+  // Render hearing item with proper HTML rendering
+  const renderHearingItem = (hearing, index) => (
+    <div key={index} className="admin-hearing-item">
+      <div className="admin-hearing-header">
+        <div className="admin-hearing-date">
+          {new Date(hearing.hearing_date).toLocaleDateString()}
+        </div>
+        <div className="admin-hearing-type">
+          {hearing.hearing_type}
+        </div>
+        {hearing.digital_signature && hearing.digital_signature.is_signed && (
+          <div className="digital-signature-badge" title="Digitally Signed">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Signed
+          </div>
+        )}
+      </div>
+      
+      {hearing.remarks && (
+        <div 
+          className="admin-hearing-remarks"
+          // Render HTML content safely
+          dangerouslySetInnerHTML={{ __html: hearing.remarks }}
+        />
+      )}
+      
+      {hearing.next_hearing_date && (
+        <div className="admin-hearing-next-date">
+          Next Hearing: {new Date(hearing.next_hearing_date).toLocaleDateString()}
+        </div>
+      )}
+      
+      {hearing.digital_signature && hearing.digital_signature.is_signed && (
+        <div className="admin-hearing-signature-info">
+          <div className="signature-details">
+            <span className="signature-label">Signed by:</span>
+            <span className="signature-value">{hearing.digital_signature.signed_by_name}</span>
+          </div>
+          <div className="signature-details">
+            <span className="signature-label">Signed on:</span>
+            <span className="signature-value">
+              {new Date(hearing.digital_signature.signature_timestamp).toLocaleString()}
+            </span>
+          </div>
+          <button
+            className="admin-btn small verify-btn"
+            onClick={() => verifyHearingSignature(hearing._id)}
+          >
+            Verify Signature
+          </button>
+        </div>
+      )}
+      
+      {hearing.attachments && hearing.attachments.length > 0 && (
+        <div className="admin-hearing-attachments">
+          <strong>Attachments:</strong>
+          <ul>
+            {hearing.attachments.map((att, idx) => (
+              <li key={idx}>{att.originalname}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      <div className="admin-hearing-actions">
+        {!hearing.digital_signature?.is_signed && (
+          <button 
+            className="admin-btn small sign-btn"
+            onClick={() => signHearing(hearing._id)}
+          >
+            Sign Digitally
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // Function to sign a hearing
+  const signHearing = async (hearingId) => {
+    try {
+      if (!window.confirm('Are you sure you want to digitally sign this hearing? This action cannot be undone.')) {
+        return;
+      }
+
+      const response = await axios.post(
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}/sign`,
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+      );
+
+      // Update the hearing in the case
+      const updatedHearings = selectedCase.hearings.map(h => 
+        h._id === hearingId ? response.data.hearing : h
+      );
+
+      const updatedCase = { ...selectedCase, hearings: updatedHearings };
+      setSelectedCase(updatedCase);
+      setCases(cases.map(c => c.case_num === selectedCase.case_num ? updatedCase : c));
+
+      alert('Hearing signed successfully');
+    } catch (err) {
+      console.error('Error signing hearing:', err);
+      alert('Failed to sign hearing');
+    }
+  };
+
+  // Function to verify hearing signature
+  const verifyHearingSignature = async (hearingId) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}/verify-signature`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+      );
+
+      const { verification } = response.data;
+      
+      if (verification.valid) {
+        alert(`✓ Signature Valid\n\nSigned by: ${verification.signed_by}\nSigned on: ${new Date(verification.signed_at).toLocaleString()}`);
+      } else {
+        alert(`✗ Signature Invalid\n\n${verification.message}`);
+      }
+    } catch (err) {
+      console.error('Error verifying signature:', err);
+      alert('Failed to verify signature');
+    }
+  };
   // Handle status update
   const handleStatusUpdate = async (e) => {
     e.preventDefault();
@@ -411,7 +670,7 @@ const AdminCaseManagement = () => {
       // Make the request
       const response = await axios({
         method: 'POST',
-        url: `http://localhost:5000/api/case/${selectedCase.case_num}/document`,
+       url: `http://localhost:5000/api/courtadmin/case/${selectedCase.case_num}/upload-document`,
         data: formData,
         headers: {
           'Authorization': `Bearer ${token}`
@@ -935,134 +1194,137 @@ const handleDocumentDownload = async (documentId) => {
               </div>
             )}
             
-            {selectedTab === 'hearings' && (
-              <div className="admin-tab-content">
-                <div className="admin-hearing-form">
-                  <h3>Schedule New Hearing</h3>
-                  <form onSubmit={handleHearingSubmit}>
-                    <div className="admin-form-row">
-                      <div className="admin-form-group">
-                        <label>Hearing Date</label>
-                        <input
-                          type="date"
-                          name="hearing_date"
-                          value={hearingForm.hearing_date}
-                          onChange={handleHearingChange}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="admin-form-group">
-                        <label>Hearing Type</label>
-                        <select
-                          name="hearing_type"
-                          value={hearingForm.hearing_type}
-                          onChange={handleHearingChange}
-                          required
-                        >
-                          <option value="Initial">Initial</option>
-                          <option value="Intermediate">Intermediate</option>
-                          <option value="Final">Final</option>
-                          <option value="Adjournment">Adjournment</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-row">
-                      <div className="admin-form-group">
-                        <label>Next Hearing Date (optional)</label>
-                        <input
-                          type="date"
-                          name="next_hearing_date"
-                          value={hearingForm.next_hearing_date}
-                          onChange={handleHearingChange}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-row">
-                      <div className="admin-form-group full-width">
-                        <label>Remarks</label>
-                        <textarea
-                          name="remarks"
-                          value={hearingForm.remarks}
-                          onChange={handleHearingChange}
-                          rows="3"
-                        ></textarea>
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-row">
-                      <div className="admin-form-group full-width">
-                        <label>Attachments</label>
-                        <input
-                          type="file"
-                          multiple
-                          onChange={handleFileChange}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-actions">
-                      <button type="submit" className="admin-btn primary">Schedule Hearing</button>
-                    </div>
-                  </form>
+              {selectedTab === 'hearings' && (
+          <div className="admin-tab-content">
+            <div className="admin-hearing-form">
+              <h3>Schedule New Hearing</h3>
+              <form onSubmit={handleHearingSubmit}>
+                <div className="admin-form-row">
+                  <div className="admin-form-group">
+                    <label>Hearing Date</label>
+                    <input
+                      type="date"
+                      name="hearing_date"
+                      value={hearingForm.hearing_date}
+                      onChange={handleHearingChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label>Hearing Type</label>
+                    <select
+                      name="hearing_type"
+                      value={hearingForm.hearing_type}
+                      onChange={handleHearingChange}
+                      required
+                    >
+                      <option value="Initial">Initial</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Final">Final</option>
+                      <option value="Adjournment">Adjournment</option>
+                    </select>
+                  </div>
                 </div>
                 
-                <div className="admin-hearings-list">
-                  <h3>Hearing History</h3>
-                  {!selectedCase.hearings || selectedCase.hearings.length === 0 ? (
-                    <div className="admin-no-hearings">No hearings scheduled yet</div>
-                  ) : (
-                    <div className="admin-hearings-timeline">
-                      {selectedCase.hearings.map((hearing, index) => (
-                        <div key={index} className="admin-hearing-item">
-                          <div className="admin-hearing-date">
-                            {new Date(hearing.hearing_date).toLocaleDateString()}
-                          </div>
-                          <div className="admin-hearing-type">
-                            {hearing.hearing_type}
-                            </div>
-                            {hearing.remarks && (
-                              <div className="admin-hearing-remarks">
-                                {hearing.remarks}
-                              </div>
-                            )}
-                            {hearing.next_hearing_date && (
-                              <div className="admin-hearing-next-date">
-                                Next Hearing: {new Date(hearing.next_hearing_date).toLocaleDateString()}
-                              </div>
-                            )}
-                            <div className="admin-hearing-actions">
-                              <button 
-                                className="admin-btn small"
-                                onClick={() => {
-                                  // Open a modal or expand this section to edit hearing
-                                  // Implement edit hearing functionality
-                                  const updatedHearing = {
-                                    hearing_date: hearing.hearing_date,
-                                    hearing_type: hearing.hearing_type,
-                                    remarks: hearing.remarks,
-                                    next_hearing_date: hearing.next_hearing_date,
-                                    attachments: []
-                                  };
-                                  if (window.confirm('Do you want to update this hearing?')) {
-                                    handleHearingUpdate(hearing._id, updatedHearing);
-                                  }
-                                }}
-                              >
-                                Edit
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      }
+                <div className="admin-form-row">
+                  <div className="admin-form-group">
+                    <label>Next Hearing Date (optional)</label>
+                    <input
+                      type="date"
+                      name="next_hearing_date"
+                      value={hearingForm.next_hearing_date}
+                      onChange={handleHearingChange}
+                    />
+                  </div>
+                </div>
+                
+                <div className="admin-form-row">
+                  <div className="admin-form-group full-width">
+                    <label>
+                      Remarks
+                      <button
+                        type="button"
+                        className="toggle-editor-btn"
+                        onClick={() => setIsRichTextMode(!isRichTextMode)}
+                      >
+                        {isRichTextMode ? 'Simple Mode' : 'Rich Text Mode'}
+                      </button>
+                    </label>
+                    
+                    {isRichTextMode && renderTextEditorToolbar()}
+                    
+                    <textarea
+                      ref={textareaRef}
+                      name="remarks"
+                      value={hearingForm.remarks}
+                      onChange={handleHearingChange}
+                      rows="8"
+                      className="hearing-remarks-textarea"
+                      placeholder="Enter hearing remarks. Press Enter for new line, double Enter for new paragraph."
+                    ></textarea>
+                    
+                    <div className="formatting-help">
+                      <small>
+                        💡 Tip: Use the toolbar buttons or type HTML tags directly for formatting.
+                        Paragraphs and line breaks will be preserved.
+                      </small>
                     </div>
+                  </div>
+                </div>
+                
+                <div className="admin-form-row">
+                  <div className="admin-form-group full-width">
+                    <label>Attachments</label>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                </div>
+                
+                <div className="admin-form-row">
+                  <div className="admin-form-group full-width">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={hearingForm.sign_hearing}
+                        onChange={(e) => setHearingForm({
+                          ...hearingForm,
+                          sign_hearing: e.target.checked
+                        })}
+                      />
+                      <span>Digitally sign this hearing</span>
+                    </label>
+                    <small className="help-text">
+                      Digitally signing will create a tamper-proof record of this hearing.
+                    </small>
+                  </div>
+                </div>
+                
+                <div className="admin-form-actions">
+                  <button type="submit" className="admin-btn primary">
+                    Schedule Hearing
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <div className="admin-hearings-list">
+              <h3>Hearing History</h3>
+              {!selectedCase.hearings || selectedCase.hearings.length === 0 ? (
+                <div className="admin-no-hearings">No hearings scheduled yet</div>
+              ) : (
+                <div className="admin-hearings-timeline">
+                  {selectedCase.hearings.map((hearing, index) => 
+                    renderHearingItem(hearing, index)
                   )}
                 </div>
-              </div>
-            )}
-            
+              )}
+            </div>
+          </div>
+        )}
             {selectedTab === 'status' && (
               <div className="admin-tab-content">
                 <div className="admin-status-form">
@@ -1124,106 +1386,284 @@ const handleDocumentDownload = async (documentId) => {
               </div>
             )}
             
-            {selectedTab === 'documents' && (
-              <div className="admin-tab-content">
-                <div className="admin-document-form">
-                  <h3>Upload New Document</h3>
-                  <form onSubmit={handleDocumentSubmit}>
-                    <div className="admin-form-row">
-                      <div className="admin-form-group">
-                        <label>Document Type</label>
-                        <select
-                          name="document_type"
-                          value={documentForm.document_type}
-                          onChange={handleDocumentFormChange}
-                          required
-                        >
-                          <option value="">Select Document Type</option>
-                          <option value="Petition">Petition</option>
-                          <option value="Affidavit">Affidavit</option>
-                          <option value="Evidence">Evidence</option>
-                          <option value="Court Order">Court Order</option>
-                          <option value="Judgment">Judgment</option>
-                          <option value="Notice">Notice</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-row">
-                      <div className="admin-form-group full-width">
-                        <label>Description</label>
-                        <input
-                          type="text"
-                          name="description"
-                          value={documentForm.description}
-                          onChange={handleDocumentFormChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-row">
-                      <div className="admin-form-group full-width">
-                        <label>Document File</label>
-                        <input
-                          type="file"
-                          name="file"
-                          onChange={handleDocumentFormChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="admin-form-actions">
-                      <button type="submit" className="admin-btn primary">Upload Document</button>
-                    </div>
-                  </form>
-                </div>
-                
-                <div className="admin-documents-list">
-                  <h3>Case Documents</h3>
-                  {!selectedCase.documents || selectedCase.documents.length === 0 ? (
-                    <div className="admin-no-documents">No documents uploaded yet</div>
-                  ) : (
-                    <table className="admin-documents-table">
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-          <th>File</th>
-          <th>Uploaded</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {selectedCase.documents && selectedCase.documents.map((doc, index) => (
-          <tr key={index}>
-            <td>{doc.document_type}</td>
-            <td>{doc.description}</td>
-            <td>{doc.file_name}</td>
-            <td>{new Date(doc.uploaded_date).toLocaleDateString()}</td>
-            <td>
-              <button
-                className="admin-btn small"
-                onClick={() => {
-                  // DEBUG: Log the exact ID being used for download
-                  console.log("Document ID for download:", doc.document_id);
-                  // Use document_id consistently for the download function
-                  handleDocumentDownload(doc.document_id);
-                }}
+           {selectedTab === 'documents' && (
+  <div className="admin-documents-section">
+    <h3>Document Management</h3>
+
+    {/* REQUEST DOCUMENT SECTION */}
+    <div className="admin-document-request-box">
+      <h4>📄 Request Document from Party</h4>
+      {!showRequestForm ? (
+        <button 
+          onClick={() => setShowRequestForm(true)}
+          className="admin-btn admin-btn-primary"
+        >
+          + Request Document
+        </button>
+      ) : (
+        <form onSubmit={handleDocumentRequest} className="admin-request-form">
+          <div className="admin-form-group">
+            <label>Document Type *</label>
+            <select
+              value={documentRequestForm.document_type}
+              onChange={(e) => setDocumentRequestForm({
+                ...documentRequestForm,
+                document_type: e.target.value
+              })}
+              className="admin-select"
+              required
+            >
+              <option value="">Select Document Type</option>
+              <option value="Petition">Petition</option>
+              <option value="Affidavit">Affidavit</option>
+              <option value="Evidence">Evidence</option>
+              <option value="Court Order">Court Order</option>
+              <option value="Judgment">Judgment</option>
+              <option value="Application">Application</option>
+              <option value="Certificate">Certificate</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="admin-form-group">
+            <label>Request From *</label>
+            <select
+              value={documentRequestForm.requested_from_type}
+              onChange={(e) => setDocumentRequestForm({
+                ...documentRequestForm,
+                requested_from_type: e.target.value,
+                requested_from: '' // Reset requested_from when type changes
+              })}
+              className="admin-select"
+              required
+            >
+              <option value="">Select Type</option>
+              <option value="litigant">Litigant</option>
+              <option value="advocate">Advocate</option>
+            </select>
+          </div>
+
+          {documentRequestForm.requested_from_type && (
+            <div className="admin-form-group">
+              <label>Select {documentRequestForm.requested_from_type === 'litigant' ? 'Litigant' : 'Advocate'} *</label>
+              <select
+                value={documentRequestForm.requested_from}
+                onChange={(e) => setDocumentRequestForm({
+                  ...documentRequestForm,
+                  requested_from: e.target.value
+                })}
+                className="admin-select"
+                required
               >
-                Download
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-                  )}
-                </div>
-              </div>
-            )}
+                <option value="">Select {documentRequestForm.requested_from_type === 'litigant' ? 'Litigant' : 'Advocate'}</option>
+                {documentRequestForm.requested_from_type === 'litigant' && (
+                  <>
+                    <option value={selectedCase.plaintiff_details?.party_id}>
+                      {selectedCase.plaintiff_details?.name} (Plaintiff)
+                    </option>
+                    {selectedCase.respondent_details?.party_id && (
+                      <option value={selectedCase.respondent_details?.party_id}>
+                        {selectedCase.respondent_details?.name} (Respondent)
+                      </option>
+                    )}
+                  </>
+                )}
+                {documentRequestForm.requested_from_type === 'advocate' && (
+                  <>
+                    {selectedCase.plaintiff_details?.advocate_id && (
+                      <option value={selectedCase.plaintiff_details?.advocate_id}>
+                        {selectedCase.plaintiff_details?.advocate || 'Plaintiff Advocate'}
+                      </option>
+                    )}
+                    {selectedCase.respondent_details?.advocate_id && (
+                      <option value={selectedCase.respondent_details?.advocate_id}>
+                        {selectedCase.respondent_details?.advocate || 'Respondent Advocate'}
+                      </option>
+                    )}
+                  </>
+                )}
+              </select>
+            </div>
+          )}
+
+          <div className="admin-form-group">
+            <label>Description</label>
+            <textarea
+              value={documentRequestForm.description}
+              onChange={(e) => setDocumentRequestForm({
+                ...documentRequestForm,
+                description: e.target.value
+              })}
+              placeholder="Describe what document you need and why"
+              rows="3"
+              className="admin-textarea"
+            />
+          </div>
+
+          <div className="admin-form-group">
+            <label>Submission Deadline *</label>
+            <input
+              type="date"
+              value={documentRequestForm.submission_deadline}
+              onChange={(e) => setDocumentRequestForm({
+                ...documentRequestForm,
+                submission_deadline: e.target.value
+              })}
+              className="admin-input"
+              required
+            />
+          </div>
+
+          <div className="admin-form-actions">
+            <button 
+              type="submit" 
+              className="admin-btn admin-btn-primary"
+              disabled={requestingDocument}
+            >
+              {requestingDocument ? 'Sending...' : 'Send Request'}
+            </button>
+            <button 
+              type="button"
+              onClick={() => {
+                setShowRequestForm(false);
+                setDocumentRequestForm({
+                  document_type: '',
+                  description: '',
+                  requested_from: '',
+                  requested_from_type: '',
+                  submission_deadline: ''
+                });
+              }}
+              className="admin-btn admin-btn-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+
+    <hr style={{margin: '30px 0'}} />
+
+    {/* UPLOAD DOCUMENT SECTION */}
+    <div className="admin-document-upload-box">
+      <h4>📤 Upload Document Directly</h4>
+      <form onSubmit={handleDocumentSubmit} className="admin-upload-form">
+        <div className="admin-form-group">
+          <label>Document Type *</label>
+          <select
+            name="document_type"
+            value={documentForm.document_type}
+            onChange={handleDocumentFormChange}
+            className="admin-select"
+            required
+          >
+            <option value="">Select Document Type</option>
+            <option value="Petition">Petition</option>
+            <option value="Affidavit">Affidavit</option>
+            <option value="Evidence">Evidence</option>
+            <option value="Court Order">Court Order</option>
+            <option value="Judgment">Judgment</option>
+            <option value="Notice">Notice</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div className="admin-form-group">
+          <label>Description</label>
+          <textarea
+            name="description"
+            value={documentForm.description}
+            onChange={handleDocumentFormChange}
+            placeholder="Enter document description"
+            rows="2"
+            className="admin-textarea"
+          />
+        </div>
+
+        <div className="admin-form-group">
+          <label>Select File *</label>
+          <input
+            type="file"
+            name="file"
+            onChange={handleDocumentFormChange}
+            className="admin-input"
+            required
+          />
+        </div>
+
+        <button type="submit" className="admin-btn admin-btn-primary">
+          Upload Document
+        </button>
+      </form>
+    </div>
+
+    <hr style={{margin: '30px 0'}} />
+
+    {/* DOCUMENT LIST SECTION */}
+    <div className="admin-documents-list">
+      <h4>📋 Case Documents</h4>
+      {!selectedCase.documents || selectedCase.documents.length === 0 ? (
+        <p className="admin-no-data">No documents uploaded yet</p>
+      ) : (
+        <div className="admin-documents-table-wrapper">
+          <table className="admin-documents-table">
+            <thead>
+              <tr>
+                <th>Document Type</th>
+                <th>File Name</th>
+                <th>Description</th>
+                <th>Uploaded Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedCase.documents.map((doc, index) => (
+                <tr key={index}>
+                  <td>{doc.document_type || 'N/A'}</td>
+                  <td>
+                    {doc.file_name || 'N/A'}
+                    {doc.requested_from_type && (
+                      <span className="admin-badge">
+                        {doc.requested_from_type === 'litigant' ? '👤 From Litigant' : '👨‍⚖️ From Advocate'}
+                      </span>
+                    )}
+                  </td>
+                  <td>{doc.description || 'N/A'}</td>
+                  <td>
+                    {doc.uploaded_date 
+                      ? new Date(doc.uploaded_date).toLocaleDateString()
+                      : 'N/A'}
+                  </td>
+                  <td>
+                    <span className={`admin-status-badge ${doc.verification_status || 'pending'}`}>
+                      {doc.verification_status ? doc.verification_status.replace('_', ' ').toUpperCase() : 'UPLOADED'}
+                    </span>
+                  </td>
+                  <td>
+                    {doc.file_name && (
+                      <button
+                        onClick={() => {
+                          console.log('Document ID for download:', doc.document_id);
+                          handleDocumentDownload(doc.document_id);
+                        }}
+                        className="admin-btn admin-btn-small admin-btn-secondary"
+                      >
+                        Download
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
             
             {selectedTab === 'office' && (
               <div className="admin-tab-content">

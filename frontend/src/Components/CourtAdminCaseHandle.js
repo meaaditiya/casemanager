@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import '../ComponentsCSS/admincase.css';
 import AuditTrailReportGenerator from './AuditTrailReportGenerator';
@@ -40,11 +40,31 @@ const [loadingOverlay, setLoadingOverlay] = useState({
   progress: 0,
   message: 'Processing your request'
 });
-  const [newHearing, setNewHearing] = useState({
+// Add after existing state variables (around line 20-30)
+const [documentRequests, setDocumentRequests] = useState([]);
+const [selectedDocumentRequest, setSelectedDocumentRequest] = useState(null);
+const [showDocumentRequestModal, setShowDocumentRequestModal] = useState(false);
+const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
+const [selectedDocumentForVerification, setSelectedDocumentForVerification] = useState(null);
+
+const [documentRequestForm, setDocumentRequestForm] = useState({
+  document_type: '',
+  description: '',
+  requested_from: '',
+  requested_from_type: 'litigant',
+  submission_deadline: ''
+});
+
+const [verificationForm, setVerificationForm] = useState({
+  verification_status: 'verified',
+  verification_notes: ''
+});
+const [newHearing, setNewHearing] = useState({
     hearing_date: '',
     hearing_type: 'Initial',
     remarks: '',
     next_hearing_date: '',
+    sign_hearing: false, // New field for digital signature
   });
 
   const [newDocument, setNewDocument] = useState({
@@ -52,7 +72,13 @@ const [loadingOverlay, setLoadingOverlay] = useState({
     description: '',
     file: null,
   });
-
+// Add after existing document states
+const [directDocumentUpload, setDirectDocumentUpload] = useState({
+  document_type: '',
+  description: '',
+  file: null
+});
+const [showDirectUploadModal, setShowDirectUploadModal] = useState(false);
   const [statusUpdate, setStatusUpdate] = useState({
     status: '',
     remarks: '',
@@ -69,7 +95,9 @@ const [loadingOverlay, setLoadingOverlay] = useState({
   ];
 
   const hearingTypes = ['Initial', 'Intermediate', 'Final', 'Adjournment'];
-
+const [isRichTextMode, setIsRichTextMode] = useState(false);
+  const textareaRef = useRef(null);
+  const [selectedHearingForSign, setSelectedHearingForSign] = useState(null);
   useEffect(() => {
     const fetchCases = async () => {
       try {
@@ -162,29 +190,201 @@ const hideLoadingOverlay = () => {
     message: 'Processing your request'
   });
 };
+const handleCaseSelect = (caseData) => {
+  setSelectedCase(caseData);
+  setActiveTab('overview');
+  setStatusUpdate({
+    status: caseData.status,
+    remarks: '',
+  });
+  setHearings(caseData.hearings || []);
+  setNewHearing({
+    hearing_date: '',
+    hearing_type: 'Initial',
+    remarks: '',
+    next_hearing_date: '',
+    sign_hearing: false,
+  });
+  setNewDocument({
+    document_type: '',
+    description: '',
+    file: null,
+  });
+  setAuditTrail(null);
+  setTamperingReport(null);
+  
+  // Fetch document requests for this case
+  fetchDocumentRequests(caseData.case_num);
+};
+  // Fetch document requests for a case
+const fetchDocumentRequests = async (caseNum) => {
+  try {
+    showLoadingOverlay('generating_report', 'Loading document requests...');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      `http://localhost:5000/api/courtadmin/case/${caseNum}/documents`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    
+    setDocumentRequests(response.data.documents || []);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error fetching document requests:', err);
+    setError(err.response?.data?.message || 'Failed to fetch document requests');
+    hideLoadingOverlay();
+  }
+};
 
-  const handleCaseSelect = (caseData) => {
-    setSelectedCase(caseData);
-    setActiveTab('overview');
-    setStatusUpdate({
-      status: caseData.status,
-      remarks: '',
-    });
-    setHearings(caseData.hearings || []);
-    setNewHearing({
-      hearing_date: '',
-      hearing_type: 'Initial',
-      remarks: '',
-      next_hearing_date: '',
-    });
-    setNewDocument({
+// Request document from litigant/advocate
+const handleRequestDocument = async (e) => {
+  e.preventDefault();
+  
+  try {
+    showLoadingOverlay('case_manipulation', 'Creating document request...');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.post(
+      `http://localhost:5000/api/courtadmin/case/${selectedCase.case_num}/request-document`,
+      documentRequestForm,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    
+    alert('Document request sent successfully!');
+    await fetchDocumentRequests(selectedCase.case_num);
+    
+    setDocumentRequestForm({
       document_type: '',
       description: '',
-      file: null,
+      requested_from: '',
+      requested_from_type: 'litigant',
+      submission_deadline: ''
     });
-    setAuditTrail(null);
-    setTamperingReport(null);
-  };
+    
+    setShowDocumentRequestModal(false);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error requesting document:', err);
+    setError(err.response?.data?.message || 'Failed to request document');
+    hideLoadingOverlay();
+  }
+};
+
+// Verify document
+const handleVerifyDocument = async (documentId, status, notes) => {
+  try {
+    showLoadingOverlay('verification_details', 'Verifying document...');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.patch(  // ✅ CHANGE THIS FROM POST TO PATCH
+      `http://localhost:5000/api/courtadmin/case/${selectedCase.case_num}/verify-document/${documentId}`,
+      {
+        verification_status: status,
+        verification_notes: notes
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    
+    alert(`Document ${status} successfully!`);
+    await fetchDocumentRequests(selectedCase.case_num);
+    setShowDocumentVerificationModal(false);
+    setSelectedDocumentForVerification(null);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error verifying document:', err);
+    setError(err.response?.data?.message || 'Failed to verify document');
+    hideLoadingOverlay();
+  }
+};
+
+// Verify document signature
+const verifyDocumentSignature = async (documentId) => {
+  try {
+    showLoadingOverlay('verification_details', 'Verifying signature...');
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.get(
+      `http://localhost:5000/api/case/${selectedCase.case_num}/document/${documentId}/verify-signature`,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    
+    const { verification } = response.data;
+    hideLoadingOverlay();
+    
+    if (verification.is_valid) {
+      alert(`✓ Signature Valid\n\nSigned by: ${response.data.signature_details.signed_by_name}\nSigned on: ${new Date(response.data.signature_details.signature_timestamp).toLocaleString()}`);
+    } else {
+      alert(`✗ Signature Invalid\n\n${verification.message}`);
+    }
+  } catch (err) {
+    console.error('Error verifying signature:', err);
+    hideLoadingOverlay();
+    setError(err.response?.data?.message || 'Failed to verify signature');
+  }
+};
+// Direct document upload by admin/clerk (no request needed)
+const handleDirectDocumentUpload = async (e) => {
+  e.preventDefault();
+  
+  try {
+    if (!directDocumentUpload.file) {
+      alert('Please select a file to upload');
+      return;
+    }
+
+    if (!directDocumentUpload.document_type) {
+      alert('Document type is required');
+      return;
+    }
+
+    showLoadingOverlay('case_manipulation', 'Uploading document...');
+    const token = localStorage.getItem('token');
+    
+    const formData = new FormData();
+    formData.append('file', directDocumentUpload.file);
+    formData.append('document_type', directDocumentUpload.document_type);
+    formData.append('description', directDocumentUpload.description);
+
+    const response = await axios.post(
+      `http://localhost:5000/api/courtadmin/case/${selectedCase.case_num}/upload-document`,
+      formData,
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    
+    alert('Document uploaded and verified successfully!');
+    await fetchDocumentRequests(selectedCase.case_num);
+    
+    setDirectDocumentUpload({
+      document_type: '',
+      description: '',
+      file: null
+    });
+    
+    // Reset file input
+    const fileInput = document.getElementById('direct-upload-file');
+    if (fileInput) fileInput.value = '';
+    
+    setShowDirectUploadModal(false);
+    hideLoadingOverlay();
+  } catch (err) {
+    console.error('Error uploading document:', err);
+    setError(err.response?.data?.message || 'Failed to upload document');
+    hideLoadingOverlay();
+  }
+};
 const fetchAuditTrail = async (caseNum) => {
   try {
     showLoadingOverlay('audit_trail');
@@ -294,7 +494,84 @@ const closeVerificationModal = () => {
     hideLoadingOverlay();
   }
 };
+const insertFormatting = (before, after = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+    
+    setNewHearing({
+      ...newHearing,
+      remarks: newText
+    });
+
+    // Set cursor position after inserted text
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + before.length + selectedText.length;
+    }, 0);
+  };
+
+  // Add function to render text editor toolbar
+  const renderTextEditorToolbar = () => (
+    <div className="text-editor-toolbar">
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<strong>', '</strong>')}
+        title="Bold"
+      >
+        <strong>B</strong>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<em>', '</em>')}
+        title="Italic"
+      >
+        <em>I</em>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('<u>', '</u>')}
+        title="Underline"
+      >
+        <u>U</u>
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => insertFormatting('\n• ', '')}
+        title="Bullet Point"
+      >
+        • List
+      </button>
+      <button 
+        type="button"
+        className="toolbar-btn"
+        onClick={() => {
+          const textarea = textareaRef.current;
+          const start = textarea.selectionStart;
+          const text = textarea.value;
+          const newText = text.substring(0, start) + '\n\n' + text.substring(start);
+          setNewHearing({ ...newHearing, remarks: newText });
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + 2;
+          }, 0);
+        }}
+        title="New Paragraph"
+      >
+        ¶
+      </button>
+    </div>
+  );
  const fetchSecurityAlerts = async () => {
   try {
     showLoadingOverlay('security_alerts');
@@ -341,7 +618,7 @@ const fetchBlockchainStats = async () => {
     hideLoadingOverlay();
   }
 };
-  const handleAddHearing = async (e) => {
+const handleAddHearing = async (e) => {
     e.preventDefault();
 
     try {
@@ -349,6 +626,7 @@ const fetchBlockchainStats = async () => {
       formData.append('hearing_date', newHearing.hearing_date);
       formData.append('hearing_type', newHearing.hearing_type);
       formData.append('remarks', newHearing.remarks);
+      formData.append('sign_hearing', newHearing.sign_hearing); // Add signature flag
 
       if (newHearing.next_hearing_date) {
         formData.append('next_hearing_date', newHearing.next_hearing_date);
@@ -389,12 +667,77 @@ const fetchBlockchainStats = async () => {
         hearing_type: 'Initial',
         remarks: '',
         next_hearing_date: '',
+        sign_hearing: false,
       });
+
+      // Reset file input
+      if (fileInput) fileInput.value = '';
 
       alert('Hearing added successfully!');
     } catch (err) {
       console.error('Error adding hearing:', err);
       setError(err.response?.data?.message || 'Failed to add hearing');
+    }
+  };
+
+  // Add function to sign a hearing
+  const signHearing = async (hearingId) => {
+    try {
+      if (!window.confirm('Are you sure you want to digitally sign this hearing? This action cannot be undone.')) {
+        return;
+      }
+
+      showLoadingOverlay('case_manipulation', 'Signing hearing digitally...');
+
+      const response = await axios.post(
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}/sign`,
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+      );
+
+      // Update the hearing in the case
+      const updatedHearings = selectedCase.hearings.map(h => 
+        h._id === hearingId ? response.data.hearing : h
+      );
+
+      const updatedCase = { ...selectedCase, hearings: updatedHearings };
+      setSelectedCase(updatedCase);
+      setCases(cases.map(c => c.case_num === selectedCase.case_num ? updatedCase : c));
+      setFilteredCases(filteredCases.map(c => c.case_num === selectedCase.case_num ? updatedCase : c));
+      setHearings(updatedHearings);
+
+      hideLoadingOverlay();
+      alert('Hearing signed successfully');
+    } catch (err) {
+      console.error('Error signing hearing:', err);
+      hideLoadingOverlay();
+      setError(err.response?.data?.message || 'Failed to sign hearing');
+    }
+  };
+
+  // Add function to verify hearing signature
+  const verifyHearingSignature = async (hearingId) => {
+    try {
+      showLoadingOverlay('verification_details', 'Verifying signature...');
+
+      const response = await axios.get(
+        `http://localhost:5000/api/case/${selectedCase.case_num}/hearing/${hearingId}/verify-signature`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }}
+      );
+
+      const { verification } = response.data;
+      
+      hideLoadingOverlay();
+
+      if (verification.valid) {
+        alert(`✓ Signature Valid\n\nSigned by: ${verification.signed_by}\nSigned on: ${new Date(verification.signed_at).toLocaleString()}`);
+      } else {
+        alert(`✗ Signature Invalid\n\n${verification.message}`);
+      }
+    } catch (err) {
+      console.error('Error verifying signature:', err);
+      hideLoadingOverlay();
+      setError(err.response?.data?.message || 'Failed to verify signature');
     }
   };
 
@@ -990,226 +1333,681 @@ const fetchBlockchainStats = async () => {
                 )}
 
                 {activeTab === 'hearings' && (
-                  <div className="judicial-mgmt__hearings-tab">
-                    <div className="judicial-mgmt__hearings-container">
-                      <h3 className="judicial-mgmt__section-title">Scheduled Hearings</h3>
-                      {hearings && hearings.length > 0 ? (
-                        <div className="judicial-mgmt__hearings-list">
-                          {hearings.map((hearing, index) => (
-                            <div key={index} className="judicial-mgmt__hearing-card">
-                              <div className="judicial-mgmt__hearing-header">
-                                <div className="judicial-mgmt__hearing-badge">{hearing.hearing_type}</div>
-                                <div className="judicial-mgmt__hearing-date">
-                                  {formatDate(hearing.hearing_date)}
-                                </div>
-                              </div>
-                              <div className="judicial-mgmt__hearings-content">
-                                <p className="judicial-mgmt__hearing-remarks">
-                                  {hearing.remarks || 'No remarks'}
-                                </p>
-                                {hearing.next_hearing_date && (
-                                  <p className="judicial-mgmt__next-hearing">
-                                    Next Hearing: {formatDate(hearing.next_hearing_date)}
-                                  </p>
-                                )}
-                                {hearing.attachments && hearing.attachments.length > 0 && (
-                                  <div className="judicial-mgmt__attachments">
-                                    <h4 className="judicial-mgmt__attachments-title">Attachments</h4>
-                                    <ul className="judicial-mgmt__attachments-list">
-                                      {hearing.attachments.map((attachment, idx) => (
-                                        <li key={idx} className="judicial-mgmt__attachment-item">
-                                          <button
-                                            className="judicial-mgmt__download-btn"
-                                            onClick={() => handleDownloadAttachment(attachment.filename)}
-                                          >
-                                            {attachment.originalname || attachment.filename}
-                                          </button>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="judicial-mgmt__no-data">No hearings scheduled yet</p>
-                      )}
-
-                      <h3 className="judicial-mgmt__section-title judicial-mgmt__section-title--form">
-                        Schedule New Hearing
-                      </h3>
-                      <div className="judicial-mgmt__form">
-                        <div className="judicial-mgmt__form-row">
-                          <div className="judicial-mgmt__form-group">
-                            <label className="judicial-mgmt__form-label">Hearing Date*</label>
-                            <input
-                              type="date"
-                              className="judicial-mgmt__form-input"
-                              required
-                              value={newHearing.hearing_date}
-                              onChange={(e) =>
-                                setNewHearing({ ...newHearing, hearing_date: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div className="judicial-mgmt__form-group">
-                            <label className="judicial-mgmt__form-label">Hearing Type*</label>
-                            <select
-                              className="judicial-mgmt__form-select"
-                              required
-                              value={newHearing.hearing_type}
-                              onChange={(e) =>
-                                setNewHearing({ ...newHearing, hearing_type: e.target.value })
-                              }
-                            >
-                              {hearingTypes.map((type) => (
-                                <option key={type} value={type}>
-                                  {type}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="judicial-mgmt__form-group">
-                          <label className="judicial-mgmt__form-label">Remarks</label>
-                          <textarea
-                            className="judicial-mgmt__form-textarea"
-                            rows="3"
-                            value={newHearing.remarks}
-                            onChange={(e) =>
-                              setNewHearing({ ...newHearing, remarks: e.target.value })
-                            }
-                          ></textarea>
-                        </div>
-
-                        <div className="judicial-mgmt__form-group">
-                          <label className="judicial-mgmt__form-label">Next Hearing Date (if known)</label>
-                          <input
-                            type="date"
-                            className="judicial-mgmt__form-input"
-                            value={newHearing.next_hearing_date}
-                            onChange={(e) =>
-                              setNewHearing({ ...newHearing, next_hearing_date: e.target.value })
-                            }
-                          />
-                        </div>
-
-                        <div className="judicial-mgmt__form-group">
-                          <label className="judicial-mgmt__form-label">Attachments (Max 5 files)</label>
-                          <input
-                            type="file"
-                            id="courtadmin-hearing-attachments"
-                            className="judicial-mgmt__form-file"
-                            multiple
-                            max="5"
-                          />
-                          <p className="judicial-mgmt__form-help">
-                            You can attach up to 5 files related to this hearing
-                          </p>
-                        </div>
-
-                        <div className="judicial-mgmt__form-actions">
-                          <button onClick={handleAddHearing} className="judicial-mgmt__submit-btn">
-                            Schedule Hearing
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                 <div className="judicial-mgmt__hearings-tab">
+      <div className="judicial-mgmt__hearings-container">
+        <h3 className="judicial-mgmt__section-title">Scheduled Hearings</h3>
+        {hearings && hearings.length > 0 ? (
+          <div className="judicial-mgmt__hearings-list">
+            {hearings.map((hearing, index) => (
+              <div key={index} className="judicial-mgmt__hearing-card">
+                <div className="judicial-mgmt__hearing-header">
+                  <div className="judicial-mgmt__hearing-badge">{hearing.hearing_type}</div>
+                  <div className="judicial-mgmt__hearing-date">
+                    {formatDate(hearing.hearing_date)}
                   </div>
-                )}
+                  {hearing.digital_signature && hearing.digital_signature.is_signed && (
+                    <div className="digital-signature-badge" title="Digitally Signed">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Signed
+                    </div>
+                  )}
+                </div>
+                
+                <div className="judicial-mgmt__hearings-content">
+                  {hearing.remarks && (
+                    <div 
+                      className="judicial-mgmt__hearing-remarks"
+                      dangerouslySetInnerHTML={{ __html: hearing.remarks }}
+                    />
+                  )}
+                  
+                  {hearing.next_hearing_date && (
+                    <p className="judicial-mgmt__next-hearing">
+                      Next Hearing: {formatDate(hearing.next_hearing_date)}
+                    </p>
+                  )}
 
-                {activeTab === 'documents' && (
-                  <div className="judicial-mgmt__documents-tab">
-                    <h3 className="judicial-mgmt__section-title">Case Documents</h3>
-                    {selectedCase.documents && selectedCase.documents.length > 0 ? (
-                      <div className="judicial-mgmt__documents-grid">
-                        {selectedCase.documents.map((document, index) => (
-                          <div key={index} className="judicial-mgmt__document-card">
-                            <div className="judicial-mgmt__document-icon"></div>
-                            <div className="judicial-mgmt__document-info">
-                              <h4 className="judicial-mgmt__document-name">{document.file_name}</h4>
-                              <p className="judicial-mgmt__document-type">{document.document_type}</p>
-                              {document.description && (
-                                <p className="judicial-mgmt__document-desc">{document.description}</p>
-                              )}
-                              <p className="judicial-mgmt__document-date">
-                                Uploaded: {formatDate(document.uploaded_date)}
-                              </p>
-                            </div>
+                  {hearing.digital_signature && hearing.digital_signature.is_signed && (
+                    <div className="judicial-mgmt__hearing-signature-info">
+                      <div className="signature-details">
+                        <span className="signature-label">Signed by:</span>
+                        <span className="signature-value">{hearing.digital_signature.signed_by_name}</span>
+                      </div>
+                      <div className="signature-details">
+                        <span className="signature-label">Role:</span>
+                        <span className="signature-value">{hearing.digital_signature.signed_by_role}</span>
+                      </div>
+                      <div className="signature-details">
+                        <span className="signature-label">Signed on:</span>
+                        <span className="signature-value">
+                          {formatDateTime(hearing.digital_signature.signature_timestamp)}
+                        </span>
+                      </div>
+                      <button
+                        className="verify-signature-btn"
+                        onClick={() => verifyHearingSignature(hearing._id)}
+                      >
+                        🔍 Verify Signature
+                      </button>
+                    </div>
+                  )}
+
+                  {!hearing.digital_signature?.is_signed && (
+                    <button
+                      className="sign-hearing-btn"
+                      onClick={() => signHearing(hearing._id)}
+                    >
+                      ✍️ Sign Digitally
+                    </button>
+                  )}
+                  
+                  {hearing.attachments && hearing.attachments.length > 0 && (
+                    <div className="judicial-mgmt__attachments">
+                      <h4 className="judicial-mgmt__attachments-title">Attachments</h4>
+                      <ul className="judicial-mgmt__attachments-list">
+                        {hearing.attachments.map((attachment, idx) => (
+                          <li key={idx} className="judicial-mgmt__attachment-item">
                             <button
-                              className="judicial-mgmt__document-download"
-                              onClick={() => handleDownloadDocument(document.document_id)}
+                              className="judicial-mgmt__download-btn"
+                              onClick={() => handleDownloadAttachment(attachment.filename)}
                             >
-                              Download
+                              {attachment.originalname || attachment.filename}
                             </button>
-                          </div>
+                          </li>
                         ))}
-                      </div>
-                    ) : (
-                      <p className="judicial-mgmt__no-data">No documents available for this case</p>
-                    )}
-
-                    <h3 className="judicial-mgmt__section-title judicial-mgmt__section-title--form">
-                      Upload New Document
-                    </h3>
-                    <div className="judicial-mgmt__form">
-                      <div className="judicial-mgmt__form-row">
-                        <div className="judicial-mgmt__form-group">
-                          <label className="judicial-mgmt__form-label">Document Type*</label>
-                          <input
-                            type="text"
-                            className="judicial-mgmt__form-input"
-                            required
-                            placeholder="E.g., Judgment, Exhibit, Petition"
-                            value={newDocument.document_type}
-                            onChange={(e) =>
-                              setNewDocument({ ...newDocument, document_type: e.target.value })
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="judicial-mgmt__form-group">
-                        <label className="judicial-mgmt__form-label">Description</label>
-                        <textarea
-                          className="judicial-mgmt__form-textarea"
-                          rows="2"
-                          placeholder="Brief description of the document"
-                          value={newDocument.description}
-                          onChange={(e) =>
-                            setNewDocument({ ...newDocument, description: e.target.value })
-                          }
-                        ></textarea>
-                      </div>
-
-                      <div className="judicial-mgmt__form-group">
-                        <label className="judicial-mgmt__form-label">File*</label>
-                        <input
-                          type="file"
-                          className="judicial-mgmt__form-file"
-                          required
-                          onChange={handleFileSelect}
-                        />
-                        {newDocument.file && (
-                          <p className="judicial-mgmt__selected-file">
-                            Selected: {newDocument.file.name} (
-                            {(newDocument.file.size / 1024).toFixed(2)} KB)
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="judicial-mgmt__form-actions">
-                        <button onClick={handleDocumentUpload} className="judicial-mgmt__submit-btn">
-                          Upload Document
-                        </button>
-                      </div>
+                      </ul>
                     </div>
-                  </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="judicial-mgmt__no-data">No hearings scheduled yet</p>
+        )}
+
+        <h3 className="judicial-mgmt__section-title judicial-mgmt__section-title--form">
+          Schedule New Hearing
+        </h3>
+        <div className="judicial-mgmt__form">
+          <div className="judicial-mgmt__form-row">
+            <div className="judicial-mgmt__form-group">
+              <label className="judicial-mgmt__form-label">Hearing Date*</label>
+              <input
+                type="date"
+                className="judicial-mgmt__form-input"
+                required
+                value={newHearing.hearing_date}
+                onChange={(e) =>
+                  setNewHearing({ ...newHearing, hearing_date: e.target.value })
+                }
+              />
+            </div>
+            
+            <div className="judicial-mgmt__form-group">
+              <label className="judicial-mgmt__form-label">Hearing Type*</label>
+              <select
+                className="judicial-mgmt__form-select"
+                required
+                value={newHearing.hearing_type}
+                onChange={(e) =>
+                  setNewHearing({ ...newHearing, hearing_type: e.target.value })
+                }
+              >
+                {hearingTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">Next Hearing Date (if known)</label>
+            <input
+              type="date"
+              className="judicial-mgmt__form-input"
+              value={newHearing.next_hearing_date}
+              onChange={(e) =>
+                setNewHearing({ ...newHearing, next_hearing_date: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">
+              Remarks
+              <button
+                type="button"
+                className="toggle-editor-btn"
+                onClick={() => setIsRichTextMode(!isRichTextMode)}
+              >
+                {isRichTextMode ? 'Simple Mode' : 'Rich Text Mode'}
+              </button>
+            </label>
+            
+            {isRichTextMode && renderTextEditorToolbar()}
+            
+            <textarea
+              ref={textareaRef}
+              className="judicial-mgmt__form-textarea hearing-remarks-textarea"
+              rows="8"
+              value={newHearing.remarks}
+              onChange={(e) =>
+                setNewHearing({ ...newHearing, remarks: e.target.value })
+              }
+              placeholder="Enter hearing remarks. Press Enter for new line, double Enter for new paragraph."
+            ></textarea>
+            
+            <div className="formatting-help">
+              <small>
+                💡 Tip: Use the toolbar buttons or type HTML tags directly for formatting.
+                Paragraphs and line breaks will be preserved.
+              </small>
+            </div>
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">Attachments (Max 5 files)</label>
+            <input
+              type="file"
+              id="courtadmin-hearing-attachments"
+              className="judicial-mgmt__form-file"
+              multiple
+              max="5"
+            />
+            <p className="judicial-mgmt__form-help">
+              You can attach up to 5 files related to this hearing
+            </p>
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={newHearing.sign_hearing}
+                onChange={(e) => setNewHearing({
+                  ...newHearing,
+                  sign_hearing: e.target.checked
+                })}
+              />
+              <span>Digitally sign this hearing</span>
+            </label>
+            <small className="help-text">
+              Digitally signing will create a tamper-proof record of this hearing.
+            </small>
+          </div>
+
+          <div className="judicial-mgmt__form-actions">
+            <button onClick={handleAddHearing} className="judicial-mgmt__submit-btn">
+              Schedule Hearing
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
                 )}
 
+             {activeTab === 'documents' && (
+  <div className="judicial-mgmt__documents-tab">
+   <div className="documents-tab-header">
+  <h3 className="judicial-mgmt__section-title">Document Management</h3>
+  <div className="document-actions-group">
+    <button 
+      className="request-document-btn"
+      onClick={() => setShowDirectUploadModal(true)}
+    >
+     Upload Document
+    </button>
+    <button 
+      className="request-document-btn"
+      onClick={() => setShowDocumentRequestModal(true)}
+    >
+      Request Document
+    </button>
+  </div>
+</div>
+
+    {/* Document Requests Table */}
+    <div className="document-requests-section">
+      <h4 className="subsection-title">All Document Requests</h4>
+      
+      {documentRequests && documentRequests.length > 0 ? (
+        <div className="document-table-container">
+          <table className="document-requests-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Requested From</th>
+                <th>Status</th>
+                <th>Deadline</th>
+                <th>Uploaded</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documentRequests.map((doc, index) => (
+                <tr key={index} className={`doc-row doc-row--${doc.verification_status}`}>
+                  <td>
+                    <div className="doc-type-cell">
+                      <strong>{doc.document_type}</strong>
+                      {doc.description && (
+                        <small className="doc-description">{doc.description}</small>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="requested-from-cell">
+                      <span className={`party-badge party-badge--${doc.requested_from_type}`}>
+                        {doc.requested_from_type}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`status-badge status-badge--${doc.verification_status}`}>
+                      {doc.verification_status.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="date-cell">
+                      {doc.submission_deadline ? formatDate(doc.submission_deadline) : 'N/A'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="date-cell">
+                      {doc.uploaded_date ? formatDate(doc.uploaded_date) : '—'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="doc-actions">
+                      {doc.verification_status === 'uploaded_pending_review' && (
+                        <button
+                          className="doc-action-btn doc-action-btn--verify"
+                          onClick={() => {
+                            setSelectedDocumentForVerification(doc);
+                            setShowDocumentVerificationModal(true);
+                          }}
+                        >
+                          Review
+                        </button>
+                      )}
+                      
+                      {doc.file_name && (
+                        <button
+                          className="doc-action-btn doc-action-btn--download"
+                          onClick={() => handleDownloadDocument(doc.document_id)}
+                        >
+                          Download
+                        </button>
+                      )}
+                      
+                      {doc.digital_signature && doc.digital_signature.is_signed && (
+                        <button
+                          className="doc-action-btn doc-action-btn--signature"
+                          onClick={() => verifyDocumentSignature(doc.document_id)}
+                          title="Verify Digital Signature"
+                        >
+                          🔍 Verify
+                        </button>
+                      )}
+                      
+                      {doc.verification_status === 'verified' && doc.digital_signature && (
+                        <span className="signature-indicator" title="Digitally Signed">
+                          ✓ Signed
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="judicial-mgmt__no-data">No document requests for this case</p>
+      )}
+    </div>
+
+    {/* Document Request Modal */}
+    {showDocumentRequestModal && (
+      <div className="blockchain-modal-overlay" onClick={() => setShowDocumentRequestModal(false)}>
+        <div className="blockchain-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="blockchain-modal-header">
+            <h2>Request Document</h2>
+            <button 
+              className="blockchain-modal-close" 
+              onClick={() => setShowDocumentRequestModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="blockchain-modal-content">
+            <form onSubmit={handleRequestDocument} className="document-request-form">
+              <div className="form-group">
+                <label>Document Type *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Affidavit, Evidence, Certificate"
+                  value={documentRequestForm.document_type}
+                  onChange={(e) => setDocumentRequestForm({
+                    ...documentRequestForm,
+                    document_type: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  rows="3"
+                  placeholder="Brief description of what is needed"
+                  value={documentRequestForm.description}
+                  onChange={(e) => setDocumentRequestForm({
+                    ...documentRequestForm,
+                    description: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Request From *</label>
+                  <select
+                    required
+                    value={documentRequestForm.requested_from_type}
+                    onChange={(e) => setDocumentRequestForm({
+                      ...documentRequestForm,
+                      requested_from_type: e.target.value,
+                      requested_from: ''
+                    })}
+                  >
+                    <option value="litigant">Litigant</option>
+                    <option value="advocate">Advocate</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Select Party *</label>
+                  <select
+                    required
+                    value={documentRequestForm.requested_from}
+                    onChange={(e) => setDocumentRequestForm({
+                      ...documentRequestForm,
+                      requested_from: e.target.value
+                    })}
+                  >
+                    <option value="">-- Select --</option>
+                    {documentRequestForm.requested_from_type === 'litigant' ? (
+                      <>
+                        {selectedCase.plaintiff_details?.party_id && (
+                          <option value={selectedCase.plaintiff_details.party_id}>
+                            Plaintiff - {selectedCase.plaintiff_details.name}
+                          </option>
+                        )}
+                        {selectedCase.respondent_details?.party_id && (
+                          <option value={selectedCase.respondent_details.party_id}>
+                            Respondent - {selectedCase.respondent_details.name}
+                          </option>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {selectedCase.plaintiff_details?.advocate_id && (
+                          <option value={selectedCase.plaintiff_details.advocate_id}>
+                            Plaintiff Advocate - {selectedCase.plaintiff_details.advocate}
+                          </option>
+                        )}
+                        {selectedCase.respondent_details?.advocate_id && (
+                          <option value={selectedCase.respondent_details.advocate_id}>
+                            Respondent Advocate - {selectedCase.respondent_details.advocate}
+                          </option>
+                        )}
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Submission Deadline *</label>
+                <input
+                  type="date"
+                  required
+                  min={new Date().toISOString().split('T')[0]}
+                  value={documentRequestForm.submission_deadline}
+                  onChange={(e) => setDocumentRequestForm({
+                    ...documentRequestForm,
+                    submission_deadline: e.target.value
+                  })}
+                />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn-primary">
+                  Send Request
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={() => setShowDocumentRequestModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Document Verification Modal */}
+    {showDocumentVerificationModal && selectedDocumentForVerification && (
+      <div className="blockchain-modal-overlay" onClick={() => setShowDocumentVerificationModal(false)}>
+        <div className="blockchain-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="blockchain-modal-header">
+            <h2>Review Document</h2>
+            <button 
+              className="blockchain-modal-close" 
+              onClick={() => setShowDocumentVerificationModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          
+          <div className="blockchain-modal-content">
+            <div className="document-review-info">
+              <div className="info-row">
+                <span className="info-label">Document Type:</span>
+                <span className="info-value">{selectedDocumentForVerification.document_type}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">File Name:</span>
+                <span className="info-value">{selectedDocumentForVerification.file_name}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Uploaded:</span>
+                <span className="info-value">{formatDate(selectedDocumentForVerification.uploaded_date)}</span>
+              </div>
+              <div className="info-row">
+                <span className="info-label">Size:</span>
+                <span className="info-value">{(selectedDocumentForVerification.size / 1024).toFixed(2)} KB</span>
+              </div>
+            </div>
+
+            <form className="verification-form">
+              <div className="form-group">
+                <label>Decision *</label>
+                <select
+                  value={verificationForm.verification_status}
+                  onChange={(e) => setVerificationForm({
+                    ...verificationForm,
+                    verification_status: e.target.value
+                  })}
+                >
+                  <option value="verified">Approve & Sign</option>
+                  <option value="rejected">Reject</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  {verificationForm.verification_status === 'verified' ? 'Notes (Optional)' : 'Rejection Reason *'}
+                </label>
+                <textarea
+                  rows="4"
+                  required={verificationForm.verification_status === 'rejected'}
+                  placeholder={
+                    verificationForm.verification_status === 'verified'
+                      ? 'Optional notes about the document'
+                      : 'Please provide reason for rejection'
+                  }
+                  value={verificationForm.verification_notes}
+                  onChange={(e) => setVerificationForm({
+                    ...verificationForm,
+                    verification_notes: e.target.value
+                  })}
+                />
+              </div>
+
+              {verificationForm.verification_status === 'verified' && (
+                <div className="signature-notice">
+                  <strong>⚠️ Important:</strong> Approving this document will digitally sign it, 
+                  making it an official part of the case record. This action cannot be undone.
+                </div>
+              )}
+
+              <div className="form-actions">
+                <button 
+                  type="button"
+                  className={`btn-primary ${
+                    verificationForm.verification_status === 'verified' ? 'btn-success' : 'btn-danger'
+                  }`}
+                  onClick={() => handleVerifyDocument(
+                    selectedDocumentForVerification.document_id,
+                    verificationForm.verification_status,
+                    verificationForm.verification_notes
+                  )}
+                >
+                  {verificationForm.verification_status === 'verified' ? 'Approve & Sign' : 'Reject'}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={() => {
+                    setShowDocumentVerificationModal(false);
+                    setSelectedDocumentForVerification(null);
+                    setVerificationForm({
+                      verification_status: 'verified',
+                      verification_notes: ''
+                    });
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+    {/* Direct Document Upload Modal */}
+{showDirectUploadModal && (
+  <div className="blockchain-modal-overlay" onClick={() => setShowDirectUploadModal(false)}>
+    <div className="blockchain-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="blockchain-modal-header">
+        <h2>Upload Document Directly</h2>
+        <button 
+          className="blockchain-modal-close" 
+          onClick={() => setShowDirectUploadModal(false)}
+        >
+          ×
+        </button>
+      </div>
+      
+      <div className="blockchain-modal-content">
+        <form onSubmit={handleDirectDocumentUpload} className="judicial-mgmt__form">
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">Document Type *</label>
+            <input
+              type="text"
+              className="judicial-mgmt__form-input"
+              required
+              placeholder="e.g., Court Order, Evidence, Affidavit"
+              value={directDocumentUpload.document_type}
+              onChange={(e) => setDirectDocumentUpload({
+                ...directDocumentUpload,
+                document_type: e.target.value
+              })}
+            />
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">Description</label>
+            <textarea
+              className="judicial-mgmt__form-textarea"
+              rows="3"
+              placeholder="Brief description of the document"
+              value={directDocumentUpload.description}
+              onChange={(e) => setDirectDocumentUpload({
+                ...directDocumentUpload,
+                description: e.target.value
+              })}
+            />
+          </div>
+
+          <div className="judicial-mgmt__form-group">
+            <label className="judicial-mgmt__form-label">Select File *</label>
+            <input
+              type="file"
+              id="direct-upload-file"
+              className="judicial-mgmt__form-file"
+              required
+              onChange={(e) => setDirectDocumentUpload({
+                ...directDocumentUpload,
+                file: e.target.files[0]
+              })}
+            />
+            <p className="judicial-mgmt__form-help">
+              Maximum file size: 10MB
+            </p>
+          </div>
+
+          <div className="judicial-mgmt__form-actions">
+            <button type="submit" className="judicial-mgmt__submit-btn">
+              Upload & Auto-Verify
+            </button>
+            <button 
+              type="button" 
+              className="btn-secondary"
+              onClick={() => {
+                setShowDirectUploadModal(false);
+                setDirectDocumentUpload({
+                  document_type: '',
+                  description: '',
+                  file: null
+                });
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+        
+        <div className="form-info-box">
+          <strong>ℹ️ Note:</strong> Documents uploaded directly by court admin/clerk are 
+          automatically verified and digitally signed. No further approval needed.
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+  </div>
+)}
                 {activeTab === 'status' && (
                   <div className="judicial-mgmt__status-tab">
                     <h3 className="judicial-mgmt__section-title">Update Case Status</h3>

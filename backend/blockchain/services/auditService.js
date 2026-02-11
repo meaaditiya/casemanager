@@ -308,11 +308,13 @@ class AuditService {
       .digest('hex');
   }
 
-  async getLatestCheckpoint(blockIndex) {
-    return await AuditCheckpoint
-      .findOne({ blockIndex })
-      .sort({ createdAt: -1 });
-  }
+async getLatestCheckpoint(blockIndex) {
+  // ⚡ .lean() returns plain JS object (faster)
+  return await AuditCheckpoint
+    .findOne({ blockIndex })
+    .sort({ createdAt: -1 })
+    .lean();
+}
 
   async getAllCheckpointsForBlock(blockIndex) {
     return await AuditCheckpoint

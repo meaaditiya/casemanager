@@ -1,46 +1,27 @@
-// CORRECTED: blockchain/middleware/blockchainMiddleware.js
-// Remove the pre-flight blockchain checks that are causing failures
-
+const blockchainQueue = require('../queues/blockchainQueue');
 const blockchainService = require('../services/blockchainService');
 
-/**
- * ✅ ENHANCED CASE FILING MIDDLEWARE
- * Simplified - no pre-flight checks that block operations
- */
 const logCaseFilingMiddleware = async (req, res, next) => {
   const originalJson = res.json.bind(res);
   
   res.json = async function(data) {
     if (res.statusCode === 201 && data.case) {
       try {
-        console.log(`📋 Logging case filing to blockchain: ${data.case.case_num}`);
+        console.log(`📋 Queueing case filing: ${data.case.case_num}`);
         
-        const block = await blockchainService.logCaseFiling(
-          data.case,
-          req.user.party_id || req.user.advocate_id,
-          req.user.user_type
-        );
+        await blockchainQueue.add('mine-block', {
+          blockData: data.case,
+          dataType: 'case_filing',
+          entityId: data.case.case_num,
+          userId: req.user.party_id || req.user.advocate_id,
+          userType: req.user.user_type
+        });
         
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Case filing logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Blockchain logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Case created but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -55,41 +36,26 @@ const logStatusUpdateMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if (res.statusCode === 200 && data.case && req.body.status) {
       try {
-        console.log(`📄 Logging status update to blockchain: ${req.params.caseNum}`);
+        console.log(`📄 Queueing status update: ${req.params.caseNum}`);
         
-        const block = await blockchainService.logCaseStatusUpdate(
-          req.params.caseNum,
-          data.case.status,
-          req.body.status,
-          req.body.remarks,
-          req.user.clerk_id || req.user.admin_id,
-          req.user.user_type
-        );
-        
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          statusChange: {
-            from: data.case.status,
-            to: req.body.status
+        await blockchainQueue.add('mine-block', {
+          blockData: {
+            case_num: req.params.caseNum,
+            old_status: data.case.status,
+            new_status: req.body.status,
+            remarks: req.body.remarks
           },
-          timestamp: block.timestamp
-        };
+          dataType: 'case_status_update',
+          entityId: req.params.caseNum,
+          userId: req.user.clerk_id || req.user.admin_id,
+          userType: req.user.user_type
+        });
         
-        console.log(`✅ Status update logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Status update queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Status updated but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -104,36 +70,21 @@ const logHearingMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if ((res.statusCode === 201 || res.statusCode === 200) && data.hearing) {
       try {
-        console.log(`⚖️ Logging hearing to blockchain: ${req.params.caseNum}`);
+        console.log(`⚖️ Queueing hearing: ${req.params.caseNum}`);
         
-        const block = await blockchainService.logHearingAdded(
-          req.params.caseNum,
-          data.hearing,
-          req.user.clerk_id || req.user.admin_id,
-          req.user.user_type
-        );
+        await blockchainQueue.add('mine-block', {
+          blockData: data.hearing,
+          dataType: 'hearing_added',
+          entityId: req.params.caseNum,
+          userId: req.user.clerk_id || req.user.admin_id,
+          userType: req.user.user_type
+        });
         
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          hearingDate: data.hearing.hearing_date,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Hearing logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Hearing logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Hearing added but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -148,36 +99,31 @@ const logDocumentMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if (res.statusCode === 201 && data.document) {
       try {
-        console.log(`📎 Logging document to blockchain: ${req.params.caseNum}`);
+        console.log(`📎 Queueing document: ${req.params.caseNum}`);
         
-        const block = await blockchainService.logDocumentUpload(
-          req.params.caseNum,
-          data.document,
-          req.user.party_id || req.user.advocate_id || req.user.admin_id,
-          req.user.user_type
-        );
-        
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          documentId: data.document.document_id,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Document logged to blockchain at block ${block.index}`);
+     // In blockchainMiddleware.js - logDocumentRequestMiddleware
+// In blockchainMiddleware.js
+await blockchainQueue.add('mine-block', {
+  blockData: {
+    action: 'document_requested',  // ✅ Add action HERE
+    case_num: req.params.caseNum,
+    document_id: data.document_request.document_id,
+    document_type: data.document_request.document_type,
+    requested_from: data.document_request.requested_from,
+    requested_from_type: data.document_request.requested_from_type,
+    submission_deadline: data.document_request.submission_deadline,
+    requested_at: new Date()
+  },
+  dataType: 'document_requested',
+  entityId: req.params.caseNum,
+  userId: req.user.admin_id,
+  userType: req.user.user_type
+});
+        data.blockchain = { queued: true, message: 'Document logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Document uploaded but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -192,35 +138,24 @@ const logApprovalMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if (res.statusCode === 200 && req.body.case_approved !== undefined) {
       try {
-        console.log(`✔️ Logging case approval to blockchain: ${req.params.caseNum}`);
+        console.log(`✔️ Queueing approval: ${req.params.caseNum}`);
         
-        const block = await blockchainService.logCaseApproval(
-          req.params.caseNum,
-          req.body.case_approved,
-          req.user.clerk_id
-        );
+        await blockchainQueue.add('mine-block', {
+          blockData: {
+            case_num: req.params.caseNum,
+            approved: req.body.case_approved
+          },
+          dataType: 'case_approval',
+          entityId: req.params.caseNum,
+          userId: req.user.clerk_id,
+          userType: 'clerk'
+        });
         
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          approved: req.body.case_approved,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Case approval logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Approval logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Approval status changed but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -235,35 +170,24 @@ const logAdvocateVerificationMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if (res.statusCode === 200 && req.body.verified !== undefined) {
       try {
-        console.log(`👨‍⚖️ Logging advocate verification to blockchain: ${req.params.advocate_id}`);
+        console.log(`👨‍⚖️ Queueing advocate verification: ${req.params.advocate_id}`);
         
-        const block = await blockchainService.logAdvocateVerification(
-          req.params.advocate_id,
-          req.body.verified,
-          req.user.clerk_id
-        );
+        await blockchainQueue.add('mine-block', {
+          blockData: {
+            advocate_id: req.params.advocate_id,
+            verified: req.body.verified
+          },
+          dataType: 'advocate_verification',
+          entityId: req.params.advocate_id,
+          userId: req.user.clerk_id,
+          userType: 'clerk'
+        });
         
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          verified: req.body.verified,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Advocate verification logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Verification logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
-        
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Verification status changed but blockchain logging failed - will retry'
-        };
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -278,36 +202,50 @@ const logVideoMeetingMiddleware = async (req, res, next) => {
   res.json = async function(data) {
     if (res.statusCode === 201 && data.videoMeeting) {
       try {
-        console.log(`🎥 Logging video meeting to blockchain: ${req.params.caseNum}`);
+        console.log(`🎥 Queueing video meeting: ${req.params.caseNum}`);
         
-        const block = await blockchainService.logVideoMeetingScheduled(
-          req.params.caseNum,
-          data.videoMeeting,
-          req.user.clerk_id || req.user.admin_id,
-          req.user.user_type
-        );
+        await blockchainQueue.add('mine-block', {
+          blockData: data.videoMeeting,
+          dataType: 'video_meeting_scheduled',
+          entityId: req.params.caseNum,
+          userId: req.user.clerk_id || req.user.admin_id,
+          userType: req.user.user_type
+        });
         
-        data.blockchain = {
-          logged: true,
-          blockIndex: block.index,
-          blockHash: block.hash,
-          ipfsAnchor: block.ipfs?.cid || null,
-          ipfsUrl: block.ipfs?.cid ? `https://ipfs.io/ipfs/${block.ipfs.cid}` : null,
-          digitallySigned: !!block.signature?.value,
-          meetingTime: data.videoMeeting.startDateTime,
-          timestamp: block.timestamp
-        };
-        
-        console.log(`✅ Video meeting logged to blockchain at block ${block.index}`);
+        data.blockchain = { queued: true, message: 'Video meeting logging queued' };
         
       } catch (error) {
-        console.error('❌ Blockchain logging error:', error);
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
+      }
+    }
+    return originalJson(data);
+  };
+  
+  next();
+};
+
+const logDocumentRequestMiddleware = async (req, res, next) => {
+  const originalJson = res.json.bind(res);
+  
+  res.json = async function(data) {
+    if (res.statusCode === 201 && data.document_request) {
+      try {
+        console.log(`📄 Queueing document request: ${req.params.caseNum}`);
         
-        data.blockchain = {
-          logged: false,
-          error: error.message,
-          note: 'Video meeting scheduled but blockchain logging failed - will retry'
-        };
+        await blockchainQueue.add('mine-block', {
+          blockData: data.document_request,
+          dataType: 'document_requested',
+          entityId: req.params.caseNum,
+          userId: req.user.admin_id,
+          userType: req.user.user_type
+        });
+        
+        data.blockchain = { queued: true, message: 'Document request queued' };
+        
+      } catch (error) {
+        console.error('❌ Queue error:', error);
+        data.blockchain = { queued: false, error: error.message };
       }
     }
     return originalJson(data);
@@ -322,7 +260,7 @@ const blockchainHealthCheckMiddleware = async (req, res, next) => {
     req.blockchainHealthy = stats.totalBlocks > 0;
     next();
   } catch (error) {
-    console.error('❌ Blockchain health check failed:', error);
+    console.error('❌ Health check failed:', error);
     req.blockchainHealthy = false;
     next();
   }
@@ -331,39 +269,24 @@ const blockchainHealthCheckMiddleware = async (req, res, next) => {
 const verifyIntegrityMiddleware = async (req, res, next) => {
   if (req.query.verify === 'true' && req.params.caseNum) {
     try {
-      console.log(`🔍 Verifying integrity for case: ${req.params.caseNum}`);
-      
+      console.log(`🔍 Verifying integrity: ${req.params.caseNum}`);
       const verification = await blockchainService.verifyCaseHistory(req.params.caseNum);
-      
-      if (!verification.valid) {
-        console.warn(`⚠️ Integrity check found issues for case: ${req.params.caseNum}`);
-        
-        req.integrityInfo = {
-          valid: false,
-          message: 'This case has some blockchain verification issues',
-          details: verification.tamperingPatterns || []
-        };
-      } else {
-        req.integrityInfo = null;
-      }
-      
-    } catch (error) {
-      console.error('❌ Integrity verification error:', error);
-      req.integrityInfo = {
+      req.integrityInfo = !verification.valid ? {
         valid: false,
-        message: 'Unable to verify blockchain integrity',
-        error: error.message
-      };
+        message: 'Blockchain verification issues',
+        details: verification.tamperingPatterns || []
+      } : null;
+    } catch (error) {
+      console.error('❌ Integrity error:', error);
+      req.integrityInfo = { valid: false, message: 'Unable to verify', error: error.message };
     }
   }
-  
   next();
 };
 
 const blockchainErrorHandler = (error, req, res, next) => {
   if (error.message && error.message.includes('blockchain')) {
-    console.error('❌ Blockchain operation failed:', error);
-    
+    console.error('❌ Blockchain error:', error);
     return res.status(500).json({
       success: false,
       message: 'Operation completed but blockchain logging failed',
@@ -371,7 +294,6 @@ const blockchainErrorHandler = (error, req, res, next) => {
       note: 'Data saved to database, blockchain will retry'
     });
   }
-  
   next(error);
 };
 
@@ -383,6 +305,7 @@ module.exports = {
   logApprovalMiddleware,
   logAdvocateVerificationMiddleware,
   logVideoMeetingMiddleware,
+  logDocumentRequestMiddleware,
   blockchainHealthCheckMiddleware,
   verifyIntegrityMiddleware,
   blockchainErrorHandler

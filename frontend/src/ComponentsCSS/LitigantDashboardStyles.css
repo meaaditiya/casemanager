@@ -1557,3 +1557,377 @@
 }
 
 /* End of LitigantDashboardStyles.css */
+/* Additional CSS for Hearing Order Sheet */
+
+.hearing-order-sheet {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+  background-color: #fff;
+  color: #000;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.order-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.order-header h1 {
+  font-size: 24px;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-bottom: 10px;
+}
+
+.order-meta {
+  margin-bottom: 20px;
+}
+
+.order-meta table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-meta td {
+  padding: 8px 0;
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.order-meta .label {
+  font-weight: bold;
+  width: 200px;
+}
+
+.order-content {
+  margin: 30px 0;
+  text-align: justify;
+  line-height: 1.8;
+  font-size: 14px;
+}
+
+.order-content p {
+  margin-bottom: 12px;
+  text-indent: 0;
+}
+
+.order-content em,
+.order-content i {
+  font-style: italic;
+}
+
+.order-content strong,
+.order-content b {
+  font-weight: bold;
+}
+
+.order-content u {
+  text-decoration: underline;
+}
+
+.order-signature {
+  margin-top: 60px;
+  text-align: right;
+}
+
+.signature-box {
+  display: inline-block;
+  min-width: 250px;
+  text-align: center;
+}
+
+.signature-line {
+  border-top: 1px solid #000;
+  margin-bottom: 5px;
+  padding-top: 40px;
+}
+
+.signature-details {
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: left;
+  padding-left: 10px;
+}
+
+.digital-signature-box {
+  margin-top: 40px;
+  border: 1px solid #000;
+  padding: 15px;
+  background: #f9f9f9;
+}
+
+.digital-signature-box h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.digital-signature-box p {
+  font-size: 12px;
+  margin-bottom: 5px;
+  line-height: 1.6;
+}
+
+/* Print styles for hearing order */
+@media print {
+  .hearing-order-sheet {
+    padding: 20px;
+  }
+
+  .litigantdash-modal-header-bar,
+  .litigantdash-print-receipt-button,
+  .litigantdash-close-modal-button {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+}
+/* Document Requests Section */
+.litigantdash-document-requests-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+}
+
+.litigantdash-document-requests-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.litigantdash-no-requests-message {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* Document Requests Grid */
+.litigantdash-requests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+}
+
+/* Document Request Card */
+.litigantdash-request-card {
+  background: var(--bg-secondary);
+  padding: 16px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.litigantdash-request-card:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.litigantdash-request-card.rejected {
+  border-left: 3px solid var(--error);
+}
+
+/* Card Header */
+.litigantdash-request-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.litigantdash-request-card-header h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Status Badge */
+.litigantdash-request-status-badge {
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.litigantdash-request-status-badge.pending_upload {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.litigantdash-request-status-badge.uploaded_pending_review {
+  background: #bae6fd;
+  color: #075985;
+}
+
+.litigantdash-request-status-badge.verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.litigantdash-request-status-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Card Body */
+.litigantdash-request-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.litigantdash-request-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 11px;
+}
+
+.litigantdash-request-detail-row .litigantdash-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.litigantdash-request-detail-row .litigantdash-value {
+  color: var(--text-primary);
+  text-align: right;
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.litigantdash-request-detail-row .litigantdash-deadline {
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* Rejection Notice */
+.litigantdash-rejection-notice {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  padding: 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #991b1b;
+  line-height: 1.4;
+}
+
+.litigantdash-rejection-notice strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Verified Notice */
+.litigantdash-verified-notice {
+  background: #d1fae5;
+  border: 1px solid #86efac;
+  padding: 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #065f46;
+  line-height: 1.4;
+}
+
+/* Upload Action Section */
+.litigantdash-upload-action-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Inline Upload Form */
+.litigantdash-inline-upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.litigantdash-file-input-field {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  background: var(--bg-primary);
+}
+
+.litigantdash-upload-buttons-group {
+  display: flex;
+  gap: 8px;
+}
+
+/* Upload Buttons */
+.litigantdash-upload-submit-button,
+.litigantdash-upload-cancel-button,
+.litigantdash-upload-trigger-button {
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.litigantdash-upload-submit-button {
+  background: var(--primary);
+  color: white;
+  flex: 1;
+}
+
+.litigantdash-upload-submit-button:hover:not(:disabled) {
+  background: var(--secondary);
+}
+
+.litigantdash-upload-submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.litigantdash-upload-cancel-button {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  flex: 1;
+}
+
+.litigantdash-upload-cancel-button:hover {
+  background: var(--bg-tertiary);
+}
+
+.litigantdash-upload-trigger-button {
+  width: 100%;
+  background: var(--success);
+  color: white;
+}
+
+.litigantdash-upload-trigger-button:hover {
+  background: #059669;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .litigantdash-requests-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .litigantdash-request-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .litigantdash-request-detail-row .litigantdash-value {
+    text-align: left;
+  }
+}

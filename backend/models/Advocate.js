@@ -62,6 +62,7 @@ const AdvocateSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
-
+AdvocateSchema.index({ advocate_id: 1 });
+AdvocateSchema.index({ email: 1 });
 // Export the model
 module.exports = mongoose.model('Advocate', AdvocateSchema);

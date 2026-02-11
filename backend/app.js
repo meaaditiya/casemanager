@@ -31,6 +31,7 @@ const { generateCaseEmbeddings } = require("./services/courtEmbeddingService");
 const { generateSpecialityEmbeddings } = require("./services/courtEmbeddingService");
 const { initializeBlockchain } = require('./initBlockchain');
 const { initializeScheduler } = require('./blockchain/jobs/scheduler');
+require('./blockchain/workers/blockchainWorker');
 const {
   sha256File,
   encryptFile,
@@ -50,10 +51,20 @@ const {
   logDocumentMiddleware,
   logApprovalMiddleware,
   logAdvocateVerificationMiddleware,
-  logVideoMeetingMiddleware
+  logVideoMeetingMiddleware,
+  logDocumentRequestMiddleware,           
 } = require('./blockchain/middleware/blockchainMiddleware');
+const { 
+  convertTextToHtml, 
+  stripHtmlTags, 
+  generateHearingHash, 
+  sanitizeHtml ,
+  verifyHearingSignature
+} = require('./utils/hearingUtils');
+const DailyCourtSchedule = require('./models/DailyCourtSchedule');
+const { Server } = require('socket.io');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const { generateDocumentHash, verifyDocumentSignature } = require('./utils/documentSignature');
 app.use(cors({
     origin:  ['http://localhost:3000', 'http://192.168.1.39:3000','https://ecourt-yr51.onrender.com','https://ecourtfiling.onrender.com'],
     credentials: true
@@ -62,7 +73,35 @@ app.use(express.json());
 app.use('/api/clerk', clerkRoutes);
 app.use("/api", Gemini);
 app.use('/api/blockchain', blockchainRoutes);
+const http = require('http');
+const server = http.createServer(app);
 
+const io = new Server(server, {
+  cors: {
+    origin: ['http://localhost:3000', 'http://192.168.1.39:3000'],
+    credentials: true
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+  
+  socket.on('join_court', (court_no) => {
+    socket.join(court_no);
+    console.log(`Socket ${socket.id} joined court ${court_no}`);
+  });
+  
+  socket.on('leave_court', (court_no) => {
+    socket.leave(court_no);
+    console.log(`Socket ${socket.id} left court ${court_no}`);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
+app.set('io', io);
 blockchain.initialize().then(() => {
   initializeScheduler();  // NEW
   console.log('Blockchain and maintenance jobs initialized');
@@ -104,6 +143,178 @@ const upload = multer({
 });
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+// Document Request Email
+const sendDocumentRequestEmail = async (recipient, caseDetails, documentRequest) => {
+  try {
+    const { name, email } = recipient;
+    const { case_num, case_type } = caseDetails;
+    const { document_type, description, submission_deadline } = documentRequest;
+    
+    const deadlineDate = new Date(submission_deadline).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: #1a365d; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { padding: 20px; }
+          .details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .warning { background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 15px 0; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Document Request - Case #${case_num}</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>The court has requested you to submit the following document for your case:</p>
+            
+            <div class="details">
+              <h3>Document Request Details:</h3>
+              <p><strong>Case Number:</strong> ${case_num}</p>
+              <p><strong>Case Type:</strong> ${case_type}</p>
+              <p><strong>Document Type:</strong> ${document_type}</p>
+              <p><strong>Description:</strong> ${description}</p>
+              <p><strong>Submission Deadline:</strong> ${deadlineDate}</p>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Important:</strong> Please submit the requested document before the deadline. Late submissions may affect your case proceedings.
+            </div>
+            
+            <p>Please log in to your account to upload the requested document.</p>
+            
+            <p>If you have any questions, please contact the court administration.</p>
+            
+            <p>Regards,<br>Court Administration</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Legal Case Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: email,
+      from: process.env.FROM_EMAIL,
+      subject: `Document Request - Case #${case_num}`,
+      html: html,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Document request email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Email error:', error);
+    return false;
+  }
+};
+
+// Document Verification Email
+const sendDocumentVerificationEmail = async (recipient, caseDetails, documentDetails, status, reason = '') => {
+  try {
+    const { name, email } = recipient;
+    const { case_num } = caseDetails;
+    const { document_type, file_name } = documentDetails;
+    
+    const isApproved = status === 'verified';
+    const statusText = isApproved ? 'Verified & Approved' : 'Rejected';
+    const statusColor = isApproved ? '#28a745' : '#dc3545';
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: ${statusColor}; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { padding: 20px; }
+          .details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Document ${statusText}</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>Your submitted document has been reviewed by the court administration.</p>
+            
+            <div class="details">
+              <h3>Document Status:</h3>
+              <table>
+                <tr>
+                  <th>Document Name</th>
+                  <td>${file_name}</td>
+                </tr>
+                <tr>
+                  <th>Document Type</th>
+                  <td>${document_type}</td>
+                </tr>
+                <tr>
+                  <th>Case Number</th>
+                  <td>${case_num}</td>
+                </tr>
+                <tr>
+                  <th>Status</th>
+                  <td style="color: ${statusColor}; font-weight: bold;">${statusText}</td>
+                </tr>
+                ${!isApproved ? `<tr><th>Reason for Rejection</th><td>${reason}</td></tr>` : ''}
+              </table>
+            </div>
+            
+            ${!isApproved ? 
+              '<p><strong>Action Required:</strong> Please upload a corrected version of the document addressing the issues mentioned above.</p>' :
+              '<p>The document has been digitally signed and is now part of the official case record.</p>'
+            }
+            
+            <p>Regards,<br>Court Administration</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Legal Case Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: email,
+      from: process.env.FROM_EMAIL,
+      subject: `Document ${statusText} - Case #${case_num}`,
+      html: html,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Document verification email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Email error:', error);
+    return false;
+  }
+};
 
 // OTP  
 const generateOTP = () => {
@@ -1597,10 +1808,42 @@ async function initializeData() {
   }
 }
 
-  const generateCNRFromCaseData = async (caseData) => {
-    const typePrefix = caseData.case_type === 'Civil' ? 'CL' : 'CM';
-    const year = new Date().getFullYear().toString();
-    
+ const generateCNRFromCaseData = async (caseData) => {
+  // Map case types to prefixes
+  const typePrefixMap = {
+    'Civil': 'CL',
+    'Criminal': 'CM',
+    'CIV SUITS': 'CS',
+    'EXE PET': 'EP',
+    'MISC. CIV APPLN': 'MCA',
+    'MRG PET': 'MP',
+    'MACP': 'MAC',
+    'MISC CIV CASES': 'MCC',
+    'CIVIL APPEAL': 'CA',
+    'ARBITN': 'ARB',
+    'MISC. CIV APPEAL': 'MCAP',
+    'LAND REFRNC': 'LR',
+    'MAGISTRIAL CASES': 'MAG',
+    'MISC. EXE.': 'MEX',
+    'LABUR MAIN': 'LAB',
+    'COMMERCIAL SUIT': 'COMS',
+    'MISC. CRIM APLN': 'MCP',
+    'INDUS MAIN': 'IND',
+    'CIVIL REV.': 'CR',
+    'OTHER TRIBNL': 'OTR',
+    'INDUS MISC': 'IM',
+    'LABUR MISC': 'LM',
+    'ELCTN PET': 'EL',
+    'CO-OP MAIN': 'COM',
+    'COMMERCIAL APPEAL': 'COMA',
+    'CO-OP APEAL MAIN': 'COAP',
+    'CO-OP MISC.': 'COP',
+    'SESSIONS CASES': 'SES',
+    'CRIM APPEAL': 'CRAP'
+  };
+  
+  const typePrefix = typePrefixMap[caseData.case_type] || 'GEN';
+  const year = new Date().getFullYear().toString();
     // Function to generate a unique serial
     const generateSerial = () => {
         // Get nanosecond timestamp
@@ -2622,13 +2865,14 @@ const upload3 = multer({
   // Upload case document
 // Update the document upload route to store consistent file paths
 
-// Document download route
+
+// Document download route - Updated to check verification status
 app.get('/api/document/:documentId/download', authenticateToken, async (req, res) => {
   try {
     const { documentId } = req.params;
     console.log(`Download request for document ID: ${documentId}`);
 
-    // Find the case containing the document - exact string match on document_id
+    // Find the case containing the document
     const caseWithDocument = await LegalCase.findOne(
       { 'documents.document_id': documentId }
     );
@@ -2640,20 +2884,7 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
       });
     }
 
-    // For non-clerks, verify they are associated with the case
-    if (req.user.user_type !== 'clerk') {
-      const isPartyToCase = 
-        caseWithDocument.plaintiff_details.party_id === req.user.party_id || 
-        caseWithDocument.respondent_details.party_id === req.user.party_id;
-
-      if (!isPartyToCase) {
-        return res.status(403).json({
-          message: 'Access denied: You are not authorized to access this document'
-        });
-      }
-    }
-
-    // Find the specific document - exact string match
+    // Find the specific document
     const document = caseWithDocument.documents.find(d => d.document_id === documentId);
 
     if (!document) {
@@ -2663,12 +2894,57 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
       });
     }
 
-    // Get the full file path - using stored path but with safeguards
+    // Check if document has been uploaded
+    if (document.verification_status === 'pending_upload') {
+      return res.status(400).json({
+        message: 'Document has not been uploaded yet'
+      });
+    }
+
+    // Authorization check
+    const userType = req.user.user_type;
+    let isAuthorized = false;
+
+    if (userType === 'admin') {
+      // Admin can download if case is assigned to their court
+      const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+      if (admin && caseWithDocument.for_office_use_only?.court_allotted === admin.court_name) {
+        isAuthorized = true;
+      }
+    } else if (userType === 'clerk') {
+      // Clerk can download if in same district
+      const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
+      if (clerk && caseWithDocument.district === clerk.district) {
+        isAuthorized = true;
+      }
+    } else if (userType === 'litigant') {
+      // Litigant can download if they are party to the case
+      const isParty = 
+        caseWithDocument.plaintiff_details.party_id === req.user.party_id ||
+        caseWithDocument.respondent_details.party_id === req.user.party_id;
+      if (isParty) {
+        isAuthorized = true;
+      }
+    } else if (userType === 'advocate') {
+      // Advocate can download if representing a party
+      const isAdvocate =
+        caseWithDocument.plaintiff_details.advocate_id === req.user.advocate_id ||
+        caseWithDocument.respondent_details.advocate_id === req.user.advocate_id;
+      if (isAdvocate) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        message: 'Access denied: You are not authorized to access this document'
+      });
+    }
+
+    // Get file path
     let filePath = document.file_path;
     
-    // Ensure the path is accessible - if it's not an absolute path, resolve it
     if (!path.isAbsolute(filePath)) {
-      // If the path is stored relative to __dirname, resolve it
       filePath = path.resolve(filePath);
     }
     
@@ -2677,45 +2953,22 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       console.log(`File not found at primary path: ${filePath}`);
-      
-      // Fallback - try checking if it's in the uploads directory by filename
-      const fallbackPath = path.join(UPLOADS_DIR, path.basename(filePath));
-      console.log(`Attempting fallback path: ${fallbackPath}`);
-      
-      if (fs.existsSync(fallbackPath)) {
-        filePath = fallbackPath;
-        console.log(`File found at fallback path: ${filePath}`);
-      } else {
-        return res.status(404).json({
-          message: 'Document file not found on server'
-        });
-      }
-    }
-
-    // Check file permissions - try to access the file
-    try {
-      fs.accessSync(filePath, fs.constants.R_OK);
-    } catch (err) {
-      console.error(`Permission denied or cannot access file: ${err.message}`);
-      return res.status(403).json({
-        message: 'Cannot access file due to permission issues'
+      return res.status(404).json({
+        message: 'Document file not found on server'
       });
     }
 
-    // Set correct content type based on mime type
+    // Set headers
     const contentType = document.mime_type || 'application/octet-stream';
     res.setHeader('Content-Type', contentType);
     
-    // Set content disposition to suggest filename
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(document.file_name)}"`);
     const safeFilename = encodeURIComponent(document.file_name);
     res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
-    // Use res.sendFile for better handling of file serving
+    
+    // Send file
     res.sendFile(filePath, (err) => {
       if (err) {
         console.error(`Error sending file: ${err.message}`);
-        
-        // Only send error if headers haven't been sent
         if (!res.headersSent) {
           res.status(500).json({
             message: 'Error serving file',
@@ -2738,134 +2991,6 @@ app.get('/api/document/:documentId/download', authenticateToken, async (req, res
 
 
 
-
-app.post('/api/case/:caseNum/document', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
-  try {
-    const { caseNum } = req.params;
-    const { document_type, description } = req.body;
-    const file = req.file;
-
-    if (!file) return res.status(400).json({ message: 'No file uploaded' });
-    if (!document_type) return res.status(400).json({ message: 'Document type is required' });
-
-    const caseData = await LegalCase.findOne({ case_num: caseNum });
-    if (!caseData) return res.status(404).json({ message: 'Case not found' });
-
-    if (req.user.user_type !== 'clerk') {
-      const isParty =
-        caseData.plaintiff_details.party_id === req.user.party_id ||
-        caseData.respondent_details.party_id === req.user.party_id;
-
-      if (!isParty)
-        return res.status(403).json({ message: 'Access denied' });
-    }
-
-    const filePath = file.path;
-    const originalPath = filePath;
-
-    let extractedText = "";
-
-    try {
-      extractedText = await extractTextFromPDF(filePath);
-    } catch (e) {}
-
-    if (!extractedText || extractedText.trim().length < 30) {
-      try {
-        extractedText = await extractTextWithPdfjs(filePath);
-      } catch (e) {}
-    }
-
-    if (!extractedText || extractedText.trim().length < 30) {
-      return res.status(422).json({ message: 'Unreadable document' });
-    }
-
-    const checks = deterministicChecks(extractedText);
-    const redactedText = redactSensitive(extractedText);
-
-    let geminiDecision;
-
-    if (checks.result === 'legal') {
-      geminiDecision = {
-        is_legal: true,
-        confidence: 0.9,
-        reasons: ['deterministic match']
-      };
-    } else {
-      const { GoogleGenerativeAI } = require('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-      const prompt = `
-Return strict JSON only:
-{
-  "is_legal": true/false,
-  "confidence": "0.00-1.00",
-  "reasons": ["reason1","reason2"]
-}
-
-Text:
-${redactedText}
-`;
-
-      const result = await model.generateContent(prompt);
-      let t = result.response.text().trim();
-      t = t.replace(/```json/g, '').replace(/```/g, '').trim();
-
-      try {
-        geminiDecision = JSON.parse(t);
-      } catch {
-        geminiDecision = { is_legal: false, confidence: 0, reasons: ['AI parse error'] };
-      }
-    }
-
-    if (!geminiDecision.is_legal) {
-      return res.status(422).json({
-        message: 'Document validation failed',
-        reasons: geminiDecision.reasons
-      });
-    }
-
-    const fileHash = sha256File(originalPath);
-    const encryptedPath = path.join(path.dirname(originalPath), file.filename + '.enc');
-
-    await encryptFile(originalPath, encryptedPath);
-    try { fs.unlinkSync(originalPath); } catch (e) {}
-
-    const documentId = new mongoose.Types.ObjectId();
-
-    const document = {
-      document_id: documentId.toString(),
-      document_type,
-      description: description || '',
-      file_name: file.originalname,
-      file_path: encryptedPath,
-      mime_type: file.mimetype,
-      size: file.size,
-      uploaded_date: new Date(),
-      uploaded_by: req.user.litigant_id,
-      sha256: fileHash,
-      validator: {
-        method: checks.result === 'legal' ? 'deterministic' : 'ai',
-        decision: geminiDecision
-      }
-    };
-
-    caseData.documents.push(document);
-    await caseData.save();
-
-    return res.status(201).json({
-      message: 'Document uploaded and validated successfully',
-      document: { ...document, _id: document.document_id },
-      case_num: caseNum
-    });
-
-  } catch (err) {
-    return res.status(500).json({
-      message: 'Server error',
-      error: err.message
-    });
-  }
-});
 
 
 // Document download route - Unchanged except for the access control portion
@@ -5168,86 +5293,7 @@ app.get('/api/case/:caseNum/documents/advocate', authenticateToken, async (req, 
   }
 });
 
-// Document upload route for advocates
-app.post('/api/case/:caseNum/document/advocate', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
-  try {
-    const { caseNum } = req.params;
-    const { document_type, description } = req.body;
-    const file = req.file;
-    const advocateId = req.user.advocate_id;
 
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    if (!document_type) {
-      return res.status(400).json({ message: 'Document type is required' });
-    }
-
-    // Find the case and verify advocate association
-    const caseData = await LegalCase.findOne({
-      case_num: caseNum,
-      $or: [
-        { 'plaintiff_details.advocate_id': advocateId },
-        { 'respondent_details.advocate_id': advocateId }
-      ]
-    });
-    
-    if (!caseData) {
-      return res.status(404).json({
-        message: 'Case not found or you do not have access to this case'
-      });
-    }
-
-    // Generate a document ID
-    const documentId = new mongoose.Types.ObjectId();
-    
-    // Store only the relative path for consistency
-    const relativePath = file.path.replace(/\\/g, '/');
-    
-    // Create document object
-    const document = {
-      document_id: documentId.toString(),
-      document_type,
-      description: description || '',
-      file_name: file.originalname,
-      file_path: relativePath,
-      mime_type: file.mimetype,
-      size: file.size,
-      uploaded_date: new Date(),
-      uploaded_by: req.user.advocate_id
-    };
-
-    // Initialize documents array if it doesn't exist
-    if (!caseData.documents) {
-      caseData.documents = [];
-    }
-    
-    caseData.documents.push(document);
-    await caseData.save();
-
-    console.log(`Document uploaded successfully by advocate:`, {
-      advocate_id: advocateId,
-      document_id: document.document_id,
-      file_name: document.file_name
-    });
-
-    res.status(201).json({
-      message: 'Document uploaded successfully',
-      document: {
-        ...document,
-        _id: document.document_id
-      },
-      case_num: caseNum
-    });
-  } catch (err) {
-    console.error(`Error uploading document by advocate:`, err);
-    res.status(500).json({
-      message: 'Server error while uploading document',
-      error: err.message
-    });
-  }
-});
 
 // Video pleading upload route for advocates
 app.post('/api/case/:caseNum/video-pleading/advocate', authenticateToken, uploadVideo.single('videoFile'), async (req, res) => {
@@ -6759,7 +6805,7 @@ app.get('/api/case/:caseNum/hearings/courtadmin', authenticateToken, async (req,
   }
 });
 
-// 4. Add hearing to a case
+// Update the POST /api/case/:caseNum/hearing route
 app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingMiddleware, upload.array('attachments', 5), async (req, res) => {
   try {
     // Verify if the user is an admin
@@ -6774,7 +6820,8 @@ app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingM
       hearing_date,
       hearing_type,
       remarks,
-      next_hearing_date
+      next_hearing_date,
+      sign_hearing // New parameter to indicate if hearing should be signed
     } = req.body;
 
     // Validate required fields
@@ -6813,11 +6860,27 @@ app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingM
       });
     }
 
+    // Process remarks - convert to HTML and sanitize
+    let remarksHtml = '';
+    let remarksPlainText = '';
+    
+    if (remarks) {
+      // If remarks already contains HTML tags, sanitize it
+      // Otherwise, convert plain text to HTML
+      if (/<[a-z][\s\S]*>/i.test(remarks)) {
+        remarksHtml = sanitizeHtml(remarks);
+      } else {
+        remarksHtml = sanitizeHtml(convertTextToHtml(remarks));
+      }
+      remarksPlainText = stripHtmlTags(remarksHtml);
+    }
+
     // Create a new hearing object
     const newHearing = {
       hearing_date: new Date(hearing_date),
       hearing_type,
-      remarks,
+      remarks: remarksHtml,
+      remarks_plain_text: remarksPlainText,
       next_hearing_date: next_hearing_date ? new Date(next_hearing_date) : undefined,
       created_by: req.user.admin_id,
       created_by_type: 'admin'
@@ -6836,6 +6899,20 @@ app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingM
       }));
       
       newHearing.attachments = attachments;
+    }
+
+    // Add digital signature if requested
+    if (sign_hearing === 'true' || sign_hearing === true) {
+      const hearingHash = generateHearingHash(newHearing);
+      
+      newHearing.digital_signature = {
+        is_signed: true,
+        signed_by: req.user.admin_id,
+        signed_by_name: admin.name,
+        signed_by_role: 'admin',
+        signature_timestamp: new Date(),
+        signature_hash: hearingHash
+      };
     }
 
     // Add the new hearing to the case
@@ -6861,6 +6938,98 @@ app.post('/api/case/:caseNum/hearing/courtadmin', authenticateToken, logHearingM
     res.status(500).json({
       message: 'Server error while adding hearing'
     });
+  }
+});
+
+// Add new route to sign an existing hearing
+app.post('/api/case/:caseNum/hearing/:hearingId/sign', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.admin_id) {
+      return res.status(403).json({
+        message: 'Access denied: Only court administrators can sign hearings'
+      });
+    }
+
+    const { caseNum, hearingId } = req.params;
+
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin profile not found' });
+    }
+
+    const caseData = await LegalCase.findOne({
+      case_num: caseNum,
+      'for_office_use_only.court_allotted': admin.court_name
+    });
+
+    if (!caseData) {
+      return res.status(404).json({
+        message: 'Case not found or not assigned to your court'
+      });
+    }
+
+    const hearingIndex = caseData.hearings.findIndex(h => h._id.toString() === hearingId);
+    if (hearingIndex === -1) {
+      return res.status(404).json({ message: 'Hearing not found' });
+    }
+
+    const hearing = caseData.hearings[hearingIndex];
+
+    // Check if already signed
+    if (hearing.digital_signature && hearing.digital_signature.is_signed) {
+      return res.status(400).json({
+        message: 'Hearing is already digitally signed'
+      });
+    }
+
+    // Generate signature
+    const hearingHash = generateHearingHash(hearing);
+    
+    hearing.digital_signature = {
+      is_signed: true,
+      signed_by: req.user.admin_id,
+      signed_by_name: admin.name,
+      signed_by_role: 'admin',
+      signature_timestamp: new Date(),
+      signature_hash: hearingHash
+    };
+
+    await caseData.save();
+
+    res.status(200).json({
+      message: 'Hearing signed successfully',
+      hearing: caseData.hearings[hearingIndex]
+    });
+  } catch (err) {
+    console.error('Error signing hearing:', err);
+    res.status(500).json({ message: 'Server error while signing hearing' });
+  }
+});
+
+// Add route to verify hearing signature
+app.get('/api/case/:caseNum/hearing/:hearingId/verify-signature', authenticateToken, async (req, res) => {
+  try {
+    const { caseNum, hearingId } = req.params;
+
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const hearing = caseData.hearings.find(h => h._id.toString() === hearingId);
+    if (!hearing) {
+      return res.status(404).json({ message: 'Hearing not found' });
+    }
+
+    const verificationResult = verifyHearingSignature(hearing);
+    
+    res.status(200).json({
+      verification: verificationResult,
+      hearing_id: hearingId
+    });
+  } catch (err) {
+    console.error('Error verifying signature:', err);
+    res.status(500).json({ message: 'Server error while verifying signature' });
   }
 });
 
@@ -7062,93 +7231,7 @@ app.post('/api/case/:caseNum/hearing/:hearingId/attachments/courtadmin', authent
   }
 });
 
-// 7. Upload case document
-app.post('/api/case/:caseNum/document/courtadmin', authenticateToken, logDocumentMiddleware, upload3.single('file'), async (req, res) => {
-  try {
-    // Verify if the user is an admin
-    if (!req.user.admin_id) {
-      return res.status(403).json({
-        message: 'Access denied: Only court administrators can upload documents'
-      });
-    }
 
-    const { caseNum } = req.params;
-    const { document_type, description } = req.body;
-    const file = req.file;
-
-    if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    if (!document_type) {
-      return res.status(400).json({ message: 'Document type is required' });
-    }
-
-    // Find the admin
-    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
-    
-    if (!admin) {
-      return res.status(404).json({
-        message: 'Admin profile not found'
-      });
-    }
-
-    // Find the case and verify it's assigned to this admin's court
-    const caseData = await LegalCase.findOne({
-      case_num: caseNum,
-      'for_office_use_only.court_allotted': admin.court_name
-    });
-
-    if (!caseData) {
-      return res.status(404).json({
-        message: 'Case not found or not assigned to your court'
-      });
-    }
-
-    // Generate a document ID
-    const documentId = new mongoose.Types.ObjectId();
-    
-    // Store only the relative path for consistency (relative to uploads dir)
-    const relativePath = file.path.replace(/\\/g, '/'); // Convert Windows backslashes if needed
-    
-    // Create document object
-    const document = {
-      document_id: documentId.toString(),
-      document_type,
-      description: description || '',
-      file_name: file.originalname,
-      file_path: relativePath,
-      mime_type: file.mimetype,
-      size: file.size,
-      uploaded_date: new Date(),
-      uploaded_by: req.user.admin_id,
-      uploaded_by_type: 'admin'
-    };
-
-    // Initialize documents array if it doesn't exist
-    if (!caseData.documents) {
-      caseData.documents = [];
-    }
-    
-    caseData.documents.push(document);
-    await caseData.save();
-
-    res.status(201).json({
-      message: 'Document uploaded successfully',
-      document: {
-        ...document,
-        _id: document.document_id
-      },
-      case_num: caseNum
-    });
-  } catch (err) {
-    console.error('Error uploading document:', err);
-    res.status(500).json({
-      message: 'Server error while uploading document',
-      error: err.message
-    });
-  }
-});
 
 // 8. Download document
 // Admin version of document download route - reuses existing functionality with admin authentication
@@ -7687,7 +7770,7 @@ app.post("/api/llama/stream", async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama3:8b",
+        model: "legal-advisor",
         prompt,
         stream: true
       })
@@ -7707,7 +7790,1935 @@ app.post("/api/llama/stream", async (req, res) => {
   }
 });
 
- PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+
+const calculateEndTime = (startTime, durationMinutes) => {
+  const endTime = new Date(startTime);
+  endTime.setMinutes(endTime.getMinutes() + durationMinutes);
+  return endTime;
+};
+
+const checkTimeOverlap = (start1, end1, start2, end2) => {
+  return start1 < end2 && start2 < end1;
+};
+
+const recalculateTimings = (cases, fromIndex, timeDifference) => {
+  for (let i = fromIndex; i < cases.length; i++) {
+    cases[i].listing_time_start = new Date(cases[i].listing_time_start.getTime() + timeDifference);
+    cases[i].listing_time_end = new Date(cases[i].listing_time_end.getTime() + timeDifference);
+  }
+  return cases;
+};
+function recalculateTimingsImproved(scheduledCases, startIndex, timeDifference, bufferMinutes = 5) {
+  const buffer = bufferMinutes * 60000; // Convert to milliseconds
+  
+  for (let i = startIndex; i < scheduledCases.length; i++) {
+    const currentStart = new Date(scheduledCases[i].listing_time_start);
+    const currentEnd = new Date(scheduledCases[i].listing_time_end);
+    
+    // Add buffer time between cases
+    const adjustedTimeDifference = timeDifference + (i > startIndex ? buffer : 0);
+    
+    scheduledCases[i].listing_time_start = new Date(currentStart.getTime() + adjustedTimeDifference);
+    scheduledCases[i].listing_time_end = new Date(currentEnd.getTime() + adjustedTimeDifference);
+  }
+  
+  return scheduledCases;
+}
+
+const formatTime = (date) => {
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+};
+// Add after existing email functions (around line 500)
+
+const sendHearingListingEmail = async (recipient, caseDetails, listingDetails) => {
+  try {
+    const { name, email } = recipient;
+    const { case_num, case_type } = caseDetails;
+    const { court_no, listing_time_start, listing_time_end, date } = listingDetails;
+    
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const startTime = new Date(listing_time_start).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    const endTime = new Date(listing_time_end).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: #1a365d; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { padding: 20px; }
+          .details { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .highlight { background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 15px 0; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Court Hearing Scheduled</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>Your case hearing has been scheduled for today's court proceedings.</p>
+            
+            <div class="details">
+              <h3>Hearing Details:</h3>
+              <p><strong>Case Number:</strong> ${case_num}</p>
+              <p><strong>Case Type:</strong> ${case_type}</p>
+              <p><strong>Court Number:</strong> ${court_no}</p>
+              <p><strong>Date:</strong> ${formattedDate}</p>
+              <p><strong>Time:</strong> ${startTime} - ${endTime}</p>
+            </div>
+            
+            <div class="highlight">
+              <strong>⚠️ Important:</strong> Please arrive at least 15 minutes before your scheduled time.
+            </div>
+            
+            <p>You can view the live court schedule and your position in the queue on the court dashboard.</p>
+            
+            <p>Regards,<br>Court Administration</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Legal Case Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: email,
+      from: process.env.FROM_EMAIL,
+      subject: `Court Hearing Scheduled - Case #${case_num}`,
+      html: html,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Hearing listing email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Email error:', error);
+    return false;
+  }
+};
+
+const sendHearingTimeUpdateEmail = async (recipient, caseDetails, oldTime, newTime) => {
+  try {
+    const { name, email } = recipient;
+    const { case_num } = caseDetails;
+    
+    const oldStart = new Date(oldTime.start).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    const newStart = new Date(newTime.start).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    const newEnd = new Date(newTime.end).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+          .header { background-color: #ffc107; color: #000; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { padding: 20px; }
+          .time-change { background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>⚠️ Hearing Time Updated</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${name},</p>
+            <p>Your hearing time has been updated due to schedule adjustments.</p>
+            
+            <div class="time-change">
+              <p><strong>Case Number:</strong> ${case_num}</p>
+              <p><strong>Previous Time:</strong> ${oldStart}</p>
+              <p><strong>New Time:</strong> ${newStart} - ${newEnd}</p>
+            </div>
+            
+            <p>Please check the live court dashboard for the most current information.</p>
+            
+            <p>Regards,<br>Court Administration</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>© ${new Date().getFullYear()} Legal Case Management System</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const msg = {
+      to: email,
+      from: process.env.FROM_EMAIL,
+      subject: `Hearing Time Updated - Case #${case_num}`,
+      html: html,
+    };
+    
+    await sgMail.send(msg);
+    console.log(`Time update email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('Email error:', error);
+    return false;
+  }
+};
+
+// COURT SCHEDULE MANAGEMENT ROUTES
+app.post('/api/courtadmin/schedule/create-listing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { 
+      case_num, 
+      hearing_id, 
+      court_no, 
+      estimated_duration,
+      listing_time_start,  // NEW: Manual start time
+      listing_time_end,    // NEW: Manual end time
+      auto_schedule = true // NEW: Flag for auto vs manual scheduling
+    } = req.body;
+
+    // Validate case and hearing exist
+    const caseData = await LegalCase.findOne({ case_num });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const hearing = caseData.hearings.id(hearing_id);
+    if (!hearing) {
+      return res.status(404).json({ message: 'Hearing not found' });
+    }
+
+    // NEW: Validate times are not in the past
+    const now = new Date();
+    if (listing_time_start) {
+      const startTime = new Date(listing_time_start);
+      if (startTime < now) {
+        return res.status(400).json({ 
+          message: 'Cannot schedule hearing in the past',
+          current_time: now.toISOString(),
+          requested_time: startTime.toISOString()
+        });
+      }
+    }
+
+    // Get admin profile for court details
+    const admin = await CourtAdmin.findById(req.user.id);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let schedule = await DailyCourtSchedule.findOne({
+      date: today,
+      court_no: court_no
+    });
+
+    let calculatedStartTime, calculatedEndTime;
+
+    if (auto_schedule) {
+      // AUTO SCHEDULING: Calculate based on last case
+      if (!schedule || schedule.scheduled_cases.length === 0) {
+        // First case of the day - default start at 10:00 AM
+        calculatedStartTime = new Date(today);
+        calculatedStartTime.setHours(10, 0, 0, 0);
+      } else {
+        // Start after the last scheduled case
+        const lastCase = schedule.scheduled_cases[schedule.scheduled_cases.length - 1];
+        calculatedStartTime = new Date(lastCase.listing_time_end);
+      }
+      
+      calculatedEndTime = new Date(calculatedStartTime.getTime() + (estimated_duration * 60000));
+    } else {
+      // MANUAL SCHEDULING: Use provided times
+      if (!listing_time_start || !listing_time_end) {
+        return res.status(400).json({ 
+          message: 'Manual scheduling requires both start and end times' 
+        });
+      }
+      
+      calculatedStartTime = new Date(listing_time_start);
+      calculatedEndTime = new Date(listing_time_end);
+      
+      // Validate end time is after start time
+      if (calculatedEndTime <= calculatedStartTime) {
+        return res.status(400).json({ 
+          message: 'End time must be after start time' 
+        });
+      }
+
+      // NEW: Check for time conflicts with existing cases
+      if (schedule) {
+        const hasConflict = schedule.scheduled_cases.some(existingCase => {
+          const existingStart = new Date(existingCase.listing_time_start);
+          const existingEnd = new Date(existingCase.listing_time_end);
+          
+          return (
+            (calculatedStartTime >= existingStart && calculatedStartTime < existingEnd) ||
+            (calculatedEndTime > existingStart && calculatedEndTime <= existingEnd) ||
+            (calculatedStartTime <= existingStart && calculatedEndTime >= existingEnd)
+          );
+        });
+
+        if (hasConflict) {
+          return res.status(400).json({ 
+            message: 'Time slot conflicts with existing case',
+            suggested_action: 'Please choose a different time or use auto-schedule'
+          });
+        }
+      }
+    }
+
+    const newScheduledCase = {
+      case_num: caseData.case_num,
+      hearing_id: hearing._id,
+      listing_time_start: calculatedStartTime,
+      listing_time_end: calculatedEndTime,
+      estimated_duration: estimated_duration,
+      status: 'scheduled',
+      listing_order: schedule ? schedule.scheduled_cases.length : 0,
+      plaintiff_name: caseData.plaintiff_details.name,
+      respondent_name: caseData.respondent_details.name,
+      case_type: caseData.case_type
+    };
+
+    if (!schedule) {
+      // Create new schedule
+      schedule = new DailyCourtSchedule({
+        schedule_id: `SCH-${Date.now()}`,
+        date: today,
+        court_no: court_no,
+        court_allotted: admin.court_name,
+        district: admin.district,
+        scheduled_cases: [newScheduledCase],
+        total_estimated_time: estimated_duration,
+        current_case_index: 0,
+        court_start_time: calculatedStartTime,
+        last_updated: new Date(),
+        updated_by: req.user.id
+      });
+    } else {
+      schedule.scheduled_cases.push(newScheduledCase);
+      schedule.total_estimated_time += estimated_duration;
+      schedule.last_updated = new Date();
+      schedule.updated_by = req.user.id;
+    }
+
+    await schedule.save();
+
+    // Update hearing in LegalCase
+    hearing.is_listed_for_today = true;
+    hearing.court_no = court_no;
+    hearing.listing_time_start = calculatedStartTime;
+    hearing.listing_time_end = calculatedEndTime;
+    hearing.listing_order = newScheduledCase.listing_order;
+    
+    await caseData.save();
+
+    // Emit real-time update
+    const io = req.app.get('io');
+    io.to(court_no).emit('schedule_updated', {
+      court_no,
+      schedule: schedule.scheduled_cases
+    });
+
+    res.status(201).json({
+      message: 'Case added to schedule',
+      schedule: schedule.scheduled_cases,
+      new_case: newScheduledCase
+    });
+
+  } catch (error) {
+    console.error('Error creating listing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+app.post('/api/courtadmin/schedule/update-timing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { 
+      schedule_id, 
+      case_num, 
+      new_start_time, 
+      new_end_time,
+      cascade_updates = true // Whether to adjust subsequent cases
+    } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found in schedule' });
+    }
+
+    // Validate times
+    const startTime = new Date(new_start_time);
+    const endTime = new Date(new_end_time);
+    const now = new Date();
+
+    if (startTime < now) {
+      return res.status(400).json({ 
+        message: 'Cannot schedule in the past',
+        current_time: now.toISOString()
+      });
+    }
+
+    if (endTime <= startTime) {
+      return res.status(400).json({ message: 'End time must be after start time' });
+    }
+
+    // Check for conflicts (excluding the current case)
+    const hasConflict = schedule.scheduled_cases.some((c, idx) => {
+      if (idx === caseIndex) return false;
+      
+      const existingStart = new Date(c.listing_time_start);
+      const existingEnd = new Date(c.listing_time_end);
+      
+      return (
+        (startTime >= existingStart && startTime < existingEnd) ||
+        (endTime > existingStart && endTime <= existingEnd) ||
+        (startTime <= existingStart && endTime >= existingEnd)
+      );
+    });
+
+    if (hasConflict && !cascade_updates) {
+      return res.status(400).json({ 
+        message: 'Time conflict detected',
+        suggestion: 'Enable cascade_updates to automatically adjust other cases'
+      });
+    }
+
+    const oldEndTime = schedule.scheduled_cases[caseIndex].listing_time_end;
+    
+    // Update the target case
+    schedule.scheduled_cases[caseIndex].listing_time_start = startTime;
+    schedule.scheduled_cases[caseIndex].listing_time_end = endTime;
+    schedule.scheduled_cases[caseIndex].estimated_duration = Math.round((endTime - startTime) / 60000);
+
+    if (cascade_updates && caseIndex < schedule.scheduled_cases.length - 1) {
+      // Adjust all subsequent cases
+      const timeDifference = endTime - oldEndTime;
+      
+      for (let i = caseIndex + 1; i < schedule.scheduled_cases.length; i++) {
+        const currentStart = new Date(schedule.scheduled_cases[i].listing_time_start);
+        const currentEnd = new Date(schedule.scheduled_cases[i].listing_time_end);
+        
+        schedule.scheduled_cases[i].listing_time_start = new Date(currentStart.getTime() + timeDifference);
+        schedule.scheduled_cases[i].listing_time_end = new Date(currentEnd.getTime() + timeDifference);
+      }
+    }
+
+    schedule.last_updated = new Date();
+    await schedule.save();
+
+    // Update the hearing in LegalCase
+    const caseData = await LegalCase.findOne({ case_num });
+    const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+    if (hearing) {
+      hearing.listing_time_start = startTime;
+      hearing.listing_time_end = endTime;
+      await caseData.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('schedule_updated', {
+      court_no: schedule.court_no,
+      schedule: schedule.scheduled_cases,
+      updated_case: case_num
+    });
+
+    res.status(200).json({
+      message: 'Timing updated successfully',
+      updated_schedule: schedule.scheduled_cases
+    });
+
+  } catch (error) {
+    console.error('Error updating timing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ============================================================
+// 3. NEW ENDPOINT: Reopen completed hearing
+// ============================================================
+
+app.post('/api/courtadmin/schedule/reopen-hearing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { schedule_id, case_num } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const targetCase = schedule.scheduled_cases[caseIndex];
+    
+    if (targetCase.status !== 'completed' && targetCase.status !== 'dismissed') {
+      return res.status(400).json({ 
+        message: 'Can only reopen completed or dismissed hearings',
+        current_status: targetCase.status
+      });
+    }
+
+    // Reset the case status
+    targetCase.status = 'scheduled';
+    targetCase.actual_end_time = null;
+    targetCase.actual_duration = null;
+
+    schedule.last_updated = new Date();
+    await schedule.save();
+
+    // Update in LegalCase
+    const caseData = await LegalCase.findOne({ case_num });
+    const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+    if (hearing) {
+      hearing.hearing_status = 'scheduled';
+      hearing.actual_end_time = null;
+      await caseData.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('hearing_reopened', {
+      court_no: schedule.court_no,
+      case_num,
+      schedule: schedule.scheduled_cases
+    });
+
+    res.status(200).json({
+      message: 'Hearing reopened successfully',
+      case: targetCase
+    });
+
+  } catch (error) {
+    console.error('Error reopening hearing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ============================================================
+// 4. NEW ENDPOINT: Remove case from schedule
+// ============================================================
+
+app.post('/api/courtadmin/schedule/remove-case', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { schedule_id, case_num } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Remove the case
+    const removedCase = schedule.scheduled_cases[caseIndex];
+    schedule.scheduled_cases.splice(caseIndex, 1);
+
+    // Recalculate timings for remaining cases
+    for (let i = caseIndex; i < schedule.scheduled_cases.length; i++) {
+      if (i === 0) {
+        const startTime = new Date(schedule.court_start_time);
+        const duration = schedule.scheduled_cases[i].estimated_duration;
+        schedule.scheduled_cases[i].listing_time_start = startTime;
+        schedule.scheduled_cases[i].listing_time_end = new Date(startTime.getTime() + (duration * 60000));
+      } else {
+        const prevEnd = schedule.scheduled_cases[i-1].listing_time_end;
+        const duration = schedule.scheduled_cases[i].estimated_duration;
+        schedule.scheduled_cases[i].listing_time_start = new Date(prevEnd);
+        schedule.scheduled_cases[i].listing_time_end = new Date(new Date(prevEnd).getTime() + (duration * 60000));
+      }
+      schedule.scheduled_cases[i].listing_order = i;
+    }
+
+    schedule.last_updated = new Date();
+    await schedule.save();
+
+    // Update LegalCase
+    const caseData = await LegalCase.findOne({ case_num });
+    if (caseData) {
+      const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+      if (hearing) {
+        hearing.is_listed_for_today = false;
+        hearing.court_no = null;
+        hearing.listing_time_start = null;
+        hearing.listing_time_end = null;
+        hearing.listing_order = null;
+        await caseData.save();
+      }
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('case_removed', {
+      court_no: schedule.court_no,
+      case_num,
+      schedule: schedule.scheduled_cases
+    });
+
+    res.status(200).json({
+      message: 'Case removed from schedule',
+      removed_case: removedCase,
+      updated_schedule: schedule.scheduled_cases
+    });
+
+  } catch (error) {
+    console.error('Error removing case:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.get('/api/courtadmin/schedule/today/:court_no', authenticateToken, async (req, res) => {
+  try {
+    const { court_no } = req.params;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const schedule = await DailyCourtSchedule.findOne({
+      date: today,
+      court_no: court_no
+    });
+
+    if (!schedule) {
+      return res.status(200).json({ 
+        message: 'No schedule found for today',
+        scheduled_cases: [],
+        current_case_index: 0
+      });
+    }
+
+    res.status(200).json({
+      schedule_id: schedule.schedule_id,
+      court_no: schedule.court_no,
+      date: schedule.date,
+      scheduled_cases: schedule.scheduled_cases,
+      current_case_index: schedule.current_case_index,
+      court_start_time: schedule.court_start_time
+    });
+
+  } catch (error) {
+    console.error('Error fetching schedule:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/courtadmin/schedule/start-hearing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { schedule_id, case_num } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found in schedule' });
+    }
+
+    schedule.scheduled_cases[caseIndex].status = 'in_progress';
+    schedule.scheduled_cases[caseIndex].actual_start_time = new Date();
+    schedule.current_case_index = caseIndex;
+    schedule.last_updated = new Date();
+
+    await schedule.save();
+
+    const caseData = await LegalCase.findOne({ case_num });
+    const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+    if (hearing) {
+      hearing.hearing_status = 'in_progress';
+      hearing.actual_start_time = new Date();
+      await caseData.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('case_started', {
+      court_no: schedule.court_no,
+      case_num,
+      current_case_index: caseIndex
+    });
+
+    res.status(200).json({
+      message: 'Hearing started',
+      current_case: schedule.scheduled_cases[caseIndex]
+    });
+
+  } catch (error) {
+    console.error('Error starting hearing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/courtadmin/schedule/end-hearing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { schedule_id, case_num } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const currentCase = schedule.scheduled_cases[caseIndex];
+    const actualEndTime = new Date();
+    const actualDuration = Math.round((actualEndTime - currentCase.actual_start_time) / 60000);
+
+    currentCase.status = 'completed';
+    currentCase.actual_end_time = actualEndTime;
+    currentCase.actual_duration = actualDuration;
+
+    const timeDifference = actualEndTime - new Date(currentCase.listing_time_end);
+    
+    
+    schedule.scheduled_cases = recalculateTimingsImproved(schedule.scheduled_cases, caseIndex + 1, timeDifference, 5);
+
+
+    if (caseIndex + 1 < schedule.scheduled_cases.length) {
+      schedule.current_case_index = caseIndex + 1;
+    }
+
+    schedule.last_updated = new Date();
+    await schedule.save();
+
+    const caseData = await LegalCase.findOne({ case_num });
+    const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+    if (hearing) {
+      hearing.hearing_status = 'completed';
+      hearing.actual_end_time = actualEndTime;
+      await caseData.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('case_ended', {
+      court_no: schedule.court_no,
+      case_num,
+      schedule: schedule.scheduled_cases,
+      current_case_index: schedule.current_case_index
+    });
+
+    for (let i = caseIndex + 1; i < schedule.scheduled_cases.length; i++) {
+      const affectedCase = await LegalCase.findOne({ case_num: schedule.scheduled_cases[i].case_num });
+      
+      if (affectedCase.plaintiff_details.party_id) {
+        const plaintiff = await Litigant.findOne({ party_id: affectedCase.plaintiff_details.party_id });
+        if (plaintiff && plaintiff.contact.email) {
+          await sendHearingTimeUpdateEmail(
+            { name: plaintiff.full_name, email: plaintiff.contact.email },
+            affectedCase,
+            { start: currentCase.listing_time_start },
+            { start: schedule.scheduled_cases[i].listing_time_start, end: schedule.scheduled_cases[i].listing_time_end }
+          );
+        }
+      }
+    }
+
+    res.status(200).json({
+      message: 'Hearing ended successfully',
+      updated_schedule: schedule.scheduled_cases
+    });
+
+  } catch (error) {
+    console.error('Error ending hearing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/courtadmin/schedule/dismiss-hearing', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { schedule_id, case_num, reason } = req.body;
+
+    const schedule = await DailyCourtSchedule.findOne({ schedule_id });
+    if (!schedule) {
+      return res.status(404).json({ message: 'Schedule not found' });
+    }
+
+    const caseIndex = schedule.scheduled_cases.findIndex(c => c.case_num === case_num);
+    if (caseIndex === -1) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    schedule.scheduled_cases[caseIndex].status = 'dismissed';
+    schedule.scheduled_cases[caseIndex].actual_end_time = new Date();
+
+    const dismissedCase = schedule.scheduled_cases[caseIndex];
+    const timeSaved = dismissedCase.estimated_duration * 60000;
+
+   
+    schedule.scheduled_cases = recalculateTimings(schedule.scheduled_cases, caseIndex + 1, -timeSaved);
+
+    if (caseIndex + 1 < schedule.scheduled_cases.length) {
+      schedule.current_case_index = caseIndex + 1;
+    }
+
+    schedule.last_updated = new Date();
+    await schedule.save();
+
+    const caseData = await LegalCase.findOne({ case_num });
+    const hearing = caseData.hearings.find(h => h.is_listed_for_today);
+    if (hearing) {
+      hearing.hearing_status = 'dismissed';
+      await caseData.save();
+    }
+
+    const io = req.app.get('io');
+    io.to(schedule.court_no).emit('case_dismissed', {
+      court_no: schedule.court_no,
+      case_num,
+      schedule: schedule.scheduled_cases,
+      current_case_index: schedule.current_case_index
+    });
+
+    res.status(200).json({
+      message: 'Hearing dismissed',
+      updated_schedule: schedule.scheduled_cases
+    });
+
+  } catch (error) {
+    console.error('Error dismissing hearing:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.get('/api/schedule/public/:court_no', async (req, res) => {
+  try {
+    const { court_no } = req.params;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const schedule = await DailyCourtSchedule.findOne({
+      date: today,
+      court_no: court_no
+    });
+
+    if (!schedule) {
+      return res.status(200).json({ 
+        message: 'No schedule found',
+        scheduled_cases: []
+      });
+    }
+
+    res.status(200).json({
+      court_no: schedule.court_no,
+      date: schedule.date,
+      scheduled_cases: schedule.scheduled_cases.map(c => ({
+        case_num: c.case_num,
+        listing_time_start: c.listing_time_start,
+        listing_time_end: c.listing_time_end,
+        status: c.status,
+        listing_order: c.listing_order,
+        case_type: c.case_type
+      })),
+      current_case_index: schedule.current_case_index
+    });
+
+  } catch (error) {
+    console.error('Error fetching public schedule:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+
+// REPLACE the entire /api/courtadmin/case/:caseNum/request-document route with:
+
+
+// REPLACE the entire /api/case/:caseNum/upload-requested-document/:documentId route with:
+app.post('/api/case/:caseNum/upload-requested-document/:documentId', 
+  authenticateToken, 
+  upload3.single('file'), 
+  logDocumentMiddleware,
+  async (req, res) => {
+  try {
+    const { caseNum, documentId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const docIndex = caseData.documents.findIndex(d => d.document_id === documentId);
+    if (docIndex === -1) {
+      return res.status(404).json({ message: 'Document request not found' });
+    }
+
+    const document = caseData.documents[docIndex];
+
+    const userType = req.user.user_type;
+    let userId = null;
+    let isAuthorized = false;
+
+    if (userType === 'litigant') {
+      userId = req.user.party_id;
+      // Litigant can only upload if document was requested from them
+      if (document.requested_from === userId && document.requested_from_type === 'litigant') {
+        isAuthorized = true;
+      }
+    } else if (userType === 'advocate') {
+      userId = req.user.advocate_id;
+      
+      // Case 1: Document requested directly from advocate
+      if (document.requested_from === userId && document.requested_from_type === 'advocate') {
+        isAuthorized = true;
+      }
+      
+      // Case 2: Document requested from a litigant that THIS advocate represents
+      if (document.requested_from_type === 'litigant') {
+        const litigantId = document.requested_from;
+        
+        // Check if advocate represents plaintiff
+        if (caseData.plaintiff_details?.party_id === litigantId && 
+            caseData.plaintiff_details?.advocate_id === userId) {
+          isAuthorized = true;
+        }
+        
+        // Check if advocate represents respondent
+        if (caseData.respondent_details?.party_id === litigantId && 
+            caseData.respondent_details?.advocate_id === userId) {
+          isAuthorized = true;
+        }
+      }
+    } else {
+      return res.status(403).json({ message: 'Access denied: Invalid user type' });
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ 
+        message: 'Access denied: You are not authorized to upload this document',
+        details: {
+          document_requested_from: document.requested_from,
+          document_requested_from_type: document.requested_from_type,
+          your_id: userId,
+          your_type: userType
+        }
+      });
+    }
+
+    if (document.verification_status !== 'pending_upload' && document.verification_status !== 'rejected') {
+      return res.status(400).json({ 
+        message: `Cannot upload document with status: ${document.verification_status}`,
+        current_status: document.verification_status
+      });
+    }
+
+    if (new Date() > new Date(document.submission_deadline)) {
+      return res.status(400).json({ 
+        message: 'Submission deadline has passed',
+        deadline: document.submission_deadline,
+        current_date: new Date()
+      });
+    }
+
+    const relativePath = file.path.replace(/\\/g, '/');
+    
+    document.file_name = file.originalname;
+    document.file_path = relativePath;
+    document.mime_type = file.mimetype;
+    document.size = file.size;
+    document.uploaded_by = userId;
+    document.uploaded_by_type = userType;
+    document.uploaded_date = new Date();
+    document.verification_status = 'uploaded_pending_review';
+
+    await caseData.save();
+
+    // Send email notification to admin
+    try {
+      const admin = await CourtAdmin.findOne({ admin_id: document.requested_by_admin });
+      if (admin && admin.email) {
+        const uploaderName = userType === 'litigant' 
+          ? caseData.plaintiff_details?.name || caseData.respondent_details?.name
+          : (await Advocate.findOne({ advocate_id: userId }))?.name || 'Unknown';
+        
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+              .header { background-color: #1a365d; color: white; padding: 15px; }
+              .content { padding: 20px; }
+              .detail { margin: 10px 0; }
+              .footer { color: #777; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2>Document Uploaded for Verification</h2>
+              </div>
+              <div class="content">
+                <p>A requested document has been uploaded and is pending your review.</p>
+                <div class="detail"><strong>Case Number:</strong> ${caseNum}</div>
+                <div class="detail"><strong>Document Type:</strong> ${document.document_type}</div>
+                <div class="detail"><strong>Uploaded By:</strong> ${uploaderName} (${userType})</div>
+                <div class="detail"><strong>File Name:</strong> ${file.originalname}</div>
+                <div class="detail"><strong>Upload Date:</strong> ${new Date().toLocaleDateString()}</div>
+                <p style="margin-top: 20px;">Please review and verify this document in your dashboard.</p>
+              </div>
+              <div class="footer">
+                <p>This is an automated notification from the Legal Case Management System.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        await sgMail.send({
+          to: admin.email,
+          from: process.env.FROM_EMAIL,
+          subject: `Document Uploaded for Verification - Case #${caseNum}`,
+          html: html
+        });
+      }
+    } catch (emailError) {
+      console.error('Error sending notification email:', emailError);
+      // Don't fail the upload if email fails
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Document uploaded successfully. Pending admin verification.',
+      document: {
+        document_id: document.document_id,
+        file_name: document.file_name,
+        uploaded_date: document.uploaded_date,
+        verification_status: document.verification_status,
+        size: document.size,
+        document_type: document.document_type,
+        uploaded_by: userId,
+        uploaded_by_type: userType
+      }
+    });
+
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+});
+// REPLACE the entire /api/courtadmin/case/:caseNum/verify-document/:documentId route with:
+// UNIFIED DOCUMENT REQUEST ROUTE
+// Admin: Must be assigned to the case's court
+// Clerk: Can work on any case (no court assignment check)
+app.post('/api/courtadmin/case/:caseNum/request-document', 
+  authenticateToken, 
+  logDocumentRequestMiddleware,
+  async (req, res) => {
+  try {
+    // Verify user is admin or clerk
+    if (req.user.user_type !== 'admin' && req.user.user_type !== 'clerk') {
+      return res.status(403).json({ 
+        message: 'Access denied: Only court administrators and clerks can request documents' 
+      });
+    }
+
+    const { caseNum } = req.params;
+    const {
+      document_type,
+      description,
+      requested_from,
+      requested_from_type,
+      submission_deadline
+    } = req.body;
+
+    // Validate required fields
+    if (!document_type || !requested_from || !requested_from_type || !submission_deadline) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: document_type, requested_from, requested_from_type, submission_deadline' 
+      });
+    }
+
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Get requester details (admin OR clerk)
+    let courtName;
+    let requesterName;
+    let requesterId;
+    
+    if (req.user.user_type === 'admin') {
+      const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin profile not found' });
+      }
+      courtName = admin.court_name;
+      requesterName = admin.name;
+      requesterId = req.user.admin_id;
+
+      // ✅ ADMIN ONLY: Check if case is assigned to their court
+      if (caseData.for_office_use_only?.court_allotted !== courtName) {
+        return res.status(403).json({ 
+          message: 'Access denied: Case not assigned to your court' 
+        });
+      }
+    } else if (req.user.user_type === 'clerk') {
+      const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
+      if (!clerk) {
+        return res.status(404).json({ message: 'Clerk profile not found' });
+      }
+      courtName = clerk.court_name;
+      requesterName = clerk.name;
+      requesterId = req.user.clerk_id;
+      
+      // ✅ CLERK: No court assignment check - can work on any case
+    }
+
+    // Validate requested party exists in the case
+    let isAuthorized = false;
+    let recipientInfo = null;
+
+    if (requested_from_type === 'litigant') {
+      if (caseData.plaintiff_details.party_id === requested_from) {
+        isAuthorized = true;
+        const litigant = await Litigant.findOne({ party_id: requested_from });
+        if (litigant) {
+          recipientInfo = {
+            name: litigant.full_name,
+            email: litigant.contact.email
+          };
+        }
+      } else if (caseData.respondent_details.party_id === requested_from) {
+        isAuthorized = true;
+        const litigant = await Litigant.findOne({ party_id: requested_from });
+        if (litigant) {
+          recipientInfo = {
+            name: litigant.full_name,
+            email: litigant.contact.email
+          };
+        }
+      }
+    } else if (requested_from_type === 'advocate') {
+      if (caseData.plaintiff_details.advocate_id === requested_from ||
+          caseData.respondent_details.advocate_id === requested_from) {
+        isAuthorized = true;
+        const advocate = await Advocate.findOne({ advocate_id: requested_from });
+        if (advocate) {
+          recipientInfo = {
+            name: advocate.name,
+            email: advocate.email
+          };
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ 
+        message: 'Requested party is not associated with this case' 
+      });
+    }
+
+    // Create document request
+    const documentId = new mongoose.Types.ObjectId().toString();
+    
+    const documentRequest = {
+      document_id: documentId,
+      document_type,
+      description: description || '',
+      requested_by_admin: requesterId,
+      requested_by_name: requesterName,
+      requested_from,
+      requested_from_type,
+      request_date: new Date(),
+      submission_deadline: new Date(submission_deadline),
+      request_description: description,
+      verification_status: 'pending_upload',
+      file_name: '',
+      file_path: '',
+      mime_type: '',
+      size: 0
+    };
+
+    if (!caseData.documents) {
+      caseData.documents = [];
+    }
+
+    caseData.documents.push(documentRequest);
+    await caseData.save();
+
+    // Send email notification
+    if (recipientInfo && recipientInfo.email) {
+      await sendDocumentRequestEmail(
+        recipientInfo,
+        { case_num: caseData.case_num, case_type: caseData.case_type },
+        documentRequest
+      );
+    }
+
+    res.status(201).json({
+      message: 'Document request created successfully',
+      document_request: {
+        document_id: documentRequest.document_id,
+        document_type: documentRequest.document_type,
+        requested_from_type: documentRequest.requested_from_type,
+        submission_deadline: documentRequest.submission_deadline,
+        verification_status: documentRequest.verification_status,
+        requested_by: requesterName
+      }
+    });
+
+  } catch (error) {
+    console.error('Error requesting document:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+// UNIFIED DOCUMENT VERIFICATION ROUTE
+// Admin: Must be assigned to the case's court
+app.patch('/api/courtadmin/case/:caseNum/verify-document/:documentId', 
+  authenticateToken,
+  async (req, res) => {
+  try {
+    // Verify user is admin or clerk
+    if (req.user.user_type !== 'admin' && req.user.user_type !== 'clerk') {
+      return res.status(403).json({ 
+        message: 'Access denied: Only court administrators and clerks can verify documents' 
+      });
+    }
+
+    const { caseNum, documentId } = req.params;
+    const { verification_status, verification_notes } = req.body;
+
+    // Validate verification status
+    if (!['verified', 'rejected'].includes(verification_status)) {
+      return res.status(400).json({ 
+        message: 'Invalid status. Must be "verified" or "rejected"' 
+      });
+    }
+
+    if (verification_status === 'rejected' && !verification_notes) {
+      return res.status(400).json({ 
+        message: 'Rejection reason (verification_notes) is required when rejecting a document' 
+      });
+    }
+
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Get verifier details and check authorization
+    let verifierName;
+    let verifierId;
+
+    if (req.user.user_type === 'admin') {
+      const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin profile not found' });
+      }
+      verifierName = admin.name;
+      verifierId = req.user.admin_id;
+
+      // ✅ ADMIN ONLY: Check if case is assigned to their court
+      if (caseData.for_office_use_only?.court_allotted !== admin.court_name) {
+        return res.status(403).json({ 
+          message: 'Access denied: Case not assigned to your court' 
+        });
+      }
+    } else if (req.user.user_type === 'clerk') {
+      const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
+      if (!clerk) {
+        return res.status(404).json({ message: 'Clerk profile not found' });
+      }
+      verifierName = clerk.name;
+      verifierId = req.user.clerk_id;
+      
+      // ✅ CLERK: No court assignment check - can verify documents in any case
+    }
+
+    // Find the document
+    const docIndex = caseData.documents.findIndex(d => d.document_id === documentId);
+    if (docIndex === -1) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const document = caseData.documents[docIndex];
+
+    // Check if document can be verified
+    if (document.verification_status !== 'uploaded_pending_review') {
+      return res.status(400).json({ 
+        message: `Cannot verify document with current status: ${document.verification_status}` 
+      });
+    }
+
+    // Update document verification status
+    document.verification_status = verification_status;
+    document.verified_by = verifierId;
+    document.verified_by_name = verifierName;
+    document.verification_date = new Date();
+    document.verification_notes = verification_notes || '';
+
+    if (verification_status === 'rejected') {
+      document.rejection_reason = verification_notes;
+    }
+
+    // ===== NEW: ADD DIGITAL SIGNATURE WHEN VERIFIED =====
+    if (verification_status === 'verified') {
+      const docHash = generateDocumentHash(document);
+      
+      document.digital_signature = {
+        is_signed: true,
+        signed_by: verifierId,
+        signed_by_name: verifierName,
+        signature_timestamp: new Date(),
+        signature_hash: docHash
+      };
+    }
+    // ===== END NEW SECTION =====
+
+    await caseData.save();
+
+    // Get recipient info for notification
+    let recipientInfo = null;
+    
+    if (document.uploaded_by_type === 'litigant') {
+      const litigant = await Litigant.findOne({ party_id: document.uploaded_by });
+      if (litigant) {
+        recipientInfo = {
+          name: litigant.full_name,
+          email: litigant.contact.email
+        };
+      }
+    } else if (document.uploaded_by_type === 'advocate') {
+      const advocate = await Advocate.findOne({ advocate_id: document.uploaded_by });
+      if (advocate) {
+        recipientInfo = {
+          name: advocate.name,
+          email: advocate.email
+        };
+      }
+    }
+
+    // Send email notification
+    if (recipientInfo && recipientInfo.email) {
+      await sendDocumentVerificationEmail(
+        recipientInfo,
+        { case_num: caseData.case_num },
+        document,
+        verification_status,
+        verification_notes
+      );
+    }
+
+    res.status(200).json({
+      message: `Document ${verification_status} successfully`,
+      document: {
+        document_id: document.document_id,
+        file_name: document.file_name,
+        verification_status: document.verification_status,
+        verified_by_name: document.verified_by_name,
+        verification_date: document.verification_date,
+        digital_signature: document.digital_signature
+      }
+    });
+
+  } catch (error) {
+    console.error('Error verifying document:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+// UNIFIED DOCUMENT REJECTION ROUTE
+// Admin: Must be assigned to the case's court
+// Clerk: Can reject documents in any case
+app.post('/api/courtadmin/case/:caseNum/reject-document/:documentId', 
+  authenticateToken,
+  async (req, res) => {
+  try {
+    // Verify user is admin or clerk
+    if (req.user.user_type !== 'admin' && req.user.user_type !== 'clerk') {
+      return res.status(403).json({ 
+        message: 'Access denied: Only court administrators and clerks can reject documents' 
+      });
+    }
+
+    const { caseNum, documentId } = req.params;
+    const { rejection_reason } = req.body;
+
+    if (!rejection_reason) {
+      return res.status(400).json({ message: 'Rejection reason is required' });
+    }
+
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Get rejecter details and check authorization
+    let rejecterName;
+    let rejecterId;
+
+    if (req.user.user_type === 'admin') {
+      const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin profile not found' });
+      }
+      rejecterName = admin.name;
+      rejecterId = req.user.admin_id;
+
+      // ✅ ADMIN ONLY: Check if case is assigned to their court
+      if (caseData.for_office_use_only?.court_allotted !== admin.court_name) {
+        return res.status(403).json({ 
+          message: 'Access denied: Case not assigned to your court' 
+        });
+      }
+    } else if (req.user.user_type === 'clerk') {
+      const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
+      if (!clerk) {
+        return res.status(404).json({ message: 'Clerk profile not found' });
+      }
+      rejecterName = clerk.name;
+      rejecterId = req.user.clerk_id;
+      
+      // ✅ CLERK: No court assignment check - can reject documents in any case
+    }
+
+    // Find the document
+    const docIndex = caseData.documents.findIndex(d => d.document_id === documentId);
+    if (docIndex === -1) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const document = caseData.documents[docIndex];
+
+    // Update document with rejection
+    document.verification_status = 'rejected';
+    document.verified_by = rejecterId;
+    document.verified_by_name = rejecterName;
+    document.verification_date = new Date();
+    document.rejection_reason = rejection_reason;
+    document.verification_notes = rejection_reason;
+
+    await caseData.save();
+
+    // Get recipient info for notification
+    let recipientInfo = null;
+    
+    if (document.uploaded_by_type === 'litigant') {
+      const litigant = await Litigant.findOne({ party_id: document.uploaded_by });
+      if (litigant) {
+        recipientInfo = {
+          name: litigant.full_name,
+          email: litigant.contact.email
+        };
+      }
+    } else if (document.uploaded_by_type === 'advocate') {
+      const advocate = await Advocate.findOne({ advocate_id: document.uploaded_by });
+      if (advocate) {
+        recipientInfo = {
+          name: advocate.name,
+          email: advocate.email
+        };
+      }
+    }
+
+    // Send email notification
+    if (recipientInfo && recipientInfo.email) {
+      await sendDocumentVerificationEmail(
+        recipientInfo,
+        { case_num: caseData.case_num },
+        document,
+        'rejected',
+        rejection_reason
+      );
+    }
+
+    res.status(200).json({
+      message: 'Document rejected successfully',
+      document: {
+        document_id: document.document_id,
+        file_name: document.file_name,
+        verification_status: document.verification_status,
+        rejection_reason: document.rejection_reason,
+        verified_by_name: document.verified_by_name,
+        verification_date: document.verification_date
+      }
+    });
+
+  } catch (error) {
+    console.error('Error rejecting document:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+// ============================================================
+// 5. GET: All Document Requests for Litigant/Advocate
+// ============================================================
+app.get('/api/my-document-requests', authenticateToken, async (req, res) => {
+  try {
+    const userType = req.user.user_type;
+    let userId = null;
+
+    if (userType === 'litigant') {
+      userId = req.user.party_id;
+    } else if (userType === 'advocate') {
+      userId = req.user.advocate_id;
+    } else {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Find all cases where user is involved
+    const cases = await LegalCase.find({
+      'documents': {
+        $elemMatch: {
+          requested_from: userId,
+          requested_from_type: userType
+        }
+      }
+    });
+
+    const documentRequests = [];
+
+    cases.forEach(caseData => {
+      caseData.documents.forEach(doc => {
+        if (doc.requested_from === userId && doc.requested_from_type === userType) {
+          documentRequests.push({
+            case_num: caseData.case_num,
+            case_type: caseData.case_type,
+            document_id: doc.document_id,
+            document_type: doc.document_type,
+            description: doc.description,
+            request_date: doc.request_date,
+            submission_deadline: doc.submission_deadline,
+            verification_status: doc.verification_status,
+            uploaded_date: doc.uploaded_date,
+            file_name: doc.file_name,
+            rejection_reason: doc.rejection_reason,
+            verification_notes: doc.verification_notes
+          });
+        }
+      });
+    });
+
+    res.status(200).json({
+      message: 'Document requests fetched successfully',
+      total: documentRequests.length,
+      requests: documentRequests
+    });
+
+  } catch (error) {
+    console.error('Error fetching document requests:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ============================================================
+// 6. GET: All Documents for a Case (Court Admin)
+// ============================================================
+app.get('/api/courtadmin/case/:caseNum/documents', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const { caseNum } = req.params;
+
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Verify admin access
+    const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin profile not found' });
+    }
+
+    if (caseData.for_office_use_only?.court_allotted !== admin.court_name) {
+      return res.status(403).json({ message: 'Access denied: Case not assigned to your court' });
+    }
+
+    res.status(200).json({
+      message: 'Documents fetched successfully',
+      case_num: caseData.case_num,
+      total_documents: caseData.documents.length,
+      documents: caseData.documents
+    });
+
+  } catch (error) {
+    console.error('Error fetching documents:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ============================================================
+// 7. GET: Verify Document Signature
+// ============================================================
+app.get('/api/case/:caseNum/document/:documentId/verify-signature', authenticateToken, async (req, res) => {
+  try {
+    const { caseNum, documentId } = req.params;
+
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    const document = caseData.documents.find(d => d.document_id === documentId);
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+
+    const verificationResult = verifyDocumentSignature(document);
+
+    res.status(200).json({
+      document_id: documentId,
+      file_name: document.file_name,
+      verification: verificationResult,
+      signature_details: document.digital_signature
+    });
+
+  } catch (error) {
+    console.error('Error verifying signature:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+// Admin/Clerk direct document upload (no request needed)
+// UNIFIED DOCUMENT UPLOAD ROUTE (Admin/Clerk Direct Upload)
+// Admin: Must be assigned to the case's court
+// Clerk: Can upload documents to any case
+app.post('/api/courtadmin/case/:caseNum/upload-document', 
+  authenticateToken, 
+  upload3.single('file'),
+  logDocumentMiddleware,
+  async (req, res) => {
+  try {
+    // Verify user is admin or clerk
+    if (req.user.user_type !== 'admin' && req.user.user_type !== 'clerk') {
+      return res.status(403).json({ 
+        message: 'Access denied: Only court administrators and clerks can upload documents' 
+      });
+    }
+
+    const { caseNum } = req.params;
+    const { document_type, description } = req.body;
+    const file = req.file;
+
+    // Validate required fields
+    if (!file || !document_type) {
+      return res.status(400).json({ 
+        message: 'File and document_type are required' 
+      });
+    }
+
+    // Find the case
+    const caseData = await LegalCase.findOne({ case_num: caseNum });
+    if (!caseData) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Get uploader details and check authorization
+    let uploaderName;
+    let uploaderId;
+
+    if (req.user.user_type === 'admin') {
+      const admin = await CourtAdmin.findOne({ admin_id: req.user.admin_id });
+      if (!admin) {
+        return res.status(404).json({ message: 'Admin profile not found' });
+      }
+      uploaderName = admin.name;
+      uploaderId = req.user.admin_id;
+
+      // ✅ ADMIN ONLY: Check if case is assigned to their court
+      if (caseData.for_office_use_only?.court_allotted !== admin.court_name) {
+        return res.status(403).json({ 
+          message: 'Access denied: Case not assigned to your court' 
+        });
+      }
+    } else if (req.user.user_type === 'clerk') {
+      const clerk = await Clerk.findOne({ clerk_id: req.user.clerk_id });
+      if (!clerk) {
+        return res.status(404).json({ message: 'Clerk profile not found' });
+      }
+      uploaderName = clerk.name;
+      uploaderId = req.user.clerk_id;
+      
+      // ✅ CLERK: No court assignment check - can upload documents to any case
+    }
+
+    // Generate document ID
+    const documentId = new mongoose.Types.ObjectId().toString();
+    const relativePath = file.path.replace(/\\/g, '/');
+
+    // ===== CREATE DOCUMENT OBJECT FIRST (before generating hash) =====
+    const newDocument = {
+      document_id: documentId,
+      document_type,
+      description: description || '',
+      file_name: file.originalname,
+      file_path: relativePath,
+      mime_type: file.mimetype,
+      size: file.size,
+      uploaded_by: uploaderId,
+      uploaded_by_type: req.user.user_type,
+      uploaded_by_name: uploaderName,
+      uploaded_date: new Date(),
+      verification_status: 'verified', // Auto-verified for admin/clerk uploads
+      verified_by: uploaderId,
+      verified_by_name: uploaderName,
+      verification_date: new Date()
+    };
+
+    // ===== NOW GENERATE HASH (after document object is complete) =====
+    const docHash = generateDocumentHash(newDocument);
+
+    // ===== ADD DIGITAL SIGNATURE =====
+    newDocument.digital_signature = {
+      is_signed: true,
+      signed_by: uploaderId,
+      signed_by_name: uploaderName,
+      signature_timestamp: new Date(),
+      signature_hash: docHash
+    };
+
+    // Initialize documents array if it doesn't exist
+    if (!caseData.documents) {
+      caseData.documents = [];
+    }
+
+    // Add document to case and save
+    caseData.documents.push(newDocument);
+    await caseData.save();
+
+    res.status(201).json({
+      message: 'Document uploaded successfully',
+      document: {
+        document_id: newDocument.document_id,
+        document_type: newDocument.document_type,
+        file_name: newDocument.file_name,
+        size: newDocument.size,
+        uploaded_by_name: newDocument.uploaded_by_name,
+        uploaded_date: newDocument.uploaded_date,
+        verification_status: newDocument.verification_status,
+        digital_signature: newDocument.digital_signature
+      }
+    });
+
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+});
+// FIXED: Get advocate document requests with automatic advocate details
+app.get('/api/advocate/my-document-requests', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.user_type !== 'advocate') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const advocateId = req.user.advocate_id;
+
+    // Find all cases where this advocate is assigned
+    const cases = await LegalCase.find({
+      $or: [
+        { 'plaintiff_details.advocate_id': advocateId },
+        { 'respondent_details.advocate_id': advocateId }
+      ]
+    });
+
+    const allRequests = [];
+
+    for (const caseData of cases) {
+      if (caseData.documents && caseData.documents.length > 0) {
+        const caseRequests = caseData.documents.filter(doc => {
+          // Case 1: Document requested directly from advocate
+          if (doc.requested_from_type === 'advocate' && doc.requested_from === advocateId) {
+            return true;
+          }
+
+          // Case 2: Document requested from a litigant that THIS advocate represents
+          if (doc.requested_from_type === 'litigant') {
+            const litigantId = doc.requested_from;
+            
+            // Check if this litigant is plaintiff AND advocate is plaintiff advocate
+            if (caseData.plaintiff_details?.party_id === litigantId && 
+                caseData.plaintiff_details?.advocate_id === advocateId) {
+              return true;
+            }
+
+            // Check if this litigant is respondent AND advocate is respondent advocate
+            if (caseData.respondent_details?.party_id === litigantId && 
+                caseData.respondent_details?.advocate_id === advocateId) {
+              return true;
+            }
+          }
+
+          return false;
+        }).map(doc => {
+          // Build the clean document object
+          const cleanDoc = {
+            document_id: doc.document_id,
+            document_type: doc.document_type,
+            description: doc.description,
+            file_name: doc.file_name,
+            file_path: doc.file_path,
+            mime_type: doc.mime_type,
+            size: doc.size,
+            requested_by_admin: doc.requested_by_admin,
+            requested_from: doc.requested_from,
+            requested_from_type: doc.requested_from_type,
+            request_date: doc.request_date,
+            submission_deadline: doc.submission_deadline,
+            request_description: doc.request_description,
+            verification_status: doc.verification_status,
+            uploaded_by: doc.uploaded_by,
+            uploaded_by_type: doc.uploaded_by_type,
+            uploaded_date: doc.uploaded_date,
+            verification_date: doc.verification_date,
+            verification_notes: doc.verification_notes,
+            verified_by: doc.verified_by,
+            verified_by_name: doc.verified_by_name,
+            case_num: caseData.case_num,
+            case_type: caseData.case_type,
+            court: caseData.court,
+            district: caseData.district,
+            plaintiff_name: caseData.plaintiff_details?.name,
+            respondent_name: caseData.respondent_details?.name
+          };
+
+          // ===== KEY CHANGE =====
+          // If document was requested from a litigant, automatically add advocate details
+          if (doc.requested_from_type === 'litigant') {
+            const litigantId = doc.requested_from;
+            
+            // Check if this litigant is plaintiff
+            if (caseData.plaintiff_details?.party_id === litigantId) {
+              cleanDoc.advocate_id = caseData.plaintiff_details?.advocate_id;
+              cleanDoc.advocate_name = caseData.plaintiff_details?.name; // party name
+              cleanDoc.requested_party_side = 'plaintiff';
+            }
+            // Check if this litigant is respondent
+            else if (caseData.respondent_details?.party_id === litigantId) {
+              cleanDoc.advocate_id = caseData.respondent_details?.advocate_id;
+              cleanDoc.advocate_name = caseData.respondent_details?.name; // party name
+              cleanDoc.requested_party_side = 'respondent';
+            }
+          }
+
+          return cleanDoc;
+        });
+
+        allRequests.push(...caseRequests);
+      }
+    }
+
+    allRequests.sort((a, b) => new Date(b.request_date) - new Date(a.request_date));
+
+    res.status(200).json({
+      success: true,
+      count: allRequests.length,
+      requests: allRequests
+    });
+
+  } catch (error) {
+    console.error('Error fetching advocate document requests:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch document requests', 
+      error: error.message 
+    });
+  }
+});
+// Replace existing app.listen with:
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
     console.log(`Site Server is live on ${PORT}`);
 });

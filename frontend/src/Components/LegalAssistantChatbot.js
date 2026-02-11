@@ -1,15 +1,25 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader,Volume2 , VolumeX} from "lucide-react";
-
+// Add this after the imports, before the component
+const isCriminalType = (caseType) => {
+  const criminalTypes = [
+    'Criminal', 
+    'MAGISTRIAL CASES', 
+    'MISC. CRIM APLN', 
+    'SESSIONS CASES', 
+    'CRIM APPEAL'
+  ];
+  return criminalTypes.includes(caseType);
+};
 const GeminiLegalAssistantChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { 
-      type: 'bot', 
-      content: 'Hello! I am Nova, your AI-powered legal assistant. I can help you:\n\n1. File a new case\n2. Find hearing details\n3. Check documents\n4. View court calendar\n5. Get meeting links\n\nHow can I assist you today?'
-    }
-  ]);
+const [messages, setMessages] = useState([
+  { 
+    type: 'bot', 
+    content: 'Hello! I am Nova, your AI-powered legal assistant. I can help you:\n\n1. 📋 File a new case (Civil, Criminal, Commercial, etc.)\n2. 🔔 Find hearing details\n3. 📄 Check documents\n4. 📅 View court calendar\n5. 📹 Get meeting links\n\nI support 30+ case types including:\n• Civil & Criminal cases\n• Commercial Suits\n• MACP, Arbitration\n• Sessions & Magistrial cases\n• And many more!\n\nHow can I assist you today?'
+  }
+]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeFlow, setActiveFlow] = useState(null);
@@ -250,11 +260,11 @@ Respond with ONLY the category name, nothing else.`;
       removeThinkingMessage();
 
       switch (intent) {
-        case 'create_case':
-          setActiveFlow('create_case');
-          setFlowStep(0);
-          addMessage('bot', '📋 Let\'s file a new case! First, what type of case is this?\n\nType "Civil" or "Criminal"');
-          break;
+       case 'create_case':
+  setActiveFlow('create_case');
+  setFlowStep(0);
+  addMessage('bot', '📋 Let\'s file a new case!\n\nWhat type of case is this?\n\n📋 Popular types:\n• Civil\n• Criminal\n• Commercial Suit\n• MACP\n• Sessions Cases\n• Civil Appeal\n\nOr type any other case type you need.');
+  break;
         case 'find_hearing':
           setActiveFlow('find_hearing');
           await handleFindHearingFlow(userInput);
@@ -283,20 +293,63 @@ Respond with ONLY the category name, nothing else.`;
 
     try {
       // Step 0: Case Type
-      if (flowStep === 0) {
-        if (lowerInput.includes('civil')) {
-          setCaseFormData(prev => ({ ...prev, case_type: 'Civil' }));
-          setFlowStep(1);
-          addMessage('bot', '✅ Civil case selected.\n\n👤 Please provide the plaintiff\'s (your) full name:');
-        } else if (lowerInput.includes('criminal')) {
-          setCaseFormData(prev => ({ ...prev, case_type: 'Criminal' }));
-          setFlowStep(1);
-          addMessage('bot', '✅ Criminal case selected.\n\n👤 Please provide the plaintiff\'s (your) full name:');
-        } else {
-          addMessage('bot', 'Please specify either "Civil" or "Criminal" case type.');
-        }
-        return;
-      }
+      // Step 0: Case Type
+if (flowStep === 0) {
+  // List of all valid case types
+  const caseTypes = {
+    'civil': 'Civil',
+    'criminal': 'Criminal',
+    'civ suits': 'CIV SUITS',
+    'exe pet': 'EXE PET',
+    'misc civ appln': 'MISC. CIV APPLN',
+    'misc. civ appln': 'MISC. CIV APPLN',
+    'mrg pet': 'MRG PET',
+    'macp': 'MACP',
+    'misc civ cases': 'MISC CIV CASES',
+    'civil appeal': 'CIVIL APPEAL',
+    'arbitn': 'ARBITN',
+    'misc civ appeal': 'MISC. CIV APPEAL',
+    'misc. civ appeal': 'MISC. CIV APPEAL',
+    'land refrnc': 'LAND REFRNC',
+    'magistrial cases': 'MAGISTRIAL CASES',
+    'misc exe': 'MISC. EXE.',
+    'misc. exe.': 'MISC. EXE.',
+    'labur main': 'LABUR MAIN',
+    'commercial suit': 'COMMERCIAL SUIT',
+    'misc crim apln': 'MISC. CRIM APLN',
+    'misc. crim apln': 'MISC. CRIM APLN',
+    'indus main': 'INDUS MAIN',
+    'civil rev': 'CIVIL REV.',
+    'civil rev.': 'CIVIL REV.',
+    'other tribnl': 'OTHER TRIBNL',
+    'indus misc': 'INDUS MISC',
+    'labur misc': 'LABUR MISC',
+    'elctn pet': 'ELCTN PET',
+    'co-op main': 'CO-OP MAIN',
+    'coop main': 'CO-OP MAIN',
+    'commercial appeal': 'COMMERCIAL APPEAL',
+    'co-op apeal main': 'CO-OP APEAL MAIN',
+    'coop apeal main': 'CO-OP APEAL MAIN',
+    'co-op misc': 'CO-OP MISC.',
+    'co-op misc.': 'CO-OP MISC.',
+    'coop misc': 'CO-OP MISC.',
+    'sessions cases': 'SESSIONS CASES',
+    'crim appeal': 'CRIM APPEAL'
+  };
+  
+  // Check if input matches any case type
+  const matchedType = caseTypes[lowerInput.trim()];
+  
+  if (matchedType) {
+    setCaseFormData(prev => ({ ...prev, case_type: matchedType }));
+    setFlowStep(1);
+    addMessage('bot', `✅ ${matchedType} case selected.\n\n👤 Please provide the plaintiff's (your) full name:`);
+  } else {
+    // Show available options
+    addMessage('bot', `Please specify a valid case type. Some common types are:\n\n📋 CIVIL TYPES:\n• Civil\n• CIV SUITS\n• Civil Appeal\n• Commercial Suit\n• MACP\n• Land Refrnc\n\n⚖️ CRIMINAL TYPES:\n• Criminal\n• Sessions Cases\n• Crim Appeal\n• Magistrial Cases\n\n💼 OTHER TYPES:\n• Arbitn\n• Co-op Main\n• Indus Main\n• Labur Main\n\nType the case type name (e.g., "Civil" or "Commercial Suit")`);
+  }
+  return;
+}
 
       // Step 1: Plaintiff Name
       if (flowStep === 1) {
@@ -463,25 +516,31 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
     }
   };
 
-  const submitCase = async () => {
-    addThinkingMessage();
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        removeThinkingMessage();
-        addMessage('bot', '❌ Authentication required. Please log in first.');
-        resetCaseFlow();
-        return;
-      }
+const submitCase = async () => {
+  addThinkingMessage();
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      removeThinkingMessage();
+      addMessage('bot', '❌ Authentication required. Please log in first.');
+      resetCaseFlow();
+      return;
+    }
 
-      const response = await fetch('https://ecourt-yr51.onrender.com/api/filecase/litigant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(caseFormData)
-      });
+    // Prepare data - remove police station details for non-criminal cases
+    const dataToSubmit = { ...caseFormData };
+    if (!isCriminalType(caseFormData.case_type)) {
+      delete dataToSubmit.police_station_details;
+    }
+
+    const response = await fetch('http://localhost:5000/api/filecase/litigant', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(dataToSubmit)
+    });
 
       const data = await response.json();
       removeThinkingMessage();
@@ -550,7 +609,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       }
 
       const response = await fetch(
-        `https://ecourt-yr51.onrender.com/api/case/${targetCaseNumber}/hearings`,
+        `http://localhost:5000/api/case/${targetCaseNumber}/hearings`,
         { 
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'
@@ -605,7 +664,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
         return;
       }
 
-      const response = await fetch('https://ecourt-yr51.onrender.com/api/cases/litigant', {
+      const response = await fetch('http://localhost:5000/api/cases/litigant', {
         headers: { 'Authorization': `Bearer ${token}` },
         method: 'GET'
       });
@@ -651,7 +710,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       const lowerInput = userInput.toLowerCase();
       
       if (lowerInput.includes('today')) {
-        const response = await fetch('https://ecourt-yr51.onrender.com/api/calendar/today', {
+        const response = await fetch('http://localhost:5000/api/calendar/today', {
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'
         });
@@ -703,7 +762,7 @@ Type "CONFIRM" to submit the case or "CANCEL" to start over.`;
       }
 
       const response = await fetch(
-        `https://ecourt-yr51.onrender.com/api/case/${targetCaseNumber}/video-meeting`,
+        `http://localhost:5000/api/case/${targetCaseNumber}/video-meeting`,
         { 
           headers: { 'Authorization': `Bearer ${token}` },
           method: 'GET'

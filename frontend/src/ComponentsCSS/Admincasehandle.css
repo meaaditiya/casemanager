@@ -120,7 +120,7 @@
 
 .admin-case-item.selected {
   background-color: #f0f4f9;
-  border-left: 4px solid #0366d6;
+  border-left: 2px solid #0366d6;
 }
 
 .admin-case-number {
@@ -500,7 +500,7 @@
 }
 
 .admin-hearings-timeline {
-  border-left: 2px solid #d0d7de;
+ 
   padding-left: 1.5rem;
   margin-left: 0.5rem;
 }
@@ -768,4 +768,175 @@
   .admin-tab-content {
     overflow-x: auto;
   }
+}
+/* Text Editor Toolbar */
+.text-editor-toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+  background: #e9ecef;
+  border-color: #999;
+}
+
+.toolbar-btn:active {
+  background: #dee2e6;
+}
+
+.toggle-editor-btn {
+  margin-left: 10px;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.toggle-editor-btn:hover {
+  background: #0056b3;
+}
+
+.hearing-remarks-textarea {
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  border-radius: 0 0 4px 4px;
+}
+
+.formatting-help {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+/* Hearing Remarks Display */
+.admin-hearing-remarks {
+  margin: 12px 0;
+  padding: 12px;
+  background: #f8f9fa;
+  
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.admin-hearing-remarks strong {
+  font-weight: 600;
+}
+
+.admin-hearing-remarks em {
+  font-style: italic;
+}
+
+.admin-hearing-remarks u {
+  text-decoration: underline;
+}
+
+/* Digital Signature Styles */
+.digital-signature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #28a745;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.digital-signature-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-hearing-signature-info {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e7f5ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 4px;
+}
+
+.signature-details {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.signature-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.signature-value {
+  color: #212529;
+}
+
+.verify-btn {
+  margin-top: 8px;
+  background: #17a2b8;
+  color: white;
+}
+
+.verify-btn:hover {
+  background: #138496;
+}
+
+.sign-btn {
+  background: #28a745;
+  color: white;
+}
+
+.sign-btn:hover {
+  background: #218838;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.help-text {
+  display: block;
+  margin-top: 4px;
+  color: #6c757d;
+  font-size: 12px;
+}
+
+/* Hearing Header */
+.admin-hearing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
 }

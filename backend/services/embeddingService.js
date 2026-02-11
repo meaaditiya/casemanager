@@ -64,7 +64,7 @@ async function generateEmbedding(text, taskType = 'RETRIEVAL_DOCUMENT') {
     
     // Use Gemini's embedding model
     const embeddingModel = genAI.getGenerativeModel({ 
-      model: 'text-embedding-004' 
+      model: 'gemini-embedding-001' 
     });
     
     // Generate embedding with task type
@@ -111,7 +111,7 @@ async function generateBlogEmbedding(blog) {
     // Update blog with new embedding and metadata
     blog.embedding = embedding;
     blog.embeddingMetadata = {
-      model: 'text-embedding-004',
+      model: 'gemini-embedding-001',
       generatedAt: new Date(),
       contentHash: contentHash,
       dimension: embedding.length
